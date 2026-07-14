@@ -33,7 +33,13 @@ struct NotchCompactView: View {
             // side: obstacles enter on the right, vanish under the camera and
             // re-emerge on the left, where Clawd jumps them.
             if store.settings.runnerEnabled {
-                NotchRunnerView()
+                let game = store.runnerGame
+                NotchRunnerView(
+                    usedPercent: game.used,
+                    isGameOver: game.gameOver,
+                    resetsAt: game.resetsAt,
+                    obstacleTint: game.obstacleTint
+                )
                     .frame(
                         width: viewModel.geometry.hasNotch
                             ? viewModel.geometry.notchWidth + 110

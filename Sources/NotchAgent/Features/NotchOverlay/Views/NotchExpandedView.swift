@@ -38,11 +38,18 @@ struct NotchExpandedView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipped()
                 footer
-                // The dino-game strip doubles as the panel's ground line.
+                // The dino-game strip doubles as the panel's ground line;
+                // difficulty tracks the real session gauge.
                 if store.settings.runnerEnabled {
-                    NotchRunnerView()
-                        .frame(height: 26)
-                        .padding(.horizontal, 4)
+                    let game = store.runnerGame
+                    NotchRunnerView(
+                        usedPercent: game.used,
+                        isGameOver: game.gameOver,
+                        resetsAt: game.resetsAt,
+                        obstacleTint: game.obstacleTint
+                    )
+                    .frame(height: 26)
+                    .padding(.horizontal, 4)
                 }
             }
             .padding(.horizontal, 14)
