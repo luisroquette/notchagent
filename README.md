@@ -4,9 +4,39 @@
 
 A native macOS menu-bar + notch overlay that answers one question at a glance: **how much of my Claude Code / Codex limit is left?** Official quota percentages (read from Anthropic's rate-limit headers), burn-rate projections ("runs out at 16:40"), per-model usage and cost estimates, escalating low-fuel alerts — all local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
 
+![The compact notch bar: Claude on the left wing, Codex on the right](docs/img/notch-compact.png)
+
+![Hover the notch to expand the gauge panel](docs/img/desktop-now.png)
+
+| NOW — % left per provider | BURN — will the session last? |
+|---|---|
+| ![NOW page](docs/img/panel-now.png) | ![BURN page with projection and scrubbing](docs/img/panel-burn.png) |
+
+| RHYTHM — when do you burn? | MODELS — live probe + cost per model |
+|---|---|
+| ![RHYTHM page](docs/img/panel-rhythm.png) | ![MODELS page](docs/img/panel-models.png) |
+
+<details>
+<summary><b>More screenshots</b> — dashboard, burn scrubbing, settings</summary>
+
+![Burn chart hover scrubbing over the desktop](docs/img/desktop-burn.png)
+![Dashboard: session tokens over time + hourly rhythm](docs/img/dashboard-1.png)
+![Dashboard: per-provider breakdown](docs/img/dashboard-2.png)
+![Settings: appearance, login item, alerts, quota probe](docs/img/settings.png)
+
+</details>
+
 ## Install
 
-**Download** the latest `NotchAgent.app` from [Releases](../../releases), unzip, move to `/Applications`, then clear the quarantine flag (the app is not notarized yet — it's free and unsigned):
+**Homebrew** (recommended):
+
+```bash
+brew install --cask luisroquette/tap/notchagent
+xattr -dr com.apple.quarantine /Applications/NotchAgent.app   # free & unsigned — clears Gatekeeper once
+open /Applications/NotchAgent.app
+```
+
+**Or download** the latest `NotchAgent.app` from [Releases](../../releases), unzip, move to `/Applications`, then clear the quarantine flag:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/NotchAgent.app
