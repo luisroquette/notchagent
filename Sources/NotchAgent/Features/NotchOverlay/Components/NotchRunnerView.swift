@@ -220,13 +220,19 @@ extension UsageStore {
     /// window that actually limits the user's day.
     var runnerGame: (used: Double, gameOver: Bool, resetsAt: Date?, obstacleTint: Color) {
         let snapshot = snapshots[.claudeCode]
-        let used = snapshot?.session?.usedPercent ?? 0
+        // Same gauge the wings show (session first, weekly fallback) — the
+        // game must never look relaxed while the visible meter is red.
+        let metric = GaugeMetric.from(snapshot)
+        let used = metric?.used ?? 0
         let blocked = snapshot?.quotaStatus == .blocked
+        let resets = metric?.isWeekly == true
+            ? snapshot?.weekly?.resetsAt
+            : snapshot?.session?.resetsAt
         let tint = Theme.ramp(
             used,
             warningAt: settings.warningThresholdPercent,
             criticalAt: settings.criticalThresholdPercent
         )
-        return (used, used >= 99.5 || blocked, snapshot?.session?.resetsAt, tint.opacity(0.8))
+        return (used, used >= 99.5 || blocked, resets, tint.opacity(0.8))
     }
 }

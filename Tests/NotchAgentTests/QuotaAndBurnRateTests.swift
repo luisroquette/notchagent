@@ -20,13 +20,18 @@ final class ClaudeQuotaProbeParseTests: XCTestCase {
         XCTAssertEqual(quota.limitingWindow, "seven_day")
     }
 
-    func testToleratesPercentScaleAndClampsRange() {
+    func testToleratesPercentScaleWithoutFalseCritical() {
         let quota = ClaudeQuotaProbe.parse(headers: [
             "anthropic-ratelimit-unified-5h-utilization": "37",
             "anthropic-ratelimit-unified-7d-utilization": "1.4",
         ])
         XCTAssertEqual(quota.sessionPercent, 37)
-        XCTAssertEqual(quota.weeklyPercent!, 100, accuracy: 0.001, "0–1 scale above 1 clamps to 100")
+        // Ambiguous scale (could be 140% overage on 0–1, or 1.4% on 0–100):
+        // err toward understating — never fabricate a 100% that fires alerts.
+        XCTAssertEqual(quota.weeklyPercent!, 1.4, accuracy: 0.001)
+        XCTAssertEqual(ClaudeQuotaProbe.parse(headers: [
+            "anthropic-ratelimit-unified-5h-utilization": "1.0",
+        ]).sessionPercent, 100)
     }
 
     func testRejectedStatusAndMissingHeaders() {

@@ -45,7 +45,16 @@ enum JSONLReader {
         defer { try? handle.close() }
 
         let size = try handle.seekToEnd()
-        let offset = size > UInt64(maxBytes) ? size - UInt64(maxBytes) : 0
+        var offset = size > UInt64(maxBytes) ? size - UInt64(maxBytes) : 0
+        // If the cut lands exactly after a newline, the first line in the
+        // window is already complete — dropping it would discard valid data.
+        var firstLineIsPartial = offset > 0
+        if offset > 0 {
+            try handle.seek(toOffset: offset - 1)
+            if let byte = try handle.read(upToCount: 1), byte.first == 0x0A {
+                firstLineIsPartial = false
+            }
+        }
         try handle.seek(toOffset: offset)
         guard let data = try handle.readToEnd(), !data.isEmpty else { return [] }
 
@@ -58,8 +67,8 @@ enum JSONLReader {
             }
             start = newline < data.endIndex ? data.index(after: newline) : data.endIndex
         }
-        // The first line is likely cut in half when we started mid-file.
-        if offset > 0, !lines.isEmpty {
+        // The first line is cut in half when we started mid-line.
+        if firstLineIsPartial, !lines.isEmpty {
             lines.removeFirst()
         }
         return lines

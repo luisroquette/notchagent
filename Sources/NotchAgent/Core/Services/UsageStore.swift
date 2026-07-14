@@ -17,7 +17,10 @@ final class UsageStore {
     private(set) var activeIncident: String?
     /// Escalating "space left" alert currently taking over the notch panel.
     private(set) var activeThresholdAlert: ThresholdAlert?
-    @ObservationIgnored private var firedThresholds: [ProviderID: Set<Int>] = [:]
+    /// Fired sets are keyed per provider AND per window (session vs weekly):
+    /// the gauge flipping between windows must not suppress nor re-fire alerts.
+    @ObservationIgnored private var firedThresholds: [String: Set<Int>] = [:]
+    @ObservationIgnored private var alertDismissTask: Task<Void, Never>?
     var isPaused = false
 
     let preferences: PreferencesStore
@@ -109,15 +112,19 @@ final class UsageStore {
     }
 
     private func processThresholds(_ snapshot: UsageSnapshot) {
-        guard let metric = GaugeMetric.from(snapshot) else {
-            firedThresholds[snapshot.provider] = []
-            return
-        }
+        // A transient snapshot without a gauge keeps the fired sets intact —
+        // resetting here would re-fire (and re-notify) already-seen crossings.
+        guard let metric = GaugeMetric.from(snapshot) else { return }
         let remaining = metric.remaining
-        var fired = firedThresholds[snapshot.provider] ?? []
+        let key = "\(snapshot.provider.rawValue)·\(metric.isWeekly ? "wk" : "5h")"
+        var fired = firedThresholds[key] ?? []
 
         if ThresholdAlerts.shouldReset(remaining: remaining) {
             fired = []
+            // Window reset also clears a lingering takeover for this provider.
+            if activeThresholdAlert?.provider == snapshot.provider {
+                dismissThresholdAlert()
+            }
         }
         if let threshold = ThresholdAlerts.newCrossing(remaining: remaining, alreadyFired: fired) {
             fired.formUnion(ThresholdAlerts.crossed(remaining: remaining))
@@ -127,16 +134,38 @@ final class UsageStore {
                 remaining: remaining,
                 isWeekly: metric.isWeekly
             )
-            activeThresholdAlert = alert
+            present(alert)
             let level = ThresholdAlerts.attentionLevel(for: threshold)
             let message = ThresholdAlerts.message(for: alert)
             record(UsageEvent(provider: snapshot.provider, kind: .alert, level: level, message: message))
             onAlert?(ProviderAlert(provider: snapshot.provider, level: level, message: message))
         }
-        firedThresholds[snapshot.provider] = fired
+        firedThresholds[key] = fired
+    }
+
+    /// Severity-aware takeover: a sticky 5% moment is never replaced by a
+    /// milder crossing from another provider in the same refresh cycle.
+    private func present(_ alert: ThresholdAlert) {
+        if let current = activeThresholdAlert, current.threshold < alert.threshold {
+            return
+        }
+        activeThresholdAlert = alert
+        // Auto-dismiss lives in the STORE, not the view — collapsing the panel
+        // mid-countdown must not orphan a stale alert for hours (review finding).
+        alertDismissTask?.cancel()
+        guard alert.threshold > 5 else { return }
+        alertDismissTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(4.5))
+            guard !Task.isCancelled else { return }
+            if self?.activeThresholdAlert == alert {
+                self?.dismissThresholdAlert()
+            }
+        }
     }
 
     func dismissThresholdAlert() {
+        alertDismissTask?.cancel()
+        alertDismissTask = nil
         activeThresholdAlert = nil
     }
 

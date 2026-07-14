@@ -57,6 +57,9 @@ struct GeminiProvider: UsageProvider {
             }
         }
 
+        let scanned = projectDirs.map { $0.appendingPathComponent("logs.json").path }
+        await cache.prune(keeping: Set(scanned))
+
         let health: ProviderHealth
         if prompts7d == 0 && lastActivity == nil {
             health = failedFiles > 0 ? .parseError : .noData

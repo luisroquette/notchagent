@@ -19,6 +19,11 @@ final class NotchViewModel {
 
     private(set) var mode: Mode = .compact
     var isPinned = false
+    /// Live pointer-over state; dismiss flows use it to avoid collapsing the
+    /// panel under the user's cursor.
+    private(set) var isHovering = false
+    /// While a threshold takeover is on screen, paging gestures are ignored.
+    var isAlertPresented = false
     var geometry: NotchGeometry
     static let pageCount = 5
 
@@ -72,6 +77,7 @@ final class NotchViewModel {
     }
 
     func hoverChanged(_ hovering: Bool) {
+        isHovering = hovering
         hoverTask?.cancel()
         if hovering {
             hoverTask = Task { [weak self] in
@@ -124,7 +130,7 @@ final class NotchViewModel {
     /// or a real pause unlocks. Plain scroll wheels (no phases) rely on the
     /// pause-based unlock.
     func handleScroll(deltaX: CGFloat, phase: NSEvent.Phase, momentumPhase: NSEvent.Phase) {
-        guard isExpanded else { return }
+        guard isExpanded, !isAlertPresented else { return }
         let now = Date()
 
         let isNewGesture = phase.contains(.began)

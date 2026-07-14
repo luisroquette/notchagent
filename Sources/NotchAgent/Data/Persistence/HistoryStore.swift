@@ -17,6 +17,7 @@ actor HistoryStore {
     private let fileURL: URL
     private var points: [Point] = []
     private var loaded = false
+    private var dirty = false
     private static let retention: TimeInterval = 30 * 24 * 3600
 
     init(fileURL: URL = AppPaths.appSupport.appendingPathComponent("history.json")) {
@@ -40,6 +41,13 @@ actor HistoryStore {
             points.append(point)
         }
         prune()
+        dirty = true
+    }
+
+    /// One write per refresh cycle instead of one per provider.
+    func flush() {
+        guard dirty else { return }
+        dirty = false
         persist()
     }
 
@@ -63,7 +71,17 @@ actor HistoryStore {
         guard let data = try? Data(contentsOf: fileURL) else { return }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        points = (try? decoder.decode([Point].self, from: data)) ?? []
+        do {
+            points = try decoder.decode([Point].self, from: data)
+        } catch {
+            // Never let one bad decode silently wipe 30 days on the next
+            // persist — park the unreadable file for post-mortem instead.
+            Log.persistence.error("history decode failed, backing up: \(error.localizedDescription, privacy: .public)")
+            let backup = fileURL.appendingPathExtension("corrupt")
+            try? FileManager.default.removeItem(at: backup)
+            try? FileManager.default.moveItem(at: fileURL, to: backup)
+            points = []
+        }
     }
 
     private func prune() {

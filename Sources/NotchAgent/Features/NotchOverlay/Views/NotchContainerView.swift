@@ -49,8 +49,13 @@ struct NotchContainerView: View {
         .frame(width: NotchViewModel.canvasSize.width, height: NotchViewModel.canvasSize.height, alignment: .top)
         .onChange(of: store.activeThresholdAlert) { _, alert in
             // A threshold crossing takes over the panel, escalating with severity.
+            viewModel.isAlertPresented = alert != nil
             if alert != nil {
                 viewModel.forceExpand()
+            } else if !viewModel.isPinned, !viewModel.isHovering {
+                // Auto-dismiss with the cursor away → tidy up; with the cursor
+                // inside, stay expanded so the gauges replace the alert in place.
+                viewModel.collapseNow()
             }
         }
     }
@@ -61,9 +66,6 @@ struct NotchContainerView: View {
             if let alert = store.activeThresholdAlert {
                 AlertMomentView(alert: alert) {
                     store.dismissThresholdAlert()
-                    if !viewModel.isPinned {
-                        viewModel.collapseNow()
-                    }
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, viewModel.geometry.hasNotch ? viewModel.geometry.topInset + 6 : 12)

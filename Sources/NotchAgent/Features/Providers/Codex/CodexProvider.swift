@@ -18,6 +18,18 @@ struct CodexProvider: UsageProvider {
         self.root = root
     }
 
+    /// "rollout-2026-07-13T14-04-44-<uuid>.jsonl" → local start date.
+    static func rolloutStart(from url: URL) -> Date? {
+        let name = url.lastPathComponent
+        guard name.hasPrefix("rollout-"), name.count >= 27 else { return nil }
+        let stamp = String(name.dropFirst(8).prefix(19))
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd'T'HH-mm-ss"
+        return formatter.date(from: stamp)
+    }
+
     func detectInstallation() -> ProviderInstallation {
         FileManager.default.fileExists(atPath: root.path)
             ? .installed(dataPath: root.path)
@@ -35,39 +47,51 @@ struct CodexProvider: UsageProvider {
             return UsageSnapshot(provider: id, health: .noData, note: "No sessions in the last 8 days")
         }
 
-        var perFile: [CodexTokenInfo] = []
+        // Rollout totals are CUMULATIVE for the whole rollout, so window
+        // membership must use when the rollout STARTED (from the filename),
+        // not its last event — otherwise a 10h-old session whose last ping was
+        // 5 minutes ago would dump 10h of tokens into the current 5h window.
+        var perFile: [(info: CodexTokenInfo, start: Date)] = []
         var failedFiles = 0
         for url in files {
             do {
                 if let info = try await cache.value(for: url, parse: { try CodexRolloutParser.latestTokenInfo(at: $0) }),
                    let info {
-                    perFile.append(info)
+                    let start = Self.rolloutStart(from: url) ?? info.timestamp ?? .distantPast
+                    perFile.append((info, start))
                 }
             } catch {
                 failedFiles += 1
                 Log.providers.error("codex: failed to parse \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
         }
+        await cache.prune(keeping: Set(files.map(\.path)))
 
         guard !perFile.isEmpty else {
             return UsageSnapshot(provider: id, health: failedFiles > 0 ? .parseError : .noData)
         }
 
         // Newest rollout carries the freshest rate limits + current session totals.
-        let latest = perFile.max { ($0.timestamp ?? .distantPast) < ($1.timestamp ?? .distantPast) }!
-        // Window semantics vary per plan — classify by duration, never by position.
-        let sessionWindow = latest.sessionWindow
-        let weeklyWindow = latest.weeklyWindow
+        let latest = perFile.max { ($0.info.timestamp ?? .distantPast) < ($1.info.timestamp ?? .distantPast) }!.info
+        // Window semantics vary per plan — classify by duration, never by
+        // position — and NEVER trust a window whose reset already passed
+        // (an idle weekend must not freeze Friday's 80% as today's truth).
+        func freshWindow(_ window: CodexRateWindow?) -> CodexRateWindow? {
+            guard let window else { return nil }
+            if let resets = window.resetsAt, resets <= now { return nil }
+            return window
+        }
+        let sessionWindow = freshWindow(latest.sessionWindow)
+        let weeklyWindow = freshWindow(latest.weeklyWindow)
 
-        // Session tokens: sum every rollout active inside the official window
-        // (reset − window length) — concurrent sessions must not undercount.
+        // Session tokens: sum every rollout STARTED inside the official window;
+        // long-lived rollouts that began earlier are excluded (documented
+        // undercount — the authoritative number is the percentage anyway).
         var sessionTokens = latest.totals
         if let window = sessionWindow, let resets = window.resetsAt, let minutes = window.windowMinutes {
             let windowStart = resets.addingTimeInterval(-Double(minutes) * 60)
-            let inWindow = perFile.filter { ($0.timestamp ?? .distantPast) >= windowStart }
-            if !inWindow.isEmpty {
-                sessionTokens = inWindow.reduce(TokenUsage.zero) { $0 + $1.totals }
-            }
+            let inWindow = perFile.filter { $0.start >= windowStart }
+            sessionTokens = inWindow.reduce(TokenUsage.zero) { $0 + $1.info.totals }
         }
         let session = SessionUsage(
             tokens: sessionTokens,
@@ -82,14 +106,15 @@ struct CodexProvider: UsageProvider {
         var byDay: [Date: (tokens: Int, cost: Double)] = [:]
         var byHour: [Date: Int] = [:]
         var byModel: [String: TokenUsage] = [:]
-        for info in perFile {
-            guard let ts = info.timestamp, ts >= weekCutoff else { continue }
+        for entry in perFile {
+            let info = entry.info
+            guard entry.start >= weekCutoff else { continue }
             weekTokens += info.totals
             let cost = PricingTable.costUSD(model: defaultModel, usage: info.totals)
-            let day = ts.flooredToDay
+            let day = entry.start.flooredToDay
             let current = byDay[day] ?? (0, 0)
             byDay[day] = (current.tokens + info.totals.total, current.cost + cost)
-            byHour[ts.flooredToHour, default: 0] += info.totals.total
+            byHour[entry.start.flooredToHour, default: 0] += info.totals.total
             byModel[info.model ?? "unknown", default: .zero] += info.totals
         }
         let breakdown = byModel

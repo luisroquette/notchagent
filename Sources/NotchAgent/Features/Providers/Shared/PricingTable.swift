@@ -24,6 +24,8 @@ public enum PricingTable {
         ("claude-sonnet", ModelPricing(input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3)),
         ("claude-haiku", ModelPricing(input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.1)),
         ("claude-3-5-haiku", ModelPricing(input: 0.8, output: 4, cacheWrite: 1, cacheRead: 0.08)),
+        ("claude-3-opus", ModelPricing(input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.5)),
+        ("claude-3-haiku", ModelPricing(input: 0.25, output: 1.25, cacheWrite: 0.3, cacheRead: 0.03)),
         ("claude", ModelPricing(input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3)),
         ("gpt-5", ModelPricing(input: 1.25, output: 10, cacheWrite: 0, cacheRead: 0.125)),
         ("gpt-4", ModelPricing(input: 2.5, output: 10, cacheWrite: 0, cacheRead: 1.25)),

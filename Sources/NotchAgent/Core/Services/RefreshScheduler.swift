@@ -12,6 +12,7 @@ final class RefreshScheduler {
     private let historyStore: HistoryStore
     private let statusPage = StatusPageService()
     private var loopTask: Task<Void, Never>?
+    private var tickInFlight = false
 
     init(
         providers: [any UsageProvider],
@@ -56,7 +57,16 @@ final class RefreshScheduler {
         Task { await tick(force: true) }
     }
 
+    /// Stop + start: applies a changed refresh interval immediately instead of
+    /// waiting out the previous (possibly 5-minute) sleep.
+    func restart() {
+        stop()
+        start()
+    }
+
     @objc private func systemDidWake() {
+        // Respect a user-initiated pause — waking the lid must not spend probes.
+        guard !store.isPaused else { return }
         Log.refresh.info("system woke — refreshing")
         refreshNow()
     }
@@ -65,6 +75,11 @@ final class RefreshScheduler {
         if store.isPaused && !force {
             return
         }
+        // A wake-triggered forced tick may race the periodic loop — never run
+        // two ticks interleaved (double fetches, flapping refresh states).
+        guard !tickInFlight else { return }
+        tickInFlight = true
+        defer { tickInFlight = false }
         let settings = store.settings
         for provider in providers {
             store.markRefreshing(provider.id)
@@ -103,6 +118,7 @@ final class RefreshScheduler {
         }
 
         await snapshotStore.save(store.snapshots)
+        await historyStore.flush()
         await updateSparklines()
         store.setIncident(await statusPage.activeIncident())
     }

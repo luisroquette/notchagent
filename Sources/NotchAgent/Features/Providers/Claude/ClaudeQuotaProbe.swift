@@ -188,10 +188,14 @@ actor ClaudeQuotaProbe {
         )
     }
 
-    /// Utilization arrives on a 0–1 scale; tolerate providers switching to 0–100.
+    /// Utilization arrives on a 0–1 scale; tolerate a switch to 0–100.
+    /// Only values ≤ 1.0 (mathematically valid utilizations) are treated as
+    /// the 0–1 scale — anything above passes through as a percentage. If the
+    /// scale is ambiguous we err toward UNDERSTATING (a quiet gauge) rather
+    /// than a false 100% that would fire the whole alert cascade.
     private static func percent(_ raw: String?) -> Double? {
         guard let raw, let value = Double(raw) else { return nil }
-        let scaled = value <= 1.5 ? value * 100 : value
+        let scaled = value <= 1.0 ? value * 100 : value
         return min(max(scaled, 0), 100)
     }
 

@@ -47,10 +47,19 @@ struct ClaudeProvider: UsageProvider {
             return UsageSnapshot(provider: id, health: .notInstalled)
         }
 
+        // Freshness rules (review finding): a cached quota is only trusted
+        // while it is recent AND its windows have not already reset — an
+        // expired token or dead network must never freeze yesterday's 60%
+        // as today's truth. Stale quota degrades to the local heuristics.
         var quota: ClaudeQuota?
         if settings.claudeQuotaProbeEnabled, let probe {
             quota = await probe.currentQuota()
+            if let fetched = quota?.fetchedAt, now.timeIntervalSince(fetched) > 15 * 60 {
+                quota = nil
+            }
         }
+        let freshSessionReset = quota?.sessionResetsAt.flatMap { $0 > now ? $0 : nil }
+        let freshWeeklyReset = quota?.weeklyResetsAt.flatMap { $0 > now ? $0 : nil }
 
         let files = roots.flatMap {
             recentFiles(under: $0, ext: "jsonl", modifiedAfter: now.addingTimeInterval(-Self.lookback))
@@ -100,7 +109,7 @@ struct ClaudeProvider: UsageProvider {
         // matching what the % refers to); the local block heuristic is fallback.
         var session: SessionUsage?
         let sessionWindow: (start: Date, end: Date)? =
-            quota?.sessionResetsAt.map { ($0.addingTimeInterval(-SessionBlocks.blockLength), $0) }
+            freshSessionReset.map { ($0.addingTimeInterval(-SessionBlocks.blockLength), $0) }
             ?? SessionBlocks.currentBlock(activityHours: Array(merged.keys), now: now)
         if let window = sessionWindow {
             let (tokens, cost) = Self.sumBuckets(merged, from: window.start, to: window.end)
@@ -109,15 +118,16 @@ struct ClaudeProvider: UsageProvider {
                 cost: CostEstimate(amountUSD: cost),
                 startedAt: window.start,
                 resetsAt: window.end,
-                usedPercent: quota?.sessionPercent ?? settings.claudeSessionTokenBudget.map { budget in
-                    min(100, Double(tokens.total) / Double(max(budget, 1)) * 100)
-                }
+                usedPercent: (freshSessionReset != nil ? quota?.sessionPercent : nil)
+                    ?? settings.claudeSessionTokenBudget.map { budget in
+                        min(100, Double(tokens.total) / Double(max(budget, 1)) * 100)
+                    }
             )
         }
 
         // Weekly window aligned to the API reset when known (tokens must refer
         // to the same window as the percentage beside them).
-        let weekCutoff = quota?.weeklyResetsAt.map { $0.addingTimeInterval(-7 * 24 * 3600) }
+        let weekCutoff = freshWeeklyReset.map { $0.addingTimeInterval(-7 * 24 * 3600) }
             ?? now.addingTimeInterval(-7 * 24 * 3600)
         var weekTokens = TokenUsage.zero
         var weekCost = 0.0
@@ -134,10 +144,11 @@ struct ClaudeProvider: UsageProvider {
         let weekly = WeeklyUsage(
             tokens: weekTokens,
             cost: CostEstimate(amountUSD: weekCost),
-            usedPercent: quota?.weeklyPercent ?? settings.claudeWeeklyTokenBudget.map { budget in
-                min(100, Double(weekTokens.total) / Double(max(budget, 1)) * 100)
-            },
-            resetsAt: quota?.weeklyResetsAt,
+            usedPercent: (freshWeeklyReset != nil ? quota?.weeklyPercent : nil)
+                ?? settings.claudeWeeklyTokenBudget.map { budget in
+                    min(100, Double(weekTokens.total) / Double(max(budget, 1)) * 100)
+                },
+            resetsAt: freshWeeklyReset,
             dailyTotals: byDay
                 .map { DailyTotal(day: $0.key, tokens: $0.value.tokens, costUSD: $0.value.cost) }
                 .sorted { $0.day < $1.day },
@@ -154,6 +165,10 @@ struct ClaudeProvider: UsageProvider {
             modelHealth = recorded.isEmpty ? nil : recorded
         }
 
+        // Evict cache entries for files that left the lookback window —
+        // without this, seenKeys of every transcript ever seen stay resident.
+        await cache.prune(keeping: Set(files.map(\.path)))
+
         return UsageSnapshot(
             provider: id,
             capturedAt: now,
@@ -163,7 +178,7 @@ struct ClaudeProvider: UsageProvider {
             activeModel: lastModel,
             lastActivityAt: lastActivity,
             note: limitingNote(quota),
-            quotaStatus: quota?.status,
+            quotaStatus: freshSessionReset != nil || freshWeeklyReset != nil ? quota?.status : nil,
             modelBreakdown: breakdown.isEmpty ? nil : breakdown,
             modelHealth: modelHealth
         )

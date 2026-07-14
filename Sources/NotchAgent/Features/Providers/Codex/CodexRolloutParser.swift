@@ -81,7 +81,7 @@ enum CodexRolloutParser {
     /// Scans the file tail backwards for the newest `token_count` event and
     /// the newest `turn_context` (which names the model). Tail-only keeps
     /// refreshes cheap even on very long rollouts.
-    static func latestTokenInfo(at url: URL, tailBytes: Int = 512 * 1024) throws -> CodexTokenInfo? {
+    static func latestTokenInfo(at url: URL, tailBytes: Int = 2 * 1024 * 1024) throws -> CodexTokenInfo? {
         let lines = try JSONLReader.tailLines(at: url, maxBytes: tailBytes)
         var info: CodexTokenInfo?
         var model: String?

@@ -148,6 +148,12 @@ actor ClaudeScanCache {
         entries[key] = Entry(stamp: stamp, offset: consumed, stat: stat)
         return stat
     }
+
+    /// Drops entries for files no longer in the scan set (deleted or aged out
+    /// of the lookback), bounding memory for long-running sessions.
+    func prune(keeping paths: Set<String>) {
+        entries = entries.filter { paths.contains($0.key) }
+    }
 }
 
 /// Claude Plans meter usage in rolling ~5h session blocks. This reproduces the

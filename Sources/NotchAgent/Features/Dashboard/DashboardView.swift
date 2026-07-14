@@ -24,6 +24,12 @@ struct DashboardView: View {
         .task(id: rangeHours) {
             historyPoints = await AppEnvironment.shared.historyStore.allPoints(lastHours: rangeHours)
         }
+        .onChange(of: store.snapshots) {
+            // Keep the chart live while the window stays open.
+            Task {
+                historyPoints = await AppEnvironment.shared.historyStore.allPoints(lastHours: rangeHours)
+            }
+        }
     }
 
     private var controls: some View {

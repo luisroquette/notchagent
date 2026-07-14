@@ -37,6 +37,7 @@ final class NotchWindowController {
     }
 
     func hide() {
+        viewModel.collapseNow()
         panel?.orderOut(nil)
         panel = nil
     }
@@ -99,7 +100,12 @@ final class NotchWindowController {
             return event
         }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
-            guard let self, event.keyCode == 53, self.viewModel.isExpanded else { return event }
+            // Scoped to the panel: Escape typed into Settings/Dashboard must
+            // reach those windows, not collapse the notch (review finding).
+            guard let self, event.keyCode == 53,
+                  let panel = self.panel, event.window === panel,
+                  self.viewModel.isExpanded
+            else { return event }
             self.viewModel.collapseNow()
             return nil
         }

@@ -92,6 +92,20 @@ struct SettingsView: View {
         .onChange(of: preferences.settings.themeMode) {
             AppEnvironment.shared.applyThemeMode()
         }
+        .onChange(of: preferences.settings.refreshIntervalSeconds) {
+            // Restart so the new cadence applies now, not after the old sleep.
+            AppEnvironment.shared.scheduler.restart()
+        }
+        .onChange(of: preferences.settings.warningThresholdPercent) { _, warning in
+            if preferences.settings.criticalThresholdPercent < warning + 5 {
+                preferences.settings.criticalThresholdPercent = min(100, warning + 5)
+            }
+        }
+        .onChange(of: preferences.settings.criticalThresholdPercent) { _, critical in
+            if preferences.settings.warningThresholdPercent > critical - 5 {
+                preferences.settings.warningThresholdPercent = max(40, critical - 5)
+            }
+        }
     }
 
     private func budgetField(_ label: String, value: Binding<Int?>) -> some View {

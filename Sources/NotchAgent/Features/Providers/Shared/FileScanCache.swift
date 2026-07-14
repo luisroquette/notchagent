@@ -27,4 +27,9 @@ actor FileScanCache<Value: Sendable> {
     func removeAll() {
         entries.removeAll()
     }
+
+    /// Drops entries for files no longer in the scan set.
+    func prune(keeping paths: Set<String>) {
+        entries = entries.filter { paths.contains($0.key) }
+    }
 }

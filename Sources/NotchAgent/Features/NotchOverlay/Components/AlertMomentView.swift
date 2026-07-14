@@ -45,7 +45,7 @@ struct AlertMomentView: View {
     }
 
     var body: some View {
-        TimelineView(.animation) { context in
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
             let t = context.date.timeIntervalSinceReferenceDate
             let pulse = (sin(t * pulseSpeed * .pi) + 1) / 2
             let tremor = alert.threshold == 5 ? sin(t * 34) * 1.6 : 0
@@ -100,12 +100,8 @@ struct AlertMomentView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture(perform: onDismiss)
-        .task(id: alert) {
-            guard alert.threshold > 5 else { return }
-            try? await Task.sleep(for: .seconds(4.5))
-            guard !Task.isCancelled else { return }
-            onDismiss()
-        }
+        // Auto-dismiss is owned by UsageStore so it survives the view being
+        // collapsed away mid-countdown (ghost-alert review finding).
         .transition(.opacity.combined(with: .scale(scale: 0.97)))
     }
 }
