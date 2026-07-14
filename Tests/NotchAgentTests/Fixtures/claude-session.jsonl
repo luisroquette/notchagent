@@ -1,0 +1,8 @@
+{"type":"last-prompt","leafUuid":"2871405c","sessionId":"fixture-session"}
+{"type":"assistant","timestamp":"2026-07-10T14:05:12.575Z","requestId":"req_1","sessionId":"fixture-session","message":{"id":"msg_1","type":"message","role":"assistant","model":"claude-fable-5","usage":{"input_tokens":100,"output_tokens":200,"cache_creation_input_tokens":1000,"cache_read_input_tokens":5000,"service_tier":"standard"}}}
+{"type":"assistant","timestamp":"2026-07-10T14:06:00.000Z","requestId":"req_1","sessionId":"fixture-session","message":{"id":"msg_1","type":"message","role":"assistant","model":"claude-fable-5","usage":{"input_tokens":100,"output_tokens":200,"cache_creation_input_tokens":1000,"cache_read_input_tokens":5000}}}
+{"type":"assistant","timestamp":"2026-07-10T14:40:00.000Z","requestId":"req_2","sessionId":"fixture-session","message":{"id":"msg_2","type":"message","role":"assistant","model":"claude-sonnet-5","usage":{"input_tokens":50,"output_tokens":75}}}
+{"type":"user","timestamp":"2026-07-10T15:00:00.000Z","sessionId":"fixture-session","message":{"role":"user","content":"hello"}}
+this line is not valid json {{{
+{"type":"assistant","timestamp":"2026-07-10T16:10:00.000Z","requestId":"req_3","sessionId":"fixture-session","message":{"id":"msg_3","type":"message","role":"assistant","model":"claude-fable-5","usage":{"input_tokens":10,"output_tokens":20,"cache_read_input_tokens":300}}}
+{"type":"assistant","timestamp":"2026-07-10T16:12:00.000Z","sessionId":"fixture-session","message":{"id":"msg_4","type":"message","role":"assistant","model":"claude-fable-5"}}

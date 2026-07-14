@@ -1,0 +1,36 @@
+# XcodeGen spec — only needed to produce a signed/notarized .app bundle.
+# Day-to-day development works with plain SwiftPM (`swift build` / `swift run`).
+#   brew install xcodegen && xcodegen generate
+name: NotchAgent
+options:
+  bundleIdPrefix: br.com.lfrprojects
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  SWIFT_VERSION: "6.0"
+targets:
+  NotchAgent:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/NotchAgent
+    info:
+      path: Resources/Info.plist
+      properties:
+        CFBundleName: NotchAgent
+        CFBundleDisplayName: NotchAgent
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        # Agent app: menu bar + overlay only, no Dock icon.
+        LSUIElement: true
+        LSMinimumSystemVersion: "14.0"
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: br.com.lfrprojects.notchagent
+      ENABLE_HARDENED_RUNTIME: YES
+  NotchAgentTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/NotchAgentTests
+    dependencies:
+      - target: NotchAgent
