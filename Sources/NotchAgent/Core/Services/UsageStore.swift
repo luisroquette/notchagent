@@ -17,15 +17,20 @@ final class UsageStore {
     private(set) var activeIncident: String?
     /// Escalating "space left" alert currently taking over the notch panel.
     private(set) var activeThresholdAlert: ThresholdAlert?
+    /// Positive counterpart: shown once when a provider unblocks mid-work.
+    private(set) var activeRestoreMoment: RestoreMoment?
     /// Fired sets are keyed per provider AND per window (session vs weekly):
     /// the gauge flipping between windows must not suppress nor re-fire alerts.
     @ObservationIgnored private var firedThresholds: [String: Set<Int>] = [:]
     @ObservationIgnored private var alertDismissTask: Task<Void, Never>?
+    @ObservationIgnored private var restoreDismissTask: Task<Void, Never>?
+    @ObservationIgnored private var wasBlocked: [ProviderID: Bool] = [:]
     var isPaused = false
 
     let preferences: PreferencesStore
     /// Side-channel for system notifications; set once by AppEnvironment.
     @ObservationIgnored var onAlert: ((ProviderAlert) -> Void)?
+    @ObservationIgnored var onRestore: ((RestoreMoment) -> Void)?
     private static let maxEvents = 200
 
     init(preferences: PreferencesStore) {
@@ -72,6 +77,7 @@ final class UsageStore {
             percentHistory[snapshot.provider] = samples
         }
         processThresholds(snapshot)
+        processRecovery(snapshot)
         for alert in alerts {
             record(UsageEvent(
                 date: alert.date,
@@ -167,6 +173,45 @@ final class UsageStore {
         alertDismissTask?.cancel()
         alertDismissTask = nil
         activeThresholdAlert = nil
+    }
+
+    /// Detects the blocked → usable transition and celebrates it — but only
+    /// when the user could plausibly have felt it: recent activity around the
+    /// unblock, not "picked the Mac up three days later and it had reset ages
+    /// ago." A cold-start snapshot that is already blocked never fires this
+    /// (there is no prior "blocked" observation to transition from).
+    private func processRecovery(_ snapshot: UsageSnapshot) {
+        let isBlockedNow = snapshot.quotaStatus == .blocked
+        let wasBlockedBefore = wasBlocked[snapshot.provider] ?? false
+        wasBlocked[snapshot.provider] = isBlockedNow
+        guard wasBlockedBefore, !isBlockedNow else { return }
+        guard let lastActivity = snapshot.lastActivityAt,
+              snapshot.capturedAt.timeIntervalSince(lastActivity) < 10 * 60
+        else { return }
+
+        let metric = GaugeMetric.from(snapshot)
+        let moment = RestoreMoment(
+            provider: snapshot.provider,
+            remaining: metric?.remaining ?? 100,
+            isWeekly: metric?.isWeekly ?? false
+        )
+        activeRestoreMoment = moment
+        restoreDismissTask?.cancel()
+        restoreDismissTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(3.5))
+            guard !Task.isCancelled else { return }
+            if self?.activeRestoreMoment == moment {
+                self?.dismissRestoreMoment()
+            }
+        }
+        record(UsageEvent(provider: snapshot.provider, kind: .info, message: moment.message))
+        onRestore?(moment)
+    }
+
+    func dismissRestoreMoment() {
+        restoreDismissTask?.cancel()
+        restoreDismissTask = nil
+        activeRestoreMoment = nil
     }
 
     func setIncident(_ incident: String?) {

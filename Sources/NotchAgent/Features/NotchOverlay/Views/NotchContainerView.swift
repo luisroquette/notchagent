@@ -52,9 +52,17 @@ struct NotchContainerView: View {
             viewModel.isAlertPresented = alert != nil
             if alert != nil {
                 viewModel.forceExpand()
-            } else if !viewModel.isPinned, !viewModel.isHovering {
+            } else if !viewModel.isPinned, !viewModel.isHovering, store.activeRestoreMoment == nil {
                 // Auto-dismiss with the cursor away → tidy up; with the cursor
                 // inside, stay expanded so the gauges replace the alert in place.
+                viewModel.collapseNow()
+            }
+        }
+        .onChange(of: store.activeRestoreMoment) { _, moment in
+            viewModel.isAlertPresented = moment != nil || store.activeThresholdAlert != nil
+            if moment != nil {
+                viewModel.forceExpand()
+            } else if !viewModel.isPinned, !viewModel.isHovering, store.activeThresholdAlert == nil {
                 viewModel.collapseNow()
             }
         }
@@ -64,8 +72,16 @@ struct NotchContainerView: View {
     private var content: some View {
         if viewModel.isExpanded {
             if let alert = store.activeThresholdAlert {
+                // A live danger takeover always wins over a celebration.
                 AlertMomentView(alert: alert) {
                     store.dismissThresholdAlert()
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, viewModel.geometry.hasNotch ? viewModel.geometry.topInset + 6 : 12)
+                .padding(.bottom, 14)
+            } else if let moment = store.activeRestoreMoment {
+                RestoreMomentView(moment: moment) {
+                    store.dismissRestoreMoment()
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, viewModel.geometry.hasNotch ? viewModel.geometry.topInset + 6 : 12)

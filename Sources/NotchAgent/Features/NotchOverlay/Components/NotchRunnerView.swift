@@ -117,21 +117,36 @@ struct NotchRunnerView: View {
         // to the right visible gap there; center it on wide (expanded) tracks.
         let narrow = size.width < 420
         let anchorX = narrow ? size.width - 34 : size.width / 2
-        if blinkOn {
-            context.draw(
-                Text("GAME OVER")
-                    .font(Theme.label(narrow ? 7.5 : 11))
-                    .foregroundStyle(Theme.danger),
-                at: CGPoint(x: anchorX, y: narrow ? groundY - 14 : groundY - 15)
-            )
-        }
-        if !narrow, let resetsAt {
-            context.draw(
-                Text("NEW RUN \(Format.time(resetsAt))")
-                    .font(Theme.label(6.5))
-                    .foregroundStyle(Theme.textFaint),
-                at: CGPoint(x: anchorX, y: groundY - 5)
-            )
+        if narrow {
+            // No room to stack a second line here, so the reset time takes
+            // over the SAME slot on the off-beat — never fully blank, and the
+            // one thing the user needs (when am I back?) is always one blink away.
+            if blinkOn {
+                context.draw(
+                    Text("GAME OVER").font(Theme.label(7.5)).foregroundStyle(Theme.danger),
+                    at: CGPoint(x: anchorX, y: groundY - 14)
+                )
+            } else if let resetsAt {
+                context.draw(
+                    Text(Format.time(resetsAt)).font(Theme.label(7.5)).foregroundStyle(Theme.textFaint),
+                    at: CGPoint(x: anchorX, y: groundY - 14)
+                )
+            }
+        } else {
+            if blinkOn {
+                context.draw(
+                    Text("GAME OVER").font(Theme.label(11)).foregroundStyle(Theme.danger),
+                    at: CGPoint(x: anchorX, y: groundY - 15)
+                )
+            }
+            if let resetsAt {
+                context.draw(
+                    Text("NEW RUN \(Format.time(resetsAt))")
+                        .font(Theme.label(6.5))
+                        .foregroundStyle(Theme.textFaint),
+                    at: CGPoint(x: anchorX, y: groundY - 5)
+                )
+            }
         }
     }
 

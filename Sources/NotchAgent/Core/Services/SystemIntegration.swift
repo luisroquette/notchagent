@@ -68,4 +68,19 @@ final class NotificationService {
             trigger: nil
         ))
     }
+
+    func postRestored(_ moment: RestoreMoment, settings: AppSettings) {
+        guard Self.isAvailable, settings.notificationsEnabled else { return }
+        let center = UNUserNotificationCenter.current()
+
+        let content = UNMutableNotificationContent()
+        content.title = "Session restored"
+        content.body = moment.message
+        content.sound = .default
+        center.add(UNNotificationRequest(
+            identifier: "restore-\(moment.provider.rawValue)-\(Int(moment.firedAt.timeIntervalSince1970))",
+            content: content,
+            trigger: nil
+        ))
+    }
 }

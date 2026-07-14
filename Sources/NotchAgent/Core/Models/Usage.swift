@@ -179,6 +179,15 @@ public struct GaugeMetric: Sendable, Equatable {
     }
 
     public static func from(_ snapshot: UsageSnapshot?) -> GaugeMetric? {
+        // The API's "rejected" status is more authoritative than any percent
+        // math: if the account is blocked, the gauge must show empty — never
+        // a calm green number that contradicts a BLOCKED badge on the same
+        // card. This also makes the low-fuel takeover and the runner's game
+        // over fire together with the badge, instead of racing against it.
+        if snapshot?.quotaStatus == .blocked {
+            let isWeekly = snapshot?.session?.usedPercent == nil && snapshot?.weekly?.usedPercent != nil
+            return GaugeMetric(used: 100, isWeekly: isWeekly)
+        }
         if let percent = snapshot?.session?.usedPercent {
             return GaugeMetric(used: percent, isWeekly: false)
         }

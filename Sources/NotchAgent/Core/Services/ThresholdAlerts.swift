@@ -52,3 +52,25 @@ public enum ThresholdAlerts {
         return "\(alert.provider.displayName): \(Int(alert.remaining.rounded()))% of the \(window) left"
     }
 }
+
+/// The positive counterpart to a low-fuel alert: fired once when a provider
+/// transitions from `blocked` back to usable — e.g. the API rejected requests
+/// mid-session and then the window reset while the user was actively working.
+public struct RestoreMoment: Sendable, Equatable {
+    public var provider: ProviderID
+    public var remaining: Double
+    public var isWeekly: Bool
+    public var firedAt: Date
+
+    public init(provider: ProviderID, remaining: Double, isWeekly: Bool, firedAt: Date = Date()) {
+        self.provider = provider
+        self.remaining = remaining
+        self.isWeekly = isWeekly
+        self.firedAt = firedAt
+    }
+
+    public var message: String {
+        let window = isWeekly ? "weekly limit" : "5h session"
+        return "\(provider.displayName) is back — \(Int(remaining.rounded()))% of the \(window) left"
+    }
+}

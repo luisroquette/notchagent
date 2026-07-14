@@ -34,6 +34,9 @@ final class AppEnvironment {
         store.onAlert = { [notifications, preferences] alert in
             notifications.post(alert, settings: preferences.settings)
         }
+        store.onRestore = { [notifications, preferences] moment in
+            notifications.postRestored(moment, settings: preferences.settings)
+        }
     }
 
     func bootstrap() {
