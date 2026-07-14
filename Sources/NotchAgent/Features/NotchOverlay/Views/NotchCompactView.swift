@@ -36,12 +36,12 @@ struct NotchCompactView: View {
                 NotchRunnerView()
                     .frame(
                         width: viewModel.geometry.hasNotch
-                            ? viewModel.geometry.notchWidth + 88
-                            : 96,
-                        height: 15
+                            ? viewModel.geometry.notchWidth + 110
+                            : 110,
+                        height: 28
                     )
                     .frame(maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, 2)
+                    .padding(.bottom, 1)
             }
         }
     }

@@ -69,15 +69,15 @@ struct NotchRunnerView: View {
 
         // Jump: a clean parabola timed to clear the nearest incoming obstacle.
         var jumpHeight: CGFloat = 0
-        if nextObstacleDistance < 30 {
-            let progress = 1 - max(nextObstacleDistance, -6) / 30   // 0 → 1.2
-            jumpHeight = sin(min(progress, 1) * .pi) * 8
+        if nextObstacleDistance < 38 {
+            let progress = 1 - max(nextObstacleDistance, -6) / 38   // 0 → 1.2
+            jumpHeight = sin(min(progress, 1) * .pi) * 13
         }
 
         // Runner sprite, gait frames at 8 fps.
         let frame = Int(time * 8) % 2 == 0 ? Self.gaitA : Self.gaitB
         let grid = jumpHeight > 1 ? Self.gaitA : frame   // legs tucked mid-air
-        let pixel: CGFloat = 1.6
+        let pixel: CGFloat = 2.5
         let spriteHeight = CGFloat(grid.count) * pixel
         let originY = groundY - spriteHeight - jumpHeight
         for (row, cells) in grid.enumerated() {
@@ -108,7 +108,7 @@ struct NotchRunnerView: View {
 
     /// Tiny pixel cactus/block, two variants for rhythm.
     private func drawObstacle(in context: GraphicsContext, x: CGFloat, groundY: CGFloat, variant: Int) {
-        let pixel: CGFloat = 1.6
+        let pixel: CGFloat = 2.5
         let columns: [[Int]] = variant % 2 == 0
             ? [[0, 1, 0], [1, 1, 1], [0, 1, 0], [0, 1, 0]]   // cactus
             : [[1, 1], [1, 1], [1, 1]]                        // block
