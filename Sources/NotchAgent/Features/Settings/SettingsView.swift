@@ -54,6 +54,7 @@ struct SettingsView: View {
             Section("Notch overlay") {
                 Toggle("Show notch overlay", isOn: $preferences.settings.notchOverlayEnabled)
                 Toggle("Floating pill on displays without a notch", isOn: $preferences.settings.fallbackPillEnabled)
+                Toggle("Clawd runner (dino-game mascot in the bar)", isOn: $preferences.settings.runnerEnabled)
                 Picker("Favorite provider", selection: $preferences.settings.favoriteProvider) {
                     Text("Auto (most recent)").tag(ProviderID?.none)
                     ForEach(ProviderID.allCases) { provider in

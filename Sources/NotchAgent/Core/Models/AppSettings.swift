@@ -17,6 +17,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var notchOverlayEnabled: Bool = true
     /// When the display has no notch, show a floating top pill instead of nothing.
     public var fallbackPillEnabled: Bool = true
+    /// Pixel Clawd running a dino-game track across the compact bar.
+    public var runnerEnabled: Bool = true
     /// Probe the Anthropic API (max_tokens: 1) using the local Claude Code OAuth
     /// token to read the authoritative 5h/7d quota percentages from response
     /// headers. Falls back to token budgets when disabled or no token is found.
@@ -39,6 +41,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         case favoriteProvider
         case notchOverlayEnabled
         case fallbackPillEnabled
+        case runnerEnabled
         case claudeQuotaProbeEnabled
         case notificationsEnabled
         case claudeSessionTokenBudget
@@ -54,6 +57,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         favoriteProvider = try container.decodeIfPresent(ProviderID.self, forKey: .favoriteProvider)
         notchOverlayEnabled = try container.decodeIfPresent(Bool.self, forKey: .notchOverlayEnabled) ?? true
         fallbackPillEnabled = try container.decodeIfPresent(Bool.self, forKey: .fallbackPillEnabled) ?? true
+        runnerEnabled = try container.decodeIfPresent(Bool.self, forKey: .runnerEnabled) ?? true
         claudeQuotaProbeEnabled = try container.decodeIfPresent(Bool.self, forKey: .claudeQuotaProbeEnabled) ?? true
         notificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .notificationsEnabled) ?? true
         claudeSessionTokenBudget = try container.decodeIfPresent(Int.self, forKey: .claudeSessionTokenBudget)

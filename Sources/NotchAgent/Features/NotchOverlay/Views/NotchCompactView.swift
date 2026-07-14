@@ -28,6 +28,22 @@ struct NotchCompactView: View {
         }
         .padding(.horizontal, 14)
         .frame(height: viewModel.compactSize.height)
+        .overlay {
+            // The runner's track spans the notch plus a visible gap on each
+            // side: obstacles enter on the right, vanish under the camera and
+            // re-emerge on the left, where Clawd jumps them.
+            if store.settings.runnerEnabled {
+                NotchRunnerView()
+                    .frame(
+                        width: viewModel.geometry.hasNotch
+                            ? viewModel.geometry.notchWidth + 88
+                            : 96,
+                        height: 15
+                    )
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, 2)
+            }
+        }
     }
 
     @ViewBuilder
