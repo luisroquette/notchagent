@@ -107,6 +107,23 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 - **Interações**: monitores locais de `scrollWheel` (paging) e `keyDown` (Esc), haptics em página/pin, `TimelineView` para countdowns vivos.
 - **Novo provider** = 1 pasta com parser puro + `UsageProvider` + fixture; a UI se adapta às capacidades declaradas.
 
+## Modelo de precisão (o que é exato, o que é estimado)
+
+**Exato (fonte oficial):**
+- Os **percentuais** de quota do Claude vêm dos headers `anthropic-ratelimit-unified-*` da API — são **da conta inteira**: cobrem Claude Code CLI, app Desktop, claude.ai web e mobile. O mesmo vale para os percentuais do Codex (rollouts locais refletem o estado da conta).
+- Horários de reset e status (`allowed/warning/rejected`) — idem.
+
+**Contado localmente (alinhado à janela oficial):**
+- Tokens e custos do Claude somam **todas** as fontes locais de transcript: CLI (`~/.claude/projects`) **e as sessões de agente do app Desktop** (`~/Library/Application Support/Claude/local-agent-mode-sessions`).
+- As somas de sessão/semana usam **a mesma janela do percentual** (início = reset oficial − 5h/7d), não "últimas N horas corridas".
+- Sessão do Codex soma **todos os rollouts ativos dentro da janela** (sessões concorrentes não subcontam).
+
+**Margens conhecidas (medidas, não estimadas):**
+- Conversas de *chat* (Desktop/web) não geram transcript local → contam no **%**, não nos tokens locais.
+- Buckets horários ⇒ fronteira de janela com precisão de ±1h nos tokens (o % não é afetado).
+- Duplicatas de retry entre arquivos: **0,18%** de inflação medida nesta base (dedup é por arquivo).
+- Custos usam tabela de preços pública (`PricingTable.swift`) — planos por assinatura não faturam por token; trate como ordem de grandeza.
+
 ## Limitações conhecidas
 
 - Geometria do notch é inferida (`safeAreaInsets` + auxiliary areas) — sem API oficial; fallback pill cobre mudanças da Apple.

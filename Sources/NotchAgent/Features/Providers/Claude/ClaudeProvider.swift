@@ -13,23 +13,32 @@ struct ClaudeProvider: UsageProvider {
         .sessionTokens, .sessionPercent, .weeklyTokens, .weeklyPercent, .costEstimate, .resetSchedule,
     ]
 
-    private let root: URL
+    private let roots: [URL]
     private let cache = ClaudeScanCache()
     private let probe: ClaudeQuotaProbe?
     private static let lookback: TimeInterval = 8 * 24 * 3600
 
-    init(
-        root: URL = AppPaths.home.appendingPathComponent(".claude/projects"),
-        probe: ClaudeQuotaProbe? = ClaudeQuotaProbe()
-    ) {
-        self.root = root
+    /// Every place Claude Code writes transcripts on this Mac: the CLI and
+    /// the Desktop app's agent mode (same JSONL format, different root).
+    static let defaultRoots: [URL] = [
+        AppPaths.home.appendingPathComponent(".claude/projects"),
+        AppPaths.home.appendingPathComponent("Library/Application Support/Claude/local-agent-mode-sessions"),
+    ]
+
+    init(roots: [URL] = ClaudeProvider.defaultRoots, probe: ClaudeQuotaProbe? = ClaudeQuotaProbe()) {
+        self.roots = roots
         self.probe = probe
     }
 
+    init(root: URL, probe: ClaudeQuotaProbe?) {
+        self.init(roots: [root], probe: probe)
+    }
+
     func detectInstallation() -> ProviderInstallation {
-        FileManager.default.fileExists(atPath: root.path)
-            ? .installed(dataPath: root.path)
-            : .notInstalled
+        for root in roots where FileManager.default.fileExists(atPath: root.path) {
+            return .installed(dataPath: root.path)
+        }
+        return .notInstalled
     }
 
     func fetchSnapshot(settings: AppSettings) async throws -> UsageSnapshot {
@@ -43,7 +52,9 @@ struct ClaudeProvider: UsageProvider {
             quota = await probe.currentQuota()
         }
 
-        let files = recentFiles(under: root, ext: "jsonl", modifiedAfter: now.addingTimeInterval(-Self.lookback))
+        let files = roots.flatMap {
+            recentFiles(under: $0, ext: "jsonl", modifiedAfter: now.addingTimeInterval(-Self.lookback))
+        }
         var merged: [Date: ClaudeFileStat.HourStat] = [:]
         var mergedModels: [String: ClaudeFileStat.ModelStat] = [:]
         var lastActivity: Date?
@@ -85,31 +96,29 @@ struct ClaudeProvider: UsageProvider {
             return UsageSnapshot(provider: id, health: health, note: files.isEmpty ? "No activity in the last 8 days" : nil)
         }
 
-        // Session = current 5h block from transcripts; percent/reset prefer the API.
+        // Session window: the API reset time is authoritative (start = reset − 5h,
+        // matching what the % refers to); the local block heuristic is fallback.
         var session: SessionUsage?
-        if let block = SessionBlocks.currentBlock(activityHours: Array(merged.keys), now: now) {
-            var tokens = TokenUsage.zero
-            var cost = 0.0
-            for (hour, bucket) in merged where hour >= block.start && hour < block.end {
-                tokens += bucket.tokens
-                cost += bucket.costUSD
-            }
+        let sessionWindow: (start: Date, end: Date)? =
+            quota?.sessionResetsAt.map { ($0.addingTimeInterval(-SessionBlocks.blockLength), $0) }
+            ?? SessionBlocks.currentBlock(activityHours: Array(merged.keys), now: now)
+        if let window = sessionWindow {
+            let (tokens, cost) = Self.sumBuckets(merged, from: window.start, to: window.end)
             session = SessionUsage(
                 tokens: tokens,
                 cost: CostEstimate(amountUSD: cost),
-                startedAt: block.start,
-                resetsAt: quota?.sessionResetsAt ?? block.end,
+                startedAt: window.start,
+                resetsAt: window.end,
                 usedPercent: quota?.sessionPercent ?? settings.claudeSessionTokenBudget.map { budget in
                     min(100, Double(tokens.total) / Double(max(budget, 1)) * 100)
                 }
             )
-        } else if let quota, let percent = quota.sessionPercent {
-            // Idle locally but the account window still carries usage.
-            session = SessionUsage(resetsAt: quota.sessionResetsAt, usedPercent: percent)
         }
 
-        // Weekly = trailing 7 days of transcripts; percent/reset prefer the API.
-        let weekCutoff = now.addingTimeInterval(-7 * 24 * 3600)
+        // Weekly window aligned to the API reset when known (tokens must refer
+        // to the same window as the percentage beside them).
+        let weekCutoff = quota?.weeklyResetsAt.map { $0.addingTimeInterval(-7 * 24 * 3600) }
+            ?? now.addingTimeInterval(-7 * 24 * 3600)
         var weekTokens = TokenUsage.zero
         var weekCost = 0.0
         var byDay: [Date: (tokens: Int, cost: Double)] = [:]
@@ -158,6 +167,23 @@ struct ClaudeProvider: UsageProvider {
             modelBreakdown: breakdown.isEmpty ? nil : breakdown,
             modelHealth: modelHealth
         )
+    }
+
+    /// Hour buckets are the finest grain we keep, so window boundaries carry
+    /// up to ±1 bucket of imprecision — documented in the README.
+    static func sumBuckets(
+        _ merged: [Date: ClaudeFileStat.HourStat],
+        from start: Date,
+        to end: Date
+    ) -> (tokens: TokenUsage, costUSD: Double) {
+        var tokens = TokenUsage.zero
+        var cost = 0.0
+        let flooredStart = start.flooredToHour
+        for (hour, bucket) in merged where hour >= flooredStart && hour < end {
+            tokens += bucket.tokens
+            cost += bucket.costUSD
+        }
+        return (tokens, cost)
     }
 
     private func limitingNote(_ quota: ClaudeQuota?) -> String? {

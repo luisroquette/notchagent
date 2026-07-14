@@ -59,9 +59,19 @@ struct CodexProvider: UsageProvider {
         let sessionWindow = latest.sessionWindow
         let weeklyWindow = latest.weeklyWindow
 
+        // Session tokens: sum every rollout active inside the official window
+        // (reset − window length) — concurrent sessions must not undercount.
+        var sessionTokens = latest.totals
+        if let window = sessionWindow, let resets = window.resetsAt, let minutes = window.windowMinutes {
+            let windowStart = resets.addingTimeInterval(-Double(minutes) * 60)
+            let inWindow = perFile.filter { ($0.timestamp ?? .distantPast) >= windowStart }
+            if !inWindow.isEmpty {
+                sessionTokens = inWindow.reduce(TokenUsage.zero) { $0 + $1.totals }
+            }
+        }
         let session = SessionUsage(
-            tokens: latest.totals,
-            cost: CostEstimate(amountUSD: PricingTable.costUSD(model: defaultModel, usage: latest.totals)),
+            tokens: sessionTokens,
+            cost: CostEstimate(amountUSD: PricingTable.costUSD(model: defaultModel, usage: sessionTokens)),
             resetsAt: sessionWindow?.resetsAt,
             usedPercent: sessionWindow?.usedPercent
         )
