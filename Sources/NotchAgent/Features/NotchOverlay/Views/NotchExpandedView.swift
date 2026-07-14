@@ -38,6 +38,12 @@ struct NotchExpandedView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipped()
                 footer
+                // The dino-game strip doubles as the panel's ground line.
+                if store.settings.runnerEnabled {
+                    NotchRunnerView()
+                        .frame(height: 26)
+                        .padding(.horizontal, 4)
+                }
             }
             .padding(.horizontal, 14)
             .padding(.top, viewModel.geometry.hasNotch ? viewModel.geometry.topInset + 6 : 12)
