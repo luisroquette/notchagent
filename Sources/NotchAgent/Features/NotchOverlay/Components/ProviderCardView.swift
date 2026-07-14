@@ -88,11 +88,18 @@ struct ProviderCardView: View {
                     }
                 }
             } else if let tokens = fallbackTokens(snapshot) {
+                // No official quota exists for this window (e.g. Codex plans
+                // that only expose a weekly %) — show the SAME "current
+                // window" concept the percent-based cards show, just in
+                // tokens instead of a fabricated percentage.
                 Text(Format.tokens(tokens))
                     .font(Theme.numeral(24))
                     .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary)
-                GaugeLabel(text: "TOKENS · NO LIMIT DATA")
+                GaugeLabel(text: "CURRENT SESSION · NO CAP REPORTED")
+                if let startedAt = snapshot.session?.startedAt {
+                    GaugeLabel(text: "STARTED \(Format.relative(startedAt))", color: Theme.textFaint, size: 8)
+                }
             }
 
             if let usage = usageLine(snapshot) {

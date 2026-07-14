@@ -89,13 +89,15 @@ struct NotchCompactView: View {
                     }
                 }
             } else {
+                // Same "current window" concept as the percent wings — this
+                // provider just has no official cap to compute a % against.
                 HStack(spacing: 4) {
                     Text(compactFallback(snapshot))
                         .font(Theme.body(11, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Theme.textDim)
                         .lineLimit(1)
-                    GaugeLabel(text: "TOKENS", color: Theme.textFaint, size: 6.5)
+                    GaugeLabel(text: "SESSION", color: Theme.textFaint, size: 6.5)
                 }
             }
         }

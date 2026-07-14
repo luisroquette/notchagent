@@ -72,7 +72,8 @@ struct CodexProvider: UsageProvider {
         }
 
         // Newest rollout carries the freshest rate limits + current session totals.
-        let latest = perFile.max { ($0.info.timestamp ?? .distantPast) < ($1.info.timestamp ?? .distantPast) }!.info
+        let latestEntry = perFile.max { ($0.info.timestamp ?? .distantPast) < ($1.info.timestamp ?? .distantPast) }!
+        let latest = latestEntry.info
         // Window semantics vary per plan — classify by duration, never by
         // position — and NEVER trust a window whose reset already passed
         // (an idle weekend must not freeze Friday's 80% as today's truth).
@@ -96,6 +97,11 @@ struct CodexProvider: UsageProvider {
         let session = SessionUsage(
             tokens: sessionTokens,
             cost: CostEstimate(amountUSD: PricingTable.costUSD(model: defaultModel, usage: sessionTokens)),
+            // On plans with no official 5h window (session % unavailable),
+            // this is the closest honest equivalent to Claude's "current
+            // window": when the active rollout itself began — so the UI can
+            // show "started 35m ago" instead of silently having nothing.
+            startedAt: sessionWindow == nil ? latestEntry.start : nil,
             resetsAt: sessionWindow?.resetsAt,
             usedPercent: sessionWindow?.usedPercent
         )
