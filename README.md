@@ -4,6 +4,8 @@
 
 A native macOS menu-bar + notch overlay that answers one question at a glance: **how much of my Claude Code / Codex limit is left?** Official quota percentages (read from Anthropic's rate-limit headers), burn-rate projections ("runs out at 16:40"), per-model usage and cost estimates, escalating low-fuel alerts — all local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
 
+**Also available for Windows** — a system-tray companion (.NET 8 + Avalonia, same parsers, same quota probe) since Windows has no notch. See [`windows/README.md`](windows/README.md) for the current (v1) feature set and build instructions.
+
 ![The compact notch bar: Claude on the left wing, Codex on the right](docs/img/notch-compact.png)
 
 ![Hover the notch to expand the gauge panel](docs/img/desktop-now.png)
