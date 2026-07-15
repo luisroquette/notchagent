@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:NotchAgent.Windows.UI"
+             x:Class="NotchAgent.Windows.UI.ProviderCardView"
+             x:DataType="ui:ProviderCardViewModel">
+  <Border Background="#16161B" CornerRadius="12" BorderThickness="1"
+          BorderBrush="{Binding BorderColor}" Padding="12" Height="220">
+    <DockPanel>
+
+      <!-- Header -->
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+        <TextBlock Grid.Column="0" Text="{Binding SymbolText}" Foreground="#9EFFFFFF" FontWeight="Bold" FontSize="10"/>
+        <TextBlock Grid.Column="1" Text="{Binding ProviderName}" Foreground="#9EFFFFFF"
+                   FontWeight="SemiBold" FontSize="9" Margin="5,0,0,0" VerticalAlignment="Center"/>
+        <Border Grid.Column="2" Background="#291A1A1A" CornerRadius="8" Padding="6,2"
+                IsVisible="{Binding HasQuotaChip}">
+          <TextBlock Text="{Binding QuotaChipText}" Foreground="{Binding QuotaChipColor}" FontSize="8" FontWeight="Bold"/>
+        </Border>
+      </Grid>
+
+      <!-- Footer -->
+      <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*,Auto" Margin="0,8,0,0">
+        <Border Grid.Column="0" Background="#291A1A1A" CornerRadius="8" Padding="6,2">
+          <TextBlock Text="{Binding HealthBadgeText}" Foreground="{Binding HealthBadgeColor}" FontSize="8" FontWeight="Bold"/>
+        </Border>
+        <TextBlock Grid.Column="2" Text="{Binding RefreshText}" Foreground="#43FFFFFF" FontSize="8"/>
+      </Grid>
+
+      <!-- Metrics -->
+      <StackPanel Spacing="6">
+        <TextBlock Text="{Binding HeroText}" FontWeight="Black" FontSize="30"
+                   Foreground="{Binding HeroColor}"/>
+        <TextBlock Text="{Binding WindowLabel}" FontSize="8.5" Foreground="#6BFFFFFF" FontFamily="Consolas"/>
+        <ui:SegmentedMeter Percent="{Binding MeterPercent}" Tint="{Binding MeterColor}"
+                           Segments="12" Height="8" IsVisible="{Binding HasGauge}"/>
+
+        <StackPanel Spacing="2" IsVisible="{Binding HasReset}">
+          <TextBlock Text="{Binding ResetLine}" FontSize="8.5" Foreground="#6BFFFFFF" FontFamily="Consolas"/>
+          <TextBlock Text="{Binding CountdownText}" FontSize="15" FontWeight="Bold" Foreground="#EDFFFFFF"/>
+        </StackPanel>
+
+        <TextBlock Text="{Binding UsageLine}" FontSize="9.5" Foreground="#6BFFFFFF" IsVisible="{Binding HasUsageLine}"/>
+        <TextBlock Text="{Binding NoteText}" FontSize="9" Foreground="#43FFFFFF" TextWrapping="Wrap"
+                   IsVisible="{Binding HasNote}"/>
+      </StackPanel>
+    </DockPanel>
+  </Border>
+</UserControl>

@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="NotchAgent.Windows.UI.SettingsWindow"
+        Title="NotchAgent — Settings"
+        Width="420" Height="480"
+        Background="#F2F2F5"
+        WindowStartupLocation="CenterScreen">
+  <ScrollViewer Padding="20">
+    <StackPanel Spacing="16">
+      <TextBlock Text="General" FontWeight="Bold" FontSize="13"/>
+
+      <StackPanel Spacing="6">
+        <TextBlock Text="Appearance"/>
+        <ComboBox Name="ThemeCombo" HorizontalAlignment="Stretch" SelectionChanged="OnThemeChanged">
+          <ComboBoxItem Content="Auto"/>
+          <ComboBoxItem Content="Dark"/>
+          <ComboBoxItem Content="Light"/>
+        </ComboBox>
+      </StackPanel>
+
+      <CheckBox Name="LaunchAtLoginCheck" Content="Launch at login" Checked="OnCheckToggled" Unchecked="OnCheckToggled"/>
+      <CheckBox Name="NotificationsCheck" Content="Quota alerts as notifications" Checked="OnCheckToggled" Unchecked="OnCheckToggled"/>
+      <CheckBox Name="RunnerCheck" Content="Clawd runner (dino-game mascot)" Checked="OnCheckToggled" Unchecked="OnCheckToggled"/>
+      <CheckBox Name="ProbeCheck" Content="Read real quota from the Anthropic API" Checked="OnCheckToggled" Unchecked="OnCheckToggled"/>
+
+      <TextBlock Text="Refresh" FontWeight="Bold" FontSize="13" Margin="0,10,0,0"/>
+      <StackPanel Spacing="6">
+        <TextBlock Text="Interval (seconds)"/>
+        <NumericUpDown Name="IntervalUpDown" Minimum="15" Maximum="300" Increment="15" ValueChanged="OnIntervalChanged"/>
+      </StackPanel>
+
+      <TextBlock Text="Alerts" FontWeight="Bold" FontSize="13" Margin="0,10,0,0"/>
+      <StackPanel Spacing="6">
+        <TextBlock Name="WarningLabel" Text="Warning at 70%"/>
+        <Slider Name="WarningSlider" Minimum="40" Maximum="95" ValueChanged="OnWarningChanged"/>
+        <TextBlock Name="CriticalLabel" Text="Critical at 90%"/>
+        <Slider Name="CriticalSlider" Minimum="60" Maximum="100" ValueChanged="OnCriticalChanged"/>
+      </StackPanel>
+
+      <TextBlock Text="Claude Code quota" FontWeight="Bold" FontSize="13" Margin="0,10,0,0"/>
+      <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#666"
+                 Text="The API probe sends a 1-token request using your local Claude Code OAuth token and reads the official 5h/7d utilization headers. The token never leaves this PC except toward api.anthropic.com."/>
+    </StackPanel>
+  </ScrollViewer>
+</Window>
