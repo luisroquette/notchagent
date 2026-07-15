@@ -13,8 +13,8 @@ using NotchAgent.Windows.UI;
 namespace NotchAgent.Windows;
 
 /// Composition root: builds and wires every service exactly once, sets up
-/// the tray icon, and owns the popover/settings windows — the .NET analogue
-/// of the Mac app's AppEnvironment.
+/// the tray icon (secondary access) and the always-on floating bar (the
+/// primary, notch-like UI) — the .NET analogue of the Mac app's AppEnvironment.
 public partial class App : Application
 {
     private AppSettings _settings = null!;
@@ -22,7 +22,8 @@ public partial class App : Application
     private RefreshScheduler _scheduler = null!;
     private SnapshotStore _snapshotStore = null!;
     private TrayIcon _trayIcon = null!;
-    private PopoverWindow? _popover;
+    private NativeMenuItem _pauseMenuItem = null!;
+    private FloatingBarWindow _bar = null!;
     private SettingsWindow? _settingsWindow;
 
     public override void Initialize()
@@ -44,15 +45,10 @@ public partial class App : Application
             _scheduler = new RefreshScheduler(providers, _store, _snapshotStore);
 
             ApplyTheme();
+            SetupTrayIcon(desktop);
 
-            _trayIcon = new TrayIcon
-            {
-                Icon = TrayIconFactory.Create(AppTheme.Ok),
-                ToolTipText = "NotchAgent",
-            };
-            _trayIcon.Clicked += (_, _) => TogglePopover();
-            var icons = new TrayIcons { _trayIcon };
-            TrayIcon.SetIcons(this, icons);
+            _bar = new FloatingBarWindow(_store, _scheduler, OpenSettings);
+            _bar.Launch();
 
             _store.PropertyChanged += (_, _) => UpdateTrayIcon();
 
@@ -65,11 +61,50 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private void TogglePopover()
+    /// The tray icon is secondary now — the floating bar is the primary,
+    /// always-visible surface. Left-click brings the bar back if a fullscreen
+    /// app auto-hid it; right-click (the OS default for TrayIcon.Menu) offers
+    /// the same quick actions the bar's footer has.
+    private void SetupTrayIcon(IClassicDesktopStyleApplicationLifetime desktop)
     {
-        _popover ??= new PopoverWindow(_store, _scheduler, OpenSettings);
-        if (_popover.IsVisible) _popover.Hide();
-        else _popover.ShowNearTray();
+        var menu = new NativeMenu();
+
+        var refreshItem = new NativeMenuItem("Refresh Now");
+        refreshItem.Click += (_, _) => _scheduler.RefreshNow();
+        menu.Add(refreshItem);
+
+        _pauseMenuItem = new NativeMenuItem(_store.IsPaused ? "Resume" : "Pause");
+        _pauseMenuItem.Click += (_, _) =>
+        {
+            _store.IsPaused = !_store.IsPaused;
+            _pauseMenuItem.Header = _store.IsPaused ? "Resume" : "Pause";
+        };
+        menu.Add(_pauseMenuItem);
+
+        menu.Add(new NativeMenuItemSeparator());
+
+        var showBarItem = new NativeMenuItem("Show Bar");
+        showBarItem.Click += (_, _) => _bar.ForceShow();
+        menu.Add(showBarItem);
+
+        var settingsItem = new NativeMenuItem("Settings…");
+        settingsItem.Click += (_, _) => OpenSettings();
+        menu.Add(settingsItem);
+
+        menu.Add(new NativeMenuItemSeparator());
+
+        var quitItem = new NativeMenuItem("Quit");
+        quitItem.Click += (_, _) => desktop.Shutdown();
+        menu.Add(quitItem);
+
+        _trayIcon = new TrayIcon
+        {
+            Icon = TrayIconFactory.Create(AppTheme.Ok),
+            ToolTipText = "NotchAgent",
+            Menu = menu,
+        };
+        _trayIcon.Clicked += (_, _) => _bar.ForceShow();
+        TrayIcon.SetIcons(this, new TrayIcons { _trayIcon });
     }
 
     private void OpenSettings()

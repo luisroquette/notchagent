@@ -17,7 +17,11 @@ public sealed class Logger
     private void Write(string level, string message, object?[] args)
     {
         var formatted = args.Length > 0 ? string.Format(message, args) : message;
-        Debug.WriteLine($"[{_category}:{level}] {formatted}");
+        var line = $"[{_category}:{level}] {formatted}";
+        Debug.WriteLine(line);
+        // Debug.WriteLine needs an attached debugger to show anywhere — also
+        // write to the console so `dotnet run` from a terminal is diagnosable.
+        Console.WriteLine(line);
     }
 }
 

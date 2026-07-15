@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 using NotchAgent.Windows.Models;
 using NotchAgent.Windows.Providers;
 
@@ -31,7 +32,13 @@ public sealed class RefreshScheduler
         {
             while (!cts.IsCancellationRequested)
             {
-                await Tick(cts.Token);
+                try { await Tick(cts.Token); }
+                catch (Exception ex)
+                {
+                    // Defense in depth: Tick() already catches internally, but
+                    // the loop itself must survive anything that slips through.
+                    Log.Refresh.LogError("scheduler loop caught: {0}", ex);
+                }
                 var interval = Math.Max(15, _store.Settings.RefreshIntervalSeconds);
                 try { await Task.Delay(TimeSpan.FromSeconds(interval), cts.Token); }
                 catch (TaskCanceledException) { return; }
@@ -67,7 +74,17 @@ public sealed class RefreshScheduler
         try
         {
             var settings = _store.Settings;
-            foreach (var provider in _providers) _store.MarkRefreshing(provider.Id);
+
+            // UsageStore mutations synchronously raise PropertyChanged, which
+            // ViewModels handle by constructing Avalonia brushes/colors —
+            // Avalonia objects can only be created on the UI thread, so every
+            // store mutation must be dispatched there even though this whole
+            // method runs on a background Task (the actual file/network I/O
+            // below stays off-thread; only the store touches are marshaled).
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                foreach (var provider in _providers) _store.MarkRefreshing(provider.Id);
+            });
 
             var tasks = _providers.Select(async provider =>
             {
@@ -83,20 +100,31 @@ public sealed class RefreshScheduler
             });
             var results = await Task.WhenAll(tasks);
 
-            foreach (var (id, snapshot, error) in results)
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                if (snapshot is not null)
+                foreach (var (id, snapshot, error) in results)
                 {
-                    _store.Apply(snapshot);
-                    Log.Refresh.LogDebug("refreshed {0}: {1}", id, snapshot.Health);
+                    if (snapshot is not null)
+                    {
+                        _store.Apply(snapshot);
+                        Log.Refresh.LogDebug("refreshed {0}: {1}", id, snapshot.Health);
+                    }
+                    else
+                    {
+                        _store.ApplyFailure(id, error ?? "unknown error");
+                        Log.Refresh.LogError("refresh failed {0}: {1}", id, error ?? "unknown error");
+                    }
                 }
-                else
-                {
-                    _store.ApplyFailure(id, error ?? "unknown error");
-                    Log.Refresh.LogError("refresh failed {0}: {1}", id, error ?? "unknown error");
-                }
-            }
+            });
             _snapshotStore.Save(_store.Snapshots);
+        }
+        catch (Exception ex)
+        {
+            // A single bad tick (e.g. a transient file lock) must never kill
+            // the loop silently — `_ = Task.Run(...)` in Start() discards the
+            // task, so an uncaught exception here would stop all future
+            // refreshes forever with no visible error until the app restarts.
+            Log.Refresh.LogError("tick failed: {0}", ex);
         }
         finally
         {

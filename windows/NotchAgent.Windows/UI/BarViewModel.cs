@@ -5,7 +5,7 @@ using NotchAgent.Windows.Services;
 
 namespace NotchAgent.Windows.UI;
 
-public sealed class PopoverViewModel : INotifyPropertyChanged
+public sealed class BarViewModel : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Raise([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new(n));
@@ -27,8 +27,9 @@ public sealed class PopoverViewModel : INotifyPropertyChanged
     public Avalonia.Media.Color RunnerObstacleTint { get; private set; } = AppTheme.Coral;
 
     public string UpdatedText { get; private set; } = "waiting…";
+    public Avalonia.Media.IBrush OverallAttentionColor { get; private set; } = AppTheme.Brush(AppTheme.Ok);
 
-    public PopoverViewModel(UsageStore store)
+    public BarViewModel(UsageStore store)
     {
         _store = store;
         _store.PropertyChanged += (_, _) => Refresh();
@@ -75,12 +76,13 @@ public sealed class PopoverViewModel : INotifyPropertyChanged
             .DefaultIfEmpty(null)
             .Max();
         UpdatedText = lastSuccess is { } date ? $"updated {Format.Relative(date)}" : "waiting…";
+        OverallAttentionColor = AppTheme.Brush(AppTheme.AttentionColor(_store.OverallAttention));
 
         RaiseAll();
     }
 
     private void RaiseAll()
     {
-        foreach (var prop in typeof(PopoverViewModel).GetProperties()) Raise(prop.Name);
+        foreach (var prop in typeof(BarViewModel).GetProperties()) Raise(prop.Name);
     }
 }

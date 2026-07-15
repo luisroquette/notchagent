@@ -87,7 +87,10 @@ public static class CodexRolloutParser
         {
             using var doc = JsonDocument.Parse(data);
             var root = doc.RootElement;
-            if (!root.TryGetProperty("payload", out var payload)) return false;
+            // `payload` is `null` (not just absent) on several event kinds in
+            // real rollouts — TryGetProperty THROWS if called on a non-object
+            // element, it does not just return false, so this guard is required.
+            if (!root.TryGetProperty("payload", out var payload) || payload.ValueKind != JsonValueKind.Object) return false;
             if (!payload.TryGetProperty("type", out var typeProp) || typeProp.GetString() != "token_count") return false;
 
             DateTimeOffset? timestamp = root.TryGetProperty("timestamp", out var tsProp)
@@ -130,8 +133,11 @@ public static class CodexRolloutParser
             };
             return true;
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
+            // Tolerant parsing: an unexpected shape on one line (e.g. a
+            // payload field that's an unexpected JSON kind) must never abort
+            // the whole scan — skip the line, keep going.
             return false;
         }
     }
@@ -144,7 +150,7 @@ public static class CodexRolloutParser
             using var doc = JsonDocument.Parse(data);
             var root = doc.RootElement;
             if (!root.TryGetProperty("type", out var typeProp) || typeProp.GetString() != "turn_context") return false;
-            if (!root.TryGetProperty("payload", out var payload)) return false;
+            if (!root.TryGetProperty("payload", out var payload) || payload.ValueKind != JsonValueKind.Object) return false;
             if (payload.TryGetProperty("model", out var modelProp))
             {
                 model = modelProp.GetString();
@@ -152,8 +158,11 @@ public static class CodexRolloutParser
             }
             return false;
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
+            // Tolerant parsing: an unexpected shape on one line (e.g. a
+            // payload field that's an unexpected JSON kind) must never abort
+            // the whole scan — skip the line, keep going.
             return false;
         }
     }

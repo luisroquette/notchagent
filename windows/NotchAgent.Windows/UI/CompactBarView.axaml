@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:NotchAgent.Windows.UI"
+             x:Class="NotchAgent.Windows.UI.CompactBarView"
+             x:DataType="ui:BarViewModel">
+  <StackPanel Margin="14,6,14,4" Spacing="3">
+    <Grid ColumnDefinitions="*,Auto,*,Auto">
+      <!-- Claude -->
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <TextBlock Text="✳" FontSize="10" Foreground="#9EFFFFFF"/>
+        <TextBlock Text="CLAUDE" FontSize="8" FontFamily="Consolas" Foreground="#6BFFFFFF" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding Claude.HeroText}" FontSize="14" FontWeight="Black"
+                   Foreground="{Binding Claude.HeroColor}" VerticalAlignment="Center"/>
+        <ui:SegmentedMeter Width="36" Height="4" Segments="8"
+                           Percent="{Binding Claude.MeterPercent}" Tint="{Binding Claude.MeterColor}"
+                           VerticalAlignment="Center"/>
+      </StackPanel>
+
+      <Rectangle Grid.Column="1" Width="1" Height="16" Fill="#1AFFFFFF" Margin="10,0"/>
+
+      <!-- Codex -->
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" HorizontalAlignment="Right">
+        <ui:SegmentedMeter Width="36" Height="4" Segments="8"
+                           Percent="{Binding Codex.MeterPercent}" Tint="{Binding Codex.MeterColor}"
+                           VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding Codex.HeroText}" FontSize="14" FontWeight="Black"
+                   Foreground="{Binding Codex.HeroColor}" VerticalAlignment="Center"/>
+        <TextBlock Text="CODEX" FontSize="8" FontFamily="Consolas" Foreground="#6BFFFFFF" VerticalAlignment="Center"/>
+        <TextBlock Text="&lt;/&gt;" FontSize="10" Foreground="#9EFFFFFF"/>
+      </StackPanel>
+
+      <Ellipse Grid.Column="3" Width="7" Height="7" Fill="{Binding OverallAttentionColor}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+    </Grid>
+
+    <ui:RunnerControl Height="12"
+                       UsedPercent="{Binding RunnerUsedPercent}"
+                       IsGameOver="{Binding RunnerGameOver}"
+                       ResetsAt="{Binding RunnerResetsAt}"
+                       ObstacleTint="{Binding RunnerObstacleTint}"/>
+  </StackPanel>
+</UserControl>

@@ -164,7 +164,12 @@ public sealed class UsageStore : INotifyPropertyChanged
         {
             try { await Task.Delay(TimeSpan.FromSeconds(4.5), cts.Token); }
             catch (TaskCanceledException) { return; }
-            if (ActiveThresholdAlert == alert) DismissThresholdAlert();
+            // Dismissing raises PropertyChanged, which ViewModels handle by
+            // building Avalonia brushes — must happen on the UI thread.
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (ActiveThresholdAlert == alert) DismissThresholdAlert();
+            });
         });
     }
 
@@ -197,7 +202,10 @@ public sealed class UsageStore : INotifyPropertyChanged
         {
             try { await Task.Delay(TimeSpan.FromSeconds(3.5), cts.Token); }
             catch (TaskCanceledException) { return; }
-            if (ActiveRestoreMoment == moment) DismissRestoreMoment();
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (ActiveRestoreMoment == moment) DismissRestoreMoment();
+            });
         });
         Record(new UsageEvent { Provider = snapshot.Provider, Kind = UsageEvent.EventKind.Info, Message = moment.Message });
         OnRestore?.Invoke(moment);

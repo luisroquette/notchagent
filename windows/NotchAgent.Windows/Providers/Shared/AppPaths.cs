@@ -4,13 +4,18 @@ public static class AppPaths
 {
     public static string Home => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-    /// %APPDATA%\NotchAgent (created on first access).
+    /// %APPDATA%\NotchAgent (created on first access). When run outside
+    /// Windows (dev/testing this cross-platform Avalonia app on macOS/Linux),
+    /// ApplicationData resolves to the SAME folder the native Mac app uses —
+    /// a distinct suffix here keeps local test runs from corrupting the real
+    /// Mac app's snapshot/settings files on a shared dev machine.
     public static string AppSupport
     {
         get
         {
+            var folderName = OperatingSystem.IsWindows() ? "NotchAgent" : "NotchAgent-Windows-Dev";
             var dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "NotchAgent");
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), folderName);
             Directory.CreateDirectory(dir);
             return dir;
         }
