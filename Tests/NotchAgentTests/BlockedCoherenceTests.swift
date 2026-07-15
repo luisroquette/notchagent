@@ -96,6 +96,24 @@ final class RestoreMomentTests: XCTestCase {
         XCTAssertNil(store.activeRestoreMoment, "stale activity means the user wasn't there to feel the recovery")
     }
 
+    /// REGRESSÃO: usuário relatou ver o aviso "ALMOST EMPTY 0%" congelado no
+    /// exato momento em que a janela (5h/semanal) resetava — a celebração só
+    /// disparava para o caminho estreito quotaStatus==.blocked, então um reset
+    /// de janela comum (nunca chega a ficar "blocked", só o percentual da API
+    /// sobe de volta) não tinha NENHUM feedback positivo.
+    func testRecoveryFiresOnPlainWindowResetWithoutEverBeingBlocked() {
+        let store = makeStore()
+        let now = Date()
+        store.apply(snapshot(blocked: false, sessionUsedPercent: 96, lastActivityAt: now))
+        XCTAssertEqual(store.activeThresholdAlert?.threshold, 5, "4% restante deve disparar o alerta mais grave")
+        XCTAssertNil(store.activeRestoreMoment)
+
+        store.apply(snapshot(blocked: false, sessionUsedPercent: 1, lastActivityAt: now))
+        XCTAssertNotNil(store.activeRestoreMoment, "reset de janela sem jamais passar por blocked também deve celebrar")
+        XCTAssertEqual(store.activeRestoreMoment?.previousRemaining, 4, "ponto de partida da animação = quão baixo chegou")
+        XCTAssertEqual(store.activeRestoreMoment?.remaining, 99)
+    }
+
     func testDangerTakeoverOutranksCelebrationWhenBothPending() {
         let store = makeStore()
         // Claude se recupera…

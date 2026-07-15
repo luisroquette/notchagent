@@ -53,17 +53,29 @@ public enum ThresholdAlerts {
     }
 }
 
-/// The positive counterpart to a low-fuel alert: fired once when a provider
-/// transitions from `blocked` back to usable — e.g. the API rejected requests
-/// mid-session and then the window reset while the user was actively working.
+/// The positive counterpart to a low-fuel alert: fired once whenever a
+/// provider that had crossed into low-fuel territory (any of the 25/15/10/5
+/// thresholds) climbs back above the reset line — a session/weekly window
+/// resetting on schedule, credits topping up, or an API block clearing all
+/// look the same from here: you were worried, now you're not.
 public struct RestoreMoment: Sendable, Equatable {
     public var provider: ProviderID
+    /// How low it got — the animation's starting point (tank refilling from here).
+    public var previousRemaining: Double
+    /// Where it landed — the animation's destination.
     public var remaining: Double
     public var isWeekly: Bool
     public var firedAt: Date
 
-    public init(provider: ProviderID, remaining: Double, isWeekly: Bool, firedAt: Date = Date()) {
+    public init(
+        provider: ProviderID,
+        previousRemaining: Double,
+        remaining: Double,
+        isWeekly: Bool,
+        firedAt: Date = Date()
+    ) {
         self.provider = provider
+        self.previousRemaining = previousRemaining
         self.remaining = remaining
         self.isWeekly = isWeekly
         self.firedAt = firedAt

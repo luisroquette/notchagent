@@ -22,9 +22,11 @@ final class UsageStore {
     /// Fired sets are keyed per provider AND per window (session vs weekly):
     /// the gauge flipping between windows must not suppress nor re-fire alerts.
     @ObservationIgnored private var firedThresholds: [String: Set<Int>] = [:]
+    /// Deepest point reached while `firedThresholds[key]` is non-empty — the
+    /// animation's starting point once the window resets and we celebrate.
+    @ObservationIgnored private var lowestRemainingSinceFired: [String: Double] = [:]
     @ObservationIgnored private var alertDismissTask: Task<Void, Never>?
     @ObservationIgnored private var restoreDismissTask: Task<Void, Never>?
-    @ObservationIgnored private var wasBlocked: [ProviderID: Bool] = [:]
     var isPaused = false
 
     let preferences: PreferencesStore
@@ -77,7 +79,6 @@ final class UsageStore {
             percentHistory[snapshot.provider] = samples
         }
         processThresholds(snapshot)
-        processRecovery(snapshot)
         for alert in alerts {
             record(UsageEvent(
                 date: alert.date,
@@ -126,7 +127,20 @@ final class UsageStore {
         var fired = firedThresholds[key] ?? []
 
         if ThresholdAlerts.shouldReset(remaining: remaining) {
+            // Had crossed into low-fuel territory and just climbed back out —
+            // celebrate it, using the deepest point reached as the animation's
+            // starting fuel level. Covers a window resetting on schedule, an
+            // API block clearing, or credits topping up — they all look the
+            // same from here: fired was non-empty, now the tank is fine. Still
+            // gated on recent activity: no celebration for "picked the Mac up
+            // three days later and it had reset ages ago."
+            if !fired.isEmpty, let low = lowestRemainingSinceFired[key],
+               let lastActivity = snapshot.lastActivityAt,
+               snapshot.capturedAt.timeIntervalSince(lastActivity) < 10 * 60 {
+                presentRestore(provider: snapshot.provider, previousRemaining: low, remaining: remaining, isWeekly: metric.isWeekly)
+            }
             fired = []
+            lowestRemainingSinceFired[key] = nil
             // Window reset also clears a lingering takeover for this provider.
             if activeThresholdAlert?.provider == snapshot.provider {
                 dismissThresholdAlert()
@@ -145,6 +159,9 @@ final class UsageStore {
             let message = ThresholdAlerts.message(for: alert)
             record(UsageEvent(provider: snapshot.provider, kind: .alert, level: level, message: message))
             onAlert?(ProviderAlert(provider: snapshot.provider, level: level, message: message))
+        }
+        if !fired.isEmpty {
+            lowestRemainingSinceFired[key] = min(lowestRemainingSinceFired[key] ?? remaining, remaining)
         }
         firedThresholds[key] = fired
     }
@@ -175,36 +192,25 @@ final class UsageStore {
         activeThresholdAlert = nil
     }
 
-    /// Detects the blocked → usable transition and celebrates it — but only
-    /// when the user could plausibly have felt it: recent activity around the
-    /// unblock, not "picked the Mac up three days later and it had reset ages
-    /// ago." A cold-start snapshot that is already blocked never fires this
-    /// (there is no prior "blocked" observation to transition from).
-    private func processRecovery(_ snapshot: UsageSnapshot) {
-        let isBlockedNow = snapshot.quotaStatus == .blocked
-        let wasBlockedBefore = wasBlocked[snapshot.provider] ?? false
-        wasBlocked[snapshot.provider] = isBlockedNow
-        guard wasBlockedBefore, !isBlockedNow else { return }
-        guard let lastActivity = snapshot.lastActivityAt,
-              snapshot.capturedAt.timeIntervalSince(lastActivity) < 10 * 60
-        else { return }
-
-        let metric = GaugeMetric.from(snapshot)
+    /// Sticky like `present(_:)`: a moment already showing isn't replaced by a
+    /// smaller bounce-back from another provider in the same refresh cycle.
+    private func presentRestore(provider: ProviderID, previousRemaining: Double, remaining: Double, isWeekly: Bool) {
         let moment = RestoreMoment(
-            provider: snapshot.provider,
-            remaining: metric?.remaining ?? 100,
-            isWeekly: metric?.isWeekly ?? false
+            provider: provider,
+            previousRemaining: previousRemaining,
+            remaining: remaining,
+            isWeekly: isWeekly
         )
         activeRestoreMoment = moment
         restoreDismissTask?.cancel()
         restoreDismissTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(3.5))
+            try? await Task.sleep(for: .seconds(5.5))
             guard !Task.isCancelled else { return }
             if self?.activeRestoreMoment == moment {
                 self?.dismissRestoreMoment()
             }
         }
-        record(UsageEvent(provider: snapshot.provider, kind: .info, message: moment.message))
+        record(UsageEvent(provider: provider, kind: .info, message: moment.message))
         onRestore?(moment)
     }
 
