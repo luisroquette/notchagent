@@ -18,6 +18,8 @@ A native macOS menu-bar + notch overlay that answers one question at a glance: *
 |---|---|
 | ![RHYTHM page](docs/img/panel-rhythm.png) | ![MODELS page](docs/img/panel-models.png) |
 
+![Low-fuel alert: an escalating takeover fires at 25/15/10/5% left, in light theme here](docs/img/alert-almost-empty.png)
+
 <details>
 <summary><b>More screenshots</b> — dashboard, burn scrubbing, settings</summary>
 
