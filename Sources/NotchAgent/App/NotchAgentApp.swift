@@ -10,6 +10,7 @@ struct NotchAgentApp: App {
                 .environment(AppEnvironment.shared.store)
                 .environment(AppEnvironment.shared.preferences)
                 .environment(AppEnvironment.shared.router)
+                .environmentObject(AppEnvironment.shared.spending)
         } label: {
             MenuBarLabelView()
                 .environment(AppEnvironment.shared.store)

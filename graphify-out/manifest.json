@@ -1,0 +1,607 @@
+{
+  "Package.swift": {
+    "mtime": 1783988067.9475822,
+    "ast_hash": "0a4ba9bf5ca15da1934ff41ac3c70338",
+    "semantic_hash": "0a4ba9bf5ca15da1934ff41ac3c70338"
+  },
+  "Scripts/gen-icon.swift": {
+    "mtime": 1783991862.5117848,
+    "ast_hash": "27fd9b13b1728c20438afe22496c6406",
+    "semantic_hash": "27fd9b13b1728c20438afe22496c6406"
+  },
+  "Scripts/make-app.sh": {
+    "mtime": 1784050822.3964872,
+    "ast_hash": "d0ba33b253f9c806fad76d5f0ac17eab",
+    "semantic_hash": "d0ba33b253f9c806fad76d5f0ac17eab"
+  },
+  "Sources/NotchAgent/App/AppDelegate.swift": {
+    "mtime": 1783988418.719595,
+    "ast_hash": "45216195e0653e81eca2811f7d20ac57",
+    "semantic_hash": "45216195e0653e81eca2811f7d20ac57"
+  },
+  "Sources/NotchAgent/App/AppEnvironment.swift": {
+    "mtime": 1784065707.8126037,
+    "ast_hash": "875b13c97e92cdc3225140bc72946e06",
+    "semantic_hash": "875b13c97e92cdc3225140bc72946e06"
+  },
+  "Sources/NotchAgent/App/NotchAgentApp.swift": {
+    "mtime": 1783988421.0772986,
+    "ast_hash": "dcb8b256cd9938cdbc50a0cecdac38f0",
+    "semantic_hash": "dcb8b256cd9938cdbc50a0cecdac38f0"
+  },
+  "Sources/NotchAgent/App/Routing/WindowRouter.swift": {
+    "mtime": 1784051247.4734209,
+    "ast_hash": "222d8584326464368fcb4ebe6e668606",
+    "semantic_hash": "222d8584326464368fcb4ebe6e668606"
+  },
+  "Sources/NotchAgent/Core/Logging/Log.swift": {
+    "mtime": 1783988072.3546665,
+    "ast_hash": "49cccb951445771d60476497c460f372",
+    "semantic_hash": "49cccb951445771d60476497c460f372"
+  },
+  "Sources/NotchAgent/Core/Models/AppSettings.swift": {
+    "mtime": 1784052890.746883,
+    "ast_hash": "18a81cda05d5e6aa7343bf4fdb7f4ea0",
+    "semantic_hash": "18a81cda05d5e6aa7343bf4fdb7f4ea0"
+  },
+  "Sources/NotchAgent/Core/Models/Events.swift": {
+    "mtime": 1783988101.4168673,
+    "ast_hash": "5d1e9e439c4d90aeb93e2176a16a4e54",
+    "semantic_hash": "5d1e9e439c4d90aeb93e2176a16a4e54"
+  },
+  "Sources/NotchAgent/Core/Models/Provider.swift": {
+    "mtime": 1783988080.7105565,
+    "ast_hash": "727632a49afb8706314bdaeb89b5d59a",
+    "semantic_hash": "727632a49afb8706314bdaeb89b5d59a"
+  },
+  "Sources/NotchAgent/Core/Models/Usage.swift": {
+    "mtime": 1784065654.581577,
+    "ast_hash": "6d163c67727b8174301400c7a4d88d6b",
+    "semantic_hash": "6d163c67727b8174301400c7a4d88d6b"
+  },
+  "Sources/NotchAgent/Core/Protocols/UsageProvider.swift": {
+    "mtime": 1783988108.7391622,
+    "ast_hash": "e8456f655a6b974686f1ef13ac705b32",
+    "semantic_hash": "e8456f655a6b974686f1ef13ac705b32"
+  },
+  "Sources/NotchAgent/Core/Services/BurnRate.swift": {
+    "mtime": 1783990096.197701,
+    "ast_hash": "b468ebe74c18afba981c0771dc0119a7",
+    "semantic_hash": "b468ebe74c18afba981c0771dc0119a7"
+  },
+  "Sources/NotchAgent/Core/Services/RefreshScheduler.swift": {
+    "mtime": 1784057158.426483,
+    "ast_hash": "08cfd9942a8c16326c5752365fda2665",
+    "semantic_hash": "08cfd9942a8c16326c5752365fda2665"
+  },
+  "Sources/NotchAgent/Core/Services/StatusAggregator.swift": {
+    "mtime": 1783989963.8682957,
+    "ast_hash": "52f86cbdd3c0578a4430b338928be769",
+    "semantic_hash": "52f86cbdd3c0578a4430b338928be769"
+  },
+  "Sources/NotchAgent/Core/Services/StatusPageService.swift": {
+    "mtime": 1784057176.2707195,
+    "ast_hash": "2cd4b178e28bc907b39d880ccb18c094",
+    "semantic_hash": "2cd4b178e28bc907b39d880ccb18c094"
+  },
+  "Sources/NotchAgent/Core/Services/SystemIntegration.swift": {
+    "mtime": 1784065699.3892868,
+    "ast_hash": "a6a3592729e93d4a930079608a1b8466",
+    "semantic_hash": "a6a3592729e93d4a930079608a1b8466"
+  },
+  "Sources/NotchAgent/Core/Services/ThresholdAlerts.swift": {
+    "mtime": 1784138733.4630005,
+    "ast_hash": "f8149748a41500dab84208b15340f722",
+    "semantic_hash": "f8149748a41500dab84208b15340f722"
+  },
+  "Sources/NotchAgent/Core/Services/UsageStore.swift": {
+    "mtime": 1784139183.9337804,
+    "ast_hash": "8822019feeca914f9490f763127be261",
+    "semantic_hash": "8822019feeca914f9490f763127be261"
+  },
+  "Sources/NotchAgent/Core/Utilities/AppPaths.swift": {
+    "mtime": 1784050929.0953794,
+    "ast_hash": "ec7582a81698efb231acc17477920ca5",
+    "semantic_hash": "ec7582a81698efb231acc17477920ca5"
+  },
+  "Sources/NotchAgent/Core/Utilities/Formatters.swift": {
+    "mtime": 1783989877.3417208,
+    "ast_hash": "e377d6ad9ce973ab20e07fd3f6ac020a",
+    "semantic_hash": "e377d6ad9ce973ab20e07fd3f6ac020a"
+  },
+  "Sources/NotchAgent/Core/Utilities/JSONLReader.swift": {
+    "mtime": 1784057054.3441725,
+    "ast_hash": "0159c732342ff451fdee01961296d88c",
+    "semantic_hash": "0159c732342ff451fdee01961296d88c"
+  },
+  "Sources/NotchAgent/Core/Utilities/PreviewData.swift": {
+    "mtime": 1783988594.5299416,
+    "ast_hash": "42850e353cc8daef308ab80ffdee486b",
+    "semantic_hash": "42850e353cc8daef308ab80ffdee486b"
+  },
+  "Sources/NotchAgent/Data/Persistence/HistoryStore.swift": {
+    "mtime": 1784057168.3169982,
+    "ast_hash": "80c191b8e1016ebfadab0ad1ca491f81",
+    "semantic_hash": "80c191b8e1016ebfadab0ad1ca491f81"
+  },
+  "Sources/NotchAgent/Data/Persistence/PreferencesStore.swift": {
+    "mtime": 1783988293.1795828,
+    "ast_hash": "9f84d2fc85ae78041c54ace96cc5c426",
+    "semantic_hash": "9f84d2fc85ae78041c54ace96cc5c426"
+  },
+  "Sources/NotchAgent/Data/Persistence/SnapshotStore.swift": {
+    "mtime": 1783988279.464243,
+    "ast_hash": "471c6b2eb63c03427a5d67e9c5211cd8",
+    "semantic_hash": "471c6b2eb63c03427a5d67e9c5211cd8"
+  },
+  "Sources/NotchAgent/Features/Dashboard/DashboardView.swift": {
+    "mtime": 1784057199.573499,
+    "ast_hash": "452af7ad177012b2d30738d27b925326",
+    "semantic_hash": "452af7ad177012b2d30738d27b925326"
+  },
+  "Sources/NotchAgent/Features/MenuBar/MenuBarContentView.swift": {
+    "mtime": 1784051256.0511076,
+    "ast_hash": "76fc5be7044c5b90b9e4a82b10ccb5c4",
+    "semantic_hash": "76fc5be7044c5b90b9e4a82b10ccb5c4"
+  },
+  "Sources/NotchAgent/Features/MenuBar/MenuBarLabelView.swift": {
+    "mtime": 1783991378.5187635,
+    "ast_hash": "22d381319713fab39a0328dadeb98dbf",
+    "semantic_hash": "22d381319713fab39a0328dadeb98dbf"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/AlertMomentView.swift": {
+    "mtime": 1784057134.4412,
+    "ast_hash": "d653c2dcf74b1252fc30c55c4459b00f",
+    "semantic_hash": "d653c2dcf74b1252fc30c55c4459b00f"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/BurnChartView.swift": {
+    "mtime": 1784051209.7007284,
+    "ast_hash": "046a3b2bd4f59159c32989a3ea0a70b0",
+    "semantic_hash": "046a3b2bd4f59159c32989a3ea0a70b0"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/NotchRunnerView.swift": {
+    "mtime": 1784065666.6891077,
+    "ast_hash": "931b778ad32536e707532250bbf2b52d",
+    "semantic_hash": "931b778ad32536e707532250bbf2b52d"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/NotchShape.swift": {
+    "mtime": 1783988463.4589624,
+    "ast_hash": "1b00342e19458f053fea2cf8ac95c1f3",
+    "semantic_hash": "1b00342e19458f053fea2cf8ac95c1f3"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/PixelGlyph.swift": {
+    "mtime": 1783990796.3702388,
+    "ast_hash": "d3c6a8f7351e91a29600cc4e81995e6d",
+    "semantic_hash": "d3c6a8f7351e91a29600cc4e81995e6d"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/ProviderCardView.swift": {
+    "mtime": 1784067414.6599936,
+    "ast_hash": "7890dbe455c9f5cad039d917a9b0a349",
+    "semantic_hash": "7890dbe455c9f5cad039d917a9b0a349"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/RestoreMomentView.swift": {
+    "mtime": 1784139209.2335951,
+    "ast_hash": "fef67d908c0772916391b9ffc5fc3afb",
+    "semantic_hash": "fef67d908c0772916391b9ffc5fc3afb"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/RhythmChartView.swift": {
+    "mtime": 1784051173.9058018,
+    "ast_hash": "8e62723dda1986f18e94fc07599468df",
+    "semantic_hash": "8e62723dda1986f18e94fc07599468df"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/SegmentedMeter.swift": {
+    "mtime": 1784051173.9024405,
+    "ast_hash": "f6b8d370a7fdf81f3c9b0c1dc5119fe0",
+    "semantic_hash": "f6b8d370a7fdf81f3c9b0c1dc5119fe0"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/StatusComponents.swift": {
+    "mtime": 1784051173.9092224,
+    "ast_hash": "728bbe37b4a89c257a22adb79b188e4c",
+    "semantic_hash": "728bbe37b4a89c257a22adb79b188e4c"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Components/Theme.swift": {
+    "mtime": 1784051146.072248,
+    "ast_hash": "7284f5fbcecf7f45c8e7ee9f0148fc7b",
+    "semantic_hash": "7284f5fbcecf7f45c8e7ee9f0148fc7b"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/ViewModels/NotchViewModel.swift": {
+    "mtime": 1784057123.5943792,
+    "ast_hash": "ae176279a1fd0dd97733b523c4daa9f1",
+    "semantic_hash": "ae176279a1fd0dd97733b523c4daa9f1"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Views/NotchCompactView.swift": {
+    "mtime": 1784067417.8533347,
+    "ast_hash": "134984d5306c2e50c5159ff48bd456a3",
+    "semantic_hash": "134984d5306c2e50c5159ff48bd456a3"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Views/NotchContainerView.swift": {
+    "mtime": 1784065732.3901615,
+    "ast_hash": "7c7207ea5e2afbc74977c15fbd11a067",
+    "semantic_hash": "7c7207ea5e2afbc74977c15fbd11a067"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Views/NotchExpandedView.swift": {
+    "mtime": 1784056252.3813732,
+    "ast_hash": "28e769cb90e22bcc45b2cacf83726719",
+    "semantic_hash": "28e769cb90e22bcc45b2cacf83726719"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Windowing/NotchGeometry.swift": {
+    "mtime": 1783988376.7813487,
+    "ast_hash": "c48717b1e80bdcd34c0307a3fb81c03f",
+    "semantic_hash": "c48717b1e80bdcd34c0307a3fb81c03f"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Windowing/NotchPanel.swift": {
+    "mtime": 1783988383.900923,
+    "ast_hash": "3f95c8960ad7ae150c7cfb8fd8ad9357",
+    "semantic_hash": "3f95c8960ad7ae150c7cfb8fd8ad9357"
+  },
+  "Sources/NotchAgent/Features/NotchOverlay/Windowing/NotchWindowController.swift": {
+    "mtime": 1784057148.5459375,
+    "ast_hash": "b976dde1680755fc312b5c35e94aa0cf",
+    "semantic_hash": "b976dde1680755fc312b5c35e94aa0cf"
+  },
+  "Sources/NotchAgent/Features/Providers/Claude/ClaudeProvider.swift": {
+    "mtime": 1784056995.9202642,
+    "ast_hash": "8ca344bd36939089396e8e7546c648ff",
+    "semantic_hash": "8ca344bd36939089396e8e7546c648ff"
+  },
+  "Sources/NotchAgent/Features/Providers/Claude/ClaudeQuotaProbe.swift": {
+    "mtime": 1784056973.8625498,
+    "ast_hash": "d22a189af6537244a0d85fde903e96a1",
+    "semantic_hash": "d22a189af6537244a0d85fde903e96a1"
+  },
+  "Sources/NotchAgent/Features/Providers/Claude/ClaudeTranscriptParser.swift": {
+    "mtime": 1784057000.1499035,
+    "ast_hash": "22a61abdf5151a206bc9c57817939b69",
+    "semantic_hash": "22a61abdf5151a206bc9c57817939b69"
+  },
+  "Sources/NotchAgent/Features/Providers/Codex/CodexProvider.swift": {
+    "mtime": 1784067406.1972854,
+    "ast_hash": "7027a51782bf8b85260f1a71bbdad9a0",
+    "semantic_hash": "7027a51782bf8b85260f1a71bbdad9a0"
+  },
+  "Sources/NotchAgent/Features/Providers/Codex/CodexRolloutParser.swift": {
+    "mtime": 1784057046.569716,
+    "ast_hash": "ef6c88e899a9c4bbbfe4c20195b1cdfb",
+    "semantic_hash": "ef6c88e899a9c4bbbfe4c20195b1cdfb"
+  },
+  "Sources/NotchAgent/Features/Providers/Gemini/GeminiLogParser.swift": {
+    "mtime": 1783988251.2973974,
+    "ast_hash": "695b08fd410d0609a7d04d667969221f",
+    "semantic_hash": "695b08fd410d0609a7d04d667969221f"
+  },
+  "Sources/NotchAgent/Features/Providers/Gemini/GeminiProvider.swift": {
+    "mtime": 1784057056.434468,
+    "ast_hash": "34c2f5a4c41ad200932467e376e1519f",
+    "semantic_hash": "34c2f5a4c41ad200932467e376e1519f"
+  },
+  "Sources/NotchAgent/Features/Providers/Shared/FileScanCache.swift": {
+    "mtime": 1784057002.5246508,
+    "ast_hash": "93ec51db31e25a90daff1f0bc8eb4459",
+    "semantic_hash": "93ec51db31e25a90daff1f0bc8eb4459"
+  },
+  "Sources/NotchAgent/Features/Providers/Shared/PricingTable.swift": {
+    "mtime": 1784057196.7422254,
+    "ast_hash": "a4025823a1b63c924e0ded882d49447d",
+    "semantic_hash": "a4025823a1b63c924e0ded882d49447d"
+  },
+  "Sources/NotchAgent/Features/Settings/SettingsView.swift": {
+    "mtime": 1784057187.0943391,
+    "ast_hash": "e9745bc022bf98d134fa847f100c671e",
+    "semantic_hash": "e9745bc022bf98d134fa847f100c671e"
+  },
+  "Tests/NotchAgentTests/AggregatorAndFormatTests.swift": {
+    "mtime": 1783988820.156068,
+    "ast_hash": "8ba04d547fdc79474deb06073acf3cfe",
+    "semantic_hash": "8ba04d547fdc79474deb06073acf3cfe"
+  },
+  "Tests/NotchAgentTests/BlockedCoherenceTests.swift": {
+    "mtime": 1784139254.983763,
+    "ast_hash": "e9f5bc6c83b7a0fc0f6155f9bf804cac",
+    "semantic_hash": "e9f5bc6c83b7a0fc0f6155f9bf804cac"
+  },
+  "Tests/NotchAgentTests/ClaudeParserTests.swift": {
+    "mtime": 1784050851.6020696,
+    "ast_hash": "92b27e51df2da4b27415c0e2a68e72b2",
+    "semantic_hash": "92b27e51df2da4b27415c0e2a68e72b2"
+  },
+  "Tests/NotchAgentTests/CodexParserTests.swift": {
+    "mtime": 1784050382.8667223,
+    "ast_hash": "abf66a5f1db89afba368915d8874facd",
+    "semantic_hash": "abf66a5f1db89afba368915d8874facd"
+  },
+  "Tests/NotchAgentTests/CurrentWindowParityTests.swift": {
+    "mtime": 1784067480.5056076,
+    "ast_hash": "29838f259f17bba07d52e4c7db56baa0",
+    "semantic_hash": "29838f259f17bba07d52e4c7db56baa0"
+  },
+  "Tests/NotchAgentTests/Fixtures/gemini-logs.json": {
+    "mtime": 1783988755.0924232,
+    "ast_hash": "b7353f7d08175cd67823d02b9e6ea2ad",
+    "semantic_hash": "b7353f7d08175cd67823d02b9e6ea2ad"
+  },
+  "Tests/NotchAgentTests/IncrementalParseTests.swift": {
+    "mtime": 1784050881.42427,
+    "ast_hash": "50f61bbafffd7df2bb6fc51e837cdebd",
+    "semantic_hash": "50f61bbafffd7df2bb6fc51e837cdebd"
+  },
+  "Tests/NotchAgentTests/PrecisionCalibrationTests.swift": {
+    "mtime": 1784052339.2464807,
+    "ast_hash": "e4b621e8731fb5b4867566f505d7a199",
+    "semantic_hash": "e4b621e8731fb5b4867566f505d7a199"
+  },
+  "Tests/NotchAgentTests/ProviderIntegrationTests.swift": {
+    "mtime": 1784050861.5134656,
+    "ast_hash": "bd076f6e2a973122ce51183a3be6f53e",
+    "semantic_hash": "bd076f6e2a973122ce51183a3be6f53e"
+  },
+  "Tests/NotchAgentTests/QuotaAndBurnRateTests.swift": {
+    "mtime": 1784057205.194691,
+    "ast_hash": "88c19bdc11ec2e98fabe17195e0e8c61",
+    "semantic_hash": "88c19bdc11ec2e98fabe17195e0e8c61"
+  },
+  "Tests/NotchAgentTests/ReviewRegressionTests.swift": {
+    "mtime": 1784057312.2713284,
+    "ast_hash": "2a602b92110f8667f2ef6d1e64eec916",
+    "semantic_hash": "2a602b92110f8667f2ef6d1e64eec916"
+  },
+  "Tests/NotchAgentTests/ScrollPagingTests.swift": {
+    "mtime": 1784030511.044223,
+    "ast_hash": "40c3a6181e8e1726dd1d669aab7f0f51",
+    "semantic_hash": "40c3a6181e8e1726dd1d669aab7f0f51"
+  },
+  "Tests/NotchAgentTests/ThresholdAndModelTests.swift": {
+    "mtime": 1784050851.6028352,
+    "ast_hash": "97cd929da63e1ffd261602a57d774b71",
+    "semantic_hash": "97cd929da63e1ffd261602a57d774b71"
+  },
+  "windows/NotchAgent.Windows/App.axaml.cs": {
+    "mtime": 1784121531.7111137,
+    "ast_hash": "1d1a1b2e774624f0e60724790249f8d5",
+    "semantic_hash": "1d1a1b2e774624f0e60724790249f8d5"
+  },
+  "windows/NotchAgent.Windows/Models/AppSettings.cs": {
+    "mtime": 1784075604.7176244,
+    "ast_hash": "43fbd63a70ffdaec6abd5cb528f275e3",
+    "semantic_hash": "43fbd63a70ffdaec6abd5cb528f275e3"
+  },
+  "windows/NotchAgent.Windows/Models/Events.cs": {
+    "mtime": 1784075931.6445568,
+    "ast_hash": "c9a729fd6c776513449bf73c6296ee28",
+    "semantic_hash": "c9a729fd6c776513449bf73c6296ee28"
+  },
+  "windows/NotchAgent.Windows/Models/Provider.cs": {
+    "mtime": 1784075591.267023,
+    "ast_hash": "93cdfcc5bfac66448d8397d080a23de1",
+    "semantic_hash": "93cdfcc5bfac66448d8397d080a23de1"
+  },
+  "windows/NotchAgent.Windows/Models/Usage.cs": {
+    "mtime": 1784075602.1654088,
+    "ast_hash": "19f6455df6ca7c9ceea891e1253ee2d1",
+    "semantic_hash": "19f6455df6ca7c9ceea891e1253ee2d1"
+  },
+  "windows/NotchAgent.Windows/NotchAgent.Windows.csproj": {
+    "mtime": 1784076381.176825,
+    "ast_hash": "b09dcbc573d1c619f522b6666653943c",
+    "semantic_hash": "b09dcbc573d1c619f522b6666653943c"
+  },
+  "windows/NotchAgent.Windows/Program.cs": {
+    "mtime": 1784076317.795813,
+    "ast_hash": "1c27a4ca935203291a528359caad7f95",
+    "semantic_hash": "1c27a4ca935203291a528359caad7f95"
+  },
+  "windows/NotchAgent.Windows/Providers/Claude/ClaudeProvider.cs": {
+    "mtime": 1784075783.1555982,
+    "ast_hash": "9664476b101e8638c71657cb99e67534",
+    "semantic_hash": "9664476b101e8638c71657cb99e67534"
+  },
+  "windows/NotchAgent.Windows/Providers/Claude/ClaudeQuotaProbe.cs": {
+    "mtime": 1784075745.675319,
+    "ast_hash": "c68bfd48ca0f8405fd330f3a67c80aba",
+    "semantic_hash": "c68bfd48ca0f8405fd330f3a67c80aba"
+  },
+  "windows/NotchAgent.Windows/Providers/Claude/ClaudeTranscriptParser.cs": {
+    "mtime": 1784075677.843817,
+    "ast_hash": "ac8dd02e358339afbe756bb06f8e454b",
+    "semantic_hash": "ac8dd02e358339afbe756bb06f8e454b"
+  },
+  "windows/NotchAgent.Windows/Providers/Codex/CodexProvider.cs": {
+    "mtime": 1784075858.7451134,
+    "ast_hash": "929b29ee972dad99161bae1a96ced9b4",
+    "semantic_hash": "929b29ee972dad99161bae1a96ced9b4"
+  },
+  "windows/NotchAgent.Windows/Providers/Codex/CodexRolloutParser.cs": {
+    "mtime": 1784122176.4260325,
+    "ast_hash": "81efa777bb7ebe0debf4bce719fd2d46",
+    "semantic_hash": "81efa777bb7ebe0debf4bce719fd2d46"
+  },
+  "windows/NotchAgent.Windows/Providers/IUsageProvider.cs": {
+    "mtime": 1784075626.2336168,
+    "ast_hash": "2899419af57d9349979c48a9e144f3e5",
+    "semantic_hash": "2899419af57d9349979c48a9e144f3e5"
+  },
+  "windows/NotchAgent.Windows/Providers/PricingTable.cs": {
+    "mtime": 1784075622.954083,
+    "ast_hash": "8afd2a2aaba4317fc8ca42da07ec9563",
+    "semantic_hash": "8afd2a2aaba4317fc8ca42da07ec9563"
+  },
+  "windows/NotchAgent.Windows/Providers/Shared/AppPaths.cs": {
+    "mtime": 1784121684.185588,
+    "ast_hash": "ffd033338d32a17bd36db3a9fbf3a5b7",
+    "semantic_hash": "ffd033338d32a17bd36db3a9fbf3a5b7"
+  },
+  "windows/NotchAgent.Windows/Providers/Shared/JsonlReader.cs": {
+    "mtime": 1784075635.02657,
+    "ast_hash": "925718c20b4d613b801fa3912e1be123",
+    "semantic_hash": "925718c20b4d613b801fa3912e1be123"
+  },
+  "windows/NotchAgent.Windows/Services/Format.cs": {
+    "mtime": 1784076015.2410629,
+    "ast_hash": "602740d7ba9aabb4edbd000296379159",
+    "semantic_hash": "602740d7ba9aabb4edbd000296379159"
+  },
+  "windows/NotchAgent.Windows/Services/FullscreenDetector.cs": {
+    "mtime": 1784121423.8461924,
+    "ast_hash": "bbe19c7e3b95c137349b369cf0548fe0",
+    "semantic_hash": "bbe19c7e3b95c137349b369cf0548fe0"
+  },
+  "windows/NotchAgent.Windows/Services/Log.cs": {
+    "mtime": 1784121824.0607889,
+    "ast_hash": "6a897f8ebcdd5f0d073a619acaf1d31c",
+    "semantic_hash": "6a897f8ebcdd5f0d073a619acaf1d31c"
+  },
+  "windows/NotchAgent.Windows/Services/PreferencesStore.cs": {
+    "mtime": 1784075948.6325855,
+    "ast_hash": "b05aec5d76e7056f463f257ae0f2b96e",
+    "semantic_hash": "b05aec5d76e7056f463f257ae0f2b96e"
+  },
+  "windows/NotchAgent.Windows/Services/RefreshScheduler.cs": {
+    "mtime": 1784122024.0362942,
+    "ast_hash": "482591d6b820b1a228abda7e97b57e59",
+    "semantic_hash": "482591d6b820b1a228abda7e97b57e59"
+  },
+  "windows/NotchAgent.Windows/Services/SnapshotStore.cs": {
+    "mtime": 1784075945.7421117,
+    "ast_hash": "9adfbe5f43a3d65a99795e80f610d6e7",
+    "semantic_hash": "9adfbe5f43a3d65a99795e80f610d6e7"
+  },
+  "windows/NotchAgent.Windows/Services/StatusAggregator.cs": {
+    "mtime": 1784075933.9366605,
+    "ast_hash": "d51fcb309821a27a38ae6842779a051f",
+    "semantic_hash": "d51fcb309821a27a38ae6842779a051f"
+  },
+  "windows/NotchAgent.Windows/Services/ThresholdAlerts.cs": {
+    "mtime": 1784076429.7779627,
+    "ast_hash": "6fac499c2a5996dc3a46e668701dd2cb",
+    "semantic_hash": "6fac499c2a5996dc3a46e668701dd2cb"
+  },
+  "windows/NotchAgent.Windows/Services/UsageStore.cs": {
+    "mtime": 1784122061.0792625,
+    "ast_hash": "05e778844a8b87827e3484a18a88bfb6",
+    "semantic_hash": "05e778844a8b87827e3484a18a88bfb6"
+  },
+  "windows/NotchAgent.Windows/UI/AppTheme.cs": {
+    "mtime": 1784076410.5426574,
+    "ast_hash": "e7933d26298617dcda08c90f714aec65",
+    "semantic_hash": "e7933d26298617dcda08c90f714aec65"
+  },
+  "windows/NotchAgent.Windows/UI/BarViewModel.cs": {
+    "mtime": 1784121410.1734362,
+    "ast_hash": "f8d50dbf403b50c3ab7409a3a183aff7",
+    "semantic_hash": "f8d50dbf403b50c3ab7409a3a183aff7"
+  },
+  "windows/NotchAgent.Windows/UI/CompactBarView.axaml.cs": {
+    "mtime": 1784121439.699121,
+    "ast_hash": "88e1a8097dfc3c2f448dba1bc088b08a",
+    "semantic_hash": "88e1a8097dfc3c2f448dba1bc088b08a"
+  },
+  "windows/NotchAgent.Windows/UI/FloatingBarWindow.axaml.cs": {
+    "mtime": 1784121511.8290262,
+    "ast_hash": "cd814a5c29a24d98c1d745697598db4c",
+    "semantic_hash": "cd814a5c29a24d98c1d745697598db4c"
+  },
+  "windows/NotchAgent.Windows/UI/ProviderCardView.axaml.cs": {
+    "mtime": 1784076156.9627566,
+    "ast_hash": "df376f3857005d34d678ed2dbf209243",
+    "semantic_hash": "df376f3857005d34d678ed2dbf209243"
+  },
+  "windows/NotchAgent.Windows/UI/ProviderCardViewModel.cs": {
+    "mtime": 1784076487.3710911,
+    "ast_hash": "938e972a7fac354501b77daf61f3b443",
+    "semantic_hash": "938e972a7fac354501b77daf61f3b443"
+  },
+  "windows/NotchAgent.Windows/UI/RunnerControl.cs": {
+    "mtime": 1784076487.3755214,
+    "ast_hash": "8e1a7d1c14117439f9cf2140cc9062a6",
+    "semantic_hash": "8e1a7d1c14117439f9cf2140cc9062a6"
+  },
+  "windows/NotchAgent.Windows/UI/SegmentedMeter.cs": {
+    "mtime": 1784076487.3687193,
+    "ast_hash": "a33e42ca574b9b4e0c428816d58256e7",
+    "semantic_hash": "a33e42ca574b9b4e0c428816d58256e7"
+  },
+  "windows/NotchAgent.Windows/UI/SettingsWindow.axaml.cs": {
+    "mtime": 1784076567.423224,
+    "ast_hash": "c995659c43ca3727109466fe6d636baf",
+    "semantic_hash": "c995659c43ca3727109466fe6d636baf"
+  },
+  "windows/NotchAgent.Windows/UI/TrayIconFactory.cs": {
+    "mtime": 1784076236.4685829,
+    "ast_hash": "363244df1892f7abdc4036fc8c230b60",
+    "semantic_hash": "363244df1892f7abdc4036fc8c230b60"
+  },
+  "CHANGELOG.md": {
+    "mtime": 1784029954.5608447,
+    "ast_hash": "47cc778ab81246ee9a1511d1161fc26a",
+    "semantic_hash": "47cc778ab81246ee9a1511d1161fc26a"
+  },
+  "README.md": {
+    "mtime": 1784138705.6301436,
+    "ast_hash": "be00a5e3f7ee8731ae2273a7bbaa918d",
+    "semantic_hash": "be00a5e3f7ee8731ae2273a7bbaa918d"
+  },
+  "project.yml": {
+    "mtime": 1783989174.1062543,
+    "ast_hash": "a6fe9a161fb782cc1006b95b4c970a10",
+    "semantic_hash": "a6fe9a161fb782cc1006b95b4c970a10"
+  },
+  "windows/README.md": {
+    "mtime": 1784122334.8697531,
+    "ast_hash": "6a4a2f2ae2be4c2a960bdef80ee8bf0f",
+    "semantic_hash": "6a4a2f2ae2be4c2a960bdef80ee8bf0f"
+  },
+  "docs/img/alert-almost-empty.png": {
+    "mtime": 1784138684.8529654,
+    "ast_hash": "a4c736b2fded4546ac725e15d9b12351",
+    "semantic_hash": "a4c736b2fded4546ac725e15d9b12351"
+  },
+  "docs/img/dashboard-1.png": {
+    "mtime": 1784051911.7279737,
+    "ast_hash": "c72067ce45501dd423fc9abb3b3bb655",
+    "semantic_hash": "c72067ce45501dd423fc9abb3b3bb655"
+  },
+  "docs/img/dashboard-2.png": {
+    "mtime": 1784051911.7309465,
+    "ast_hash": "e748296db0f4aa75d3bea34be52a5ccc",
+    "semantic_hash": "e748296db0f4aa75d3bea34be52a5ccc"
+  },
+  "docs/img/desktop-burn.png": {
+    "mtime": 1784051911.8724875,
+    "ast_hash": "1905b1dc475d08d67c47e0dde1b4388a",
+    "semantic_hash": "1905b1dc475d08d67c47e0dde1b4388a"
+  },
+  "docs/img/desktop-now.png": {
+    "mtime": 1784051911.807963,
+    "ast_hash": "52c0527fa4fb88370a65cbdfc35420eb",
+    "semantic_hash": "52c0527fa4fb88370a65cbdfc35420eb"
+  },
+  "docs/img/notch-compact.png": {
+    "mtime": 1784051911.7131147,
+    "ast_hash": "2e23171ee26e45f478b9694969bf3c8e",
+    "semantic_hash": "2e23171ee26e45f478b9694969bf3c8e"
+  },
+  "docs/img/panel-burn.png": {
+    "mtime": 1784051911.7189937,
+    "ast_hash": "6f658bee62ab198513b9a7db987d779d",
+    "semantic_hash": "6f658bee62ab198513b9a7db987d779d"
+  },
+  "docs/img/panel-models.png": {
+    "mtime": 1784051911.7252476,
+    "ast_hash": "137197cad096155bba963fe3f3827ffa",
+    "semantic_hash": "137197cad096155bba963fe3f3827ffa"
+  },
+  "docs/img/panel-now.png": {
+    "mtime": 1784051911.71587,
+    "ast_hash": "18bd708b3fd83e22fee06c8f98567b57",
+    "semantic_hash": "18bd708b3fd83e22fee06c8f98567b57"
+  },
+  "docs/img/panel-rhythm.png": {
+    "mtime": 1784051911.7219663,
+    "ast_hash": "42e9d58a856ae001a22564c438e0c8ef",
+    "semantic_hash": "42e9d58a856ae001a22564c438e0c8ef"
+  },
+  "docs/img/settings.png": {
+    "mtime": 1784051911.733875,
+    "ast_hash": "97c680df82b953e781c7e1ccbeda7a5a",
+    "semantic_hash": "97c680df82b953e781c7e1ccbeda7a5a"
+  }
+}

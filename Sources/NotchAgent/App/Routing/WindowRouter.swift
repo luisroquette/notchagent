@@ -11,6 +11,7 @@ final class WindowRouter {
 
     @ObservationIgnored private var dashboardWindow: NSWindow?
     @ObservationIgnored private var settingsWindow: NSWindow?
+    @ObservationIgnored private var spendingWindow: NSWindow?
 
     func openDashboard() {
         guard let environment else { return }
@@ -19,6 +20,7 @@ final class WindowRouter {
                 .environment(environment.store)
                 .environment(environment.preferences)
                 .environment(self)
+                .environmentObject(environment.spending)
             dashboardWindow = makeWindow(
                 title: "NotchAgent — Dashboard",
                 content: AnyView(view),
@@ -34,6 +36,7 @@ final class WindowRouter {
             let view = SettingsView()
                 .environment(environment.store)
                 .environment(environment.preferences)
+                .environmentObject(environment.spending)
             settingsWindow = makeWindow(
                 title: "NotchAgent — Settings",
                 content: AnyView(view),
@@ -43,9 +46,25 @@ final class WindowRouter {
         present(settingsWindow)
     }
 
+    func openSpending() {
+        guard let environment else { return }
+        if spendingWindow == nil {
+            let view = SpendingView()
+                .environment(environment.store)
+                .environmentObject(environment.spending)
+            spendingWindow = makeWindow(
+                title: "NotchAgent — Gastos",
+                content: AnyView(view),
+                size: NSSize(width: 620, height: 560)
+            )
+        }
+        present(spendingWindow)
+    }
+
     func applyAppearance(_ appearance: NSAppearance?) {
         dashboardWindow?.appearance = appearance
         settingsWindow?.appearance = appearance
+        spendingWindow?.appearance = appearance
     }
 
     private func makeWindow(title: String, content: AnyView, size: NSSize) -> NSWindow {

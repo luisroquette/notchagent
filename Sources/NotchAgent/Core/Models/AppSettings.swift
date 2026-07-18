@@ -7,7 +7,15 @@ public enum ThemeMode: String, Codable, Sendable, CaseIterable {
     case light
 }
 
+public enum InterfaceLanguage: String, Codable, Sendable, CaseIterable {
+    case ptBR
+    case en
+
+    var label: String { self == .ptBR ? "Português (Brasil)" : "English" }
+}
+
 public struct AppSettings: Codable, Sendable, Equatable {
+    public var interfaceLanguage: InterfaceLanguage = .ptBR
     public var themeMode: ThemeMode = .auto
     public var refreshIntervalSeconds: Double = 60
     /// Percent thresholds applied to any quota percentage a provider reports.
@@ -35,6 +43,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
     // Manual decode with defaults so persisted settings survive new fields.
     private enum CodingKeys: String, CodingKey {
         case themeMode
+        case interfaceLanguage
         case refreshIntervalSeconds
         case warningThresholdPercent
         case criticalThresholdPercent
@@ -51,6 +60,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         themeMode = try container.decodeIfPresent(ThemeMode.self, forKey: .themeMode) ?? .auto
+        interfaceLanguage = try container.decodeIfPresent(InterfaceLanguage.self, forKey: .interfaceLanguage) ?? .ptBR
         refreshIntervalSeconds = try container.decodeIfPresent(Double.self, forKey: .refreshIntervalSeconds) ?? 60
         warningThresholdPercent = try container.decodeIfPresent(Double.self, forKey: .warningThresholdPercent) ?? 70
         criticalThresholdPercent = try container.decodeIfPresent(Double.self, forKey: .criticalThresholdPercent) ?? 90
