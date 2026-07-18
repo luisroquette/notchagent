@@ -32,16 +32,13 @@ enum ClaudeTokenLocator {
         return keychainToken()
     }
 
-    /// Parses Claude Code's credentials JSON; rejects clearly expired tokens.
     static func parseCredentials(_ data: Data, now: Date = Date()) -> String? {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let oauth = root["claudeAiOauth"] as? [String: Any],
-              let token = oauth["accessToken"] as? String, !token.isEmpty
-        else { return nil }
+              let token = oauth["accessToken"] as? String,
+              !token.isEmpty else { return nil }
         if let expiresAt = oauth["expiresAt"] as? Double,
-           Date(timeIntervalSince1970: expiresAt / 1000) < now {
-            return nil
-        }
+           Date(timeIntervalSince1970: expiresAt / 1000) < now { return nil }
         return token
     }
 
@@ -60,10 +57,7 @@ enum ClaudeTokenLocator {
             }
             return nil
         }
-        if let token = parseCredentials(data) {
-            return token
-        }
-        // Some setups store the bare token instead of the JSON blob.
+        if let token = parseCredentials(data) { return token }
         if let raw = String(data: data, encoding: .utf8), raw.hasPrefix("sk-ant-") {
             return raw
         }

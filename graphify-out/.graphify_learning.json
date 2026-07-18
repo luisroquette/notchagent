@@ -1,0 +1,117 @@
+{
+  "generated_at": "2026-07-17T22:46:51.321831+00:00",
+  "nodes": {
+    "sources_notchagent_core_services_burnrate_burnrate": {
+      "code_fingerprint": "5a60272cd997b6198aab8241ec91e8c23dd7bf95fb202b4bddb0aef13e5d3365",
+      "label": "BurnRate",
+      "last": "2026-07-17T22:37:06.982997+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-17T22:37:06.982997+00:00",
+          "outcome": "useful",
+          "q": "Compare a confianca do estimador iOS com o produto atual do MacBook"
+        },
+        {
+          "date": "2026-07-17T22:29:45.129944+00:00",
+          "outcome": "useful",
+          "q": "Como o NotchAgent atual calcula ou estima as cotas?"
+        }
+      ],
+      "score": 1.999569365,
+      "source_file": "Sources/NotchAgent/Core/Services/BurnRate.swift",
+      "status": "preferred",
+      "uses": 2
+    },
+    "sources_notchagent_data_persistence_historystore_historystore": {
+      "code_fingerprint": "0cb6aedd7c5aeee62fea3f16e1ed1628e80e8d44c81df6c2940ef16d01ba83b5",
+      "label": "HistoryStore",
+      "last": "2026-07-17T22:23:01.659168+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-17T22:23:01.659168+00:00",
+          "outcome": "useful",
+          "q": "relembre o projeto notchagent"
+        }
+      ],
+      "score": 0.999617756,
+      "source_file": "Sources/NotchAgent/Data/Persistence/HistoryStore.swift",
+      "status": "tentative",
+      "uses": 1
+    },
+    "sources_notchagent_features_notchoverlay_viewmodels_notchviewmodel_notchviewmodel": {
+      "code_fingerprint": "d18baf6d1078fcb7f259b56443191d006469f8032486bab51523b3613e3dd288",
+      "label": "NotchViewModel",
+      "last": "2026-07-17T22:23:01.659168+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-17T22:23:01.659168+00:00",
+          "outcome": "useful",
+          "q": "relembre o projeto notchagent"
+        }
+      ],
+      "score": 0.999617756,
+      "source_file": "Sources/NotchAgent/Features/NotchOverlay/ViewModels/NotchViewModel.swift",
+      "status": "tentative",
+      "uses": 1
+    },
+    "sources_notchagent_features_notchoverlay_windowing_notchwindowcontroller_notchwindowcontroller": {
+      "code_fingerprint": "2a7bc7c08e623e8566e3494f4b30338fd820591eeae8a22ccdb50597dee91274",
+      "label": "NotchWindowController",
+      "last": "2026-07-17T22:23:01.659168+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-17T22:23:01.659168+00:00",
+          "outcome": "useful",
+          "q": "relembre o projeto notchagent"
+        }
+      ],
+      "score": 0.999617756,
+      "source_file": "Sources/NotchAgent/Features/NotchOverlay/Windowing/NotchWindowController.swift",
+      "status": "tentative",
+      "uses": 1
+    },
+    "sources_notchagent_features_providers_gemini_geminiprovider_geminiprovider": {
+      "code_fingerprint": "96cfd34b5237507932baef1faf63405909f1d607e2b75d605660ae7b99feb600",
+      "label": "GeminiProvider",
+      "last": "2026-07-17T22:37:06.982997+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-17T22:37:06.982997+00:00",
+          "outcome": "useful",
+          "q": "Compare a confianca do estimador iOS com o produto atual do MacBook"
+        },
+        {
+          "date": "2026-07-17T22:29:45.129944+00:00",
+          "outcome": "useful",
+          "q": "Como o NotchAgent atual calcula ou estima as cotas?"
+        },
+        {
+          "date": "2026-07-17T22:23:01.659168+00:00",
+          "outcome": "useful",
+          "q": "relembre o projeto notchagent"
+        }
+      ],
+      "score": 2.999187121,
+      "source_file": "Sources/NotchAgent/Features/Providers/Gemini/GeminiProvider.swift",
+      "status": "preferred",
+      "uses": 3
+    },
+    "windows_notchagent_windows_ui_floatingbarwindow_axaml_notchagent_windows_ui_floatingbarwindow": {
+      "code_fingerprint": "4a86d6a9b342bff91ee6d4dadd091b974f55c944ab98b8a2de772c72b0ade046",
+      "label": "FloatingBarWindow",
+      "last": "2026-07-17T22:23:01.659168+00:00",
+      "provenance": [
+        {
+          "date": "2026-07-17T22:23:01.659168+00:00",
+          "outcome": "useful",
+          "q": "relembre o projeto notchagent"
+        }
+      ],
+      "score": 0.999617756,
+      "source_file": "windows/NotchAgent.Windows/UI/FloatingBarWindow.axaml.cs",
+      "status": "tentative",
+      "uses": 1
+    }
+  },
+  "version": 1
+}

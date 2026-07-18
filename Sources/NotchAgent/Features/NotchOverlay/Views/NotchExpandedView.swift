@@ -1,10 +1,12 @@
 import SwiftUI
+import AgentMeterCore
 
 /// Expanded gauge panel: stick-style pager with NOW / BURN / RHYTHM pages.
 struct NotchExpandedView: View {
     @Environment(UsageStore.self) private var store
     @Environment(NotchViewModel.self) private var viewModel
     @Environment(WindowRouter.self) private var router
+    @EnvironmentObject private var spending: SubscriptionStore
 
     @State private var rhythmToday = false
 
@@ -72,6 +74,13 @@ struct NotchExpandedView: View {
             if store.isPaused {
                 StatusPill(text: "Paused", color: Theme.warning)
             }
+            Button {
+                router.openSpending()
+            } label: {
+                GaugeLabel(text: "PAGO " + spending.format(spending.monthlySpend.paidBRL, compact: true), color: Theme.coral, size: 8)
+            }
+            .buttonStyle(.plain)
+            .help("Gasto confirmado neste mês")
             GaugeLabel(text: updatedText, color: Theme.textFaint, size: 8)
             Button {
                 viewModel.togglePin()
@@ -132,11 +141,10 @@ struct NotchExpandedView: View {
 
     // MARK: Pages
 
-    /// Providers with real gauges get full cards; the rest collapse into slim
-    /// strips so dead space never competes with live data.
+    /// Claude Code and Codex always keep equal, detailed cards. A temporary
+    /// quota-probe failure must not collapse Claude into a status strip.
     private var nowPage: some View {
-        let gauged = ProviderID.allCases.filter { GaugeMetric.from(store.snapshots[$0]) != nil }
-        let cardProviders = gauged.isEmpty ? ProviderID.allCases : gauged
+        let cardProviders: [ProviderID] = [.claudeCode, .codex]
         let stripProviders = ProviderID.allCases.filter { !cardProviders.contains($0) }
 
         return VStack(spacing: 8) {

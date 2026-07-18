@@ -1,4 +1,5 @@
 import Foundation
+import AgentMeterCore
 
 /// Composition root: builds and wires every service exactly once.
 @MainActor
@@ -13,6 +14,7 @@ final class AppEnvironment {
     let scheduler: RefreshScheduler
     let notchViewModel: NotchViewModel
     let router: WindowRouter
+    let spending: SubscriptionStore
     let notifications = NotificationService()
     private(set) var notchController: NotchWindowController?
 
@@ -30,7 +32,11 @@ final class AppEnvironment {
         )
         notchViewModel = NotchViewModel()
         router = WindowRouter()
+        spending = SubscriptionStore()
         router.environment = self
+        spending.onMonthlyBudgetAlert = { [notifications, preferences] alert in
+            notifications.postBudget(alert, settings: preferences.settings)
+        }
         store.onAlert = { [notifications, preferences] alert in
             notifications.post(alert, settings: preferences.settings)
         }
@@ -46,7 +52,7 @@ final class AppEnvironment {
             Log.providers.info("\(provider.id.rawValue, privacy: .public): \(String(describing: installation), privacy: .public)")
         }
 
-        let controller = NotchWindowController(viewModel: notchViewModel, store: store, router: router)
+        let controller = NotchWindowController(viewModel: notchViewModel, store: store, router: router, spending: spending)
         notchController = controller
         controller.show()
 
