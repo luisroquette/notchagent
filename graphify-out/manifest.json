@@ -1,8 +1,8 @@
 {
   "Package.swift": {
-    "mtime": 1783988067.9475822,
-    "ast_hash": "0a4ba9bf5ca15da1934ff41ac3c70338",
-    "semantic_hash": "0a4ba9bf5ca15da1934ff41ac3c70338"
+    "mtime": 1784813132.7990997,
+    "ast_hash": "21a0f66306c12057222a05ccfcfa2a04",
+    "semantic_hash": "21a0f66306c12057222a05ccfcfa2a04"
   },
   "Scripts/gen-icon.swift": {
     "mtime": 1783991862.5117848,
@@ -10,9 +10,9 @@
     "semantic_hash": "27fd9b13b1728c20438afe22496c6406"
   },
   "Scripts/make-app.sh": {
-    "mtime": 1784050822.3964872,
-    "ast_hash": "d0ba33b253f9c806fad76d5f0ac17eab",
-    "semantic_hash": "d0ba33b253f9c806fad76d5f0ac17eab"
+    "mtime": 1784813132.8727915,
+    "ast_hash": "7dbcb34b5de4fbc87c7f5d85fa90906a",
+    "semantic_hash": "7dbcb34b5de4fbc87c7f5d85fa90906a"
   },
   "Sources/NotchAgent/App/AppDelegate.swift": {
     "mtime": 1783988418.719595,
@@ -20,19 +20,19 @@
     "semantic_hash": "45216195e0653e81eca2811f7d20ac57"
   },
   "Sources/NotchAgent/App/AppEnvironment.swift": {
-    "mtime": 1784065707.8126037,
-    "ast_hash": "875b13c97e92cdc3225140bc72946e06",
-    "semantic_hash": "875b13c97e92cdc3225140bc72946e06"
+    "mtime": 1784813132.808349,
+    "ast_hash": "985e9d49e817ce89cccd8d611855e345",
+    "semantic_hash": "985e9d49e817ce89cccd8d611855e345"
   },
   "Sources/NotchAgent/App/NotchAgentApp.swift": {
-    "mtime": 1783988421.0772986,
-    "ast_hash": "dcb8b256cd9938cdbc50a0cecdac38f0",
-    "semantic_hash": "dcb8b256cd9938cdbc50a0cecdac38f0"
+    "mtime": 1784813132.8085713,
+    "ast_hash": "006fb9d9d046e12dfb6688ecd30bfdff",
+    "semantic_hash": "006fb9d9d046e12dfb6688ecd30bfdff"
   },
   "Sources/NotchAgent/App/Routing/WindowRouter.swift": {
-    "mtime": 1784051247.4734209,
-    "ast_hash": "222d8584326464368fcb4ebe6e668606",
-    "semantic_hash": "222d8584326464368fcb4ebe6e668606"
+    "mtime": 1784813132.8088357,
+    "ast_hash": "f3a57f99d7313968d5b3fdd22e635db8",
+    "semantic_hash": "f3a57f99d7313968d5b3fdd22e635db8"
   },
   "Sources/NotchAgent/Core/Logging/Log.swift": {
     "mtime": 1783988072.3546665,
@@ -40,9 +40,9 @@
     "semantic_hash": "49cccb951445771d60476497c460f372"
   },
   "Sources/NotchAgent/Core/Models/AppSettings.swift": {
-    "mtime": 1784052890.746883,
-    "ast_hash": "18a81cda05d5e6aa7343bf4fdb7f4ea0",
-    "semantic_hash": "18a81cda05d5e6aa7343bf4fdb7f4ea0"
+    "mtime": 1784813132.8090732,
+    "ast_hash": "b7b6ce0753217899e8cfa835f27b3cbb",
+    "semantic_hash": "b7b6ce0753217899e8cfa835f27b3cbb"
   },
   "Sources/NotchAgent/Core/Models/Events.swift": {
     "mtime": 1783988101.4168673,
@@ -85,9 +85,9 @@
     "semantic_hash": "2cd4b178e28bc907b39d880ccb18c094"
   },
   "Sources/NotchAgent/Core/Services/SystemIntegration.swift": {
-    "mtime": 1784065699.3892868,
-    "ast_hash": "a6a3592729e93d4a930079608a1b8466",
-    "semantic_hash": "a6a3592729e93d4a930079608a1b8466"
+    "mtime": 1784813132.8099666,
+    "ast_hash": "4304fdf42fe83cffaf979379a15f43d5",
+    "semantic_hash": "4304fdf42fe83cffaf979379a15f43d5"
   },
   "Sources/NotchAgent/Core/Services/ThresholdAlerts.swift": {
     "mtime": 1784138733.4630005,
@@ -135,14 +135,14 @@
     "semantic_hash": "471c6b2eb63c03427a5d67e9c5211cd8"
   },
   "Sources/NotchAgent/Features/Dashboard/DashboardView.swift": {
-    "mtime": 1784057199.573499,
-    "ast_hash": "452af7ad177012b2d30738d27b925326",
-    "semantic_hash": "452af7ad177012b2d30738d27b925326"
+    "mtime": 1784813132.8102527,
+    "ast_hash": "c4c5df05549349b8d56826951b3baf98",
+    "semantic_hash": "c4c5df05549349b8d56826951b3baf98"
   },
   "Sources/NotchAgent/Features/MenuBar/MenuBarContentView.swift": {
-    "mtime": 1784051256.0511076,
-    "ast_hash": "76fc5be7044c5b90b9e4a82b10ccb5c4",
-    "semantic_hash": "76fc5be7044c5b90b9e4a82b10ccb5c4"
+    "mtime": 1784813132.8105903,
+    "ast_hash": "cb334f6423da90bc35f513ad73e52c3c",
+    "semantic_hash": "cb334f6423da90bc35f513ad73e52c3c"
   },
   "Sources/NotchAgent/Features/MenuBar/MenuBarLabelView.swift": {
     "mtime": 1783991378.5187635,
@@ -210,9 +210,9 @@
     "semantic_hash": "ae176279a1fd0dd97733b523c4daa9f1"
   },
   "Sources/NotchAgent/Features/NotchOverlay/Views/NotchCompactView.swift": {
-    "mtime": 1784067417.8533347,
-    "ast_hash": "134984d5306c2e50c5159ff48bd456a3",
-    "semantic_hash": "134984d5306c2e50c5159ff48bd456a3"
+    "mtime": 1784813132.8108754,
+    "ast_hash": "0c752f51a133ef3d713e7bc7c125dd85",
+    "semantic_hash": "0c752f51a133ef3d713e7bc7c125dd85"
   },
   "Sources/NotchAgent/Features/NotchOverlay/Views/NotchContainerView.swift": {
     "mtime": 1784065732.3901615,
@@ -220,9 +220,9 @@
     "semantic_hash": "7c7207ea5e2afbc74977c15fbd11a067"
   },
   "Sources/NotchAgent/Features/NotchOverlay/Views/NotchExpandedView.swift": {
-    "mtime": 1784056252.3813732,
-    "ast_hash": "28e769cb90e22bcc45b2cacf83726719",
-    "semantic_hash": "28e769cb90e22bcc45b2cacf83726719"
+    "mtime": 1784813132.8111613,
+    "ast_hash": "02dc1092822faa38fb5f1d21709a4a61",
+    "semantic_hash": "02dc1092822faa38fb5f1d21709a4a61"
   },
   "Sources/NotchAgent/Features/NotchOverlay/Windowing/NotchGeometry.swift": {
     "mtime": 1783988376.7813487,
@@ -235,9 +235,9 @@
     "semantic_hash": "3f95c8960ad7ae150c7cfb8fd8ad9357"
   },
   "Sources/NotchAgent/Features/NotchOverlay/Windowing/NotchWindowController.swift": {
-    "mtime": 1784057148.5459375,
-    "ast_hash": "b976dde1680755fc312b5c35e94aa0cf",
-    "semantic_hash": "b976dde1680755fc312b5c35e94aa0cf"
+    "mtime": 1784813132.811518,
+    "ast_hash": "8c1bd598ec55e475a4fd444aa0bf5d6e",
+    "semantic_hash": "8c1bd598ec55e475a4fd444aa0bf5d6e"
   },
   "Sources/NotchAgent/Features/Providers/Claude/ClaudeProvider.swift": {
     "mtime": 1784056995.9202642,
@@ -245,9 +245,9 @@
     "semantic_hash": "8ca344bd36939089396e8e7546c648ff"
   },
   "Sources/NotchAgent/Features/Providers/Claude/ClaudeQuotaProbe.swift": {
-    "mtime": 1784056973.8625498,
-    "ast_hash": "d22a189af6537244a0d85fde903e96a1",
-    "semantic_hash": "d22a189af6537244a0d85fde903e96a1"
+    "mtime": 1784813132.8118029,
+    "ast_hash": "5e12f3fd00b35905ae2f6e164d3b0fd7",
+    "semantic_hash": "5e12f3fd00b35905ae2f6e164d3b0fd7"
   },
   "Sources/NotchAgent/Features/Providers/Claude/ClaudeTranscriptParser.swift": {
     "mtime": 1784057000.1499035,
@@ -285,9 +285,9 @@
     "semantic_hash": "a4025823a1b63c924e0ded882d49447d"
   },
   "Sources/NotchAgent/Features/Settings/SettingsView.swift": {
-    "mtime": 1784057187.0943391,
-    "ast_hash": "e9745bc022bf98d134fa847f100c671e",
-    "semantic_hash": "e9745bc022bf98d134fa847f100c671e"
+    "mtime": 1784813132.8120847,
+    "ast_hash": "e7d3dc9b7d23027244ba5931c9b96c2c",
+    "semantic_hash": "e7d3dc9b7d23027244ba5931c9b96c2c"
   },
   "Tests/NotchAgentTests/AggregatorAndFormatTests.swift": {
     "mtime": 1783988820.156068,
@@ -540,9 +540,9 @@
     "semantic_hash": "be00a5e3f7ee8731ae2273a7bbaa918d"
   },
   "project.yml": {
-    "mtime": 1783989174.1062543,
-    "ast_hash": "a6fe9a161fb782cc1006b95b4c970a10",
-    "semantic_hash": "a6fe9a161fb782cc1006b95b4c970a10"
+    "mtime": 1784813132.8524694,
+    "ast_hash": "1cf257de673573b2e418f1394cc45e42",
+    "semantic_hash": "1cf257de673573b2e418f1394cc45e42"
   },
   "windows/README.md": {
     "mtime": 1784122334.8697531,
@@ -603,5 +603,190 @@
     "mtime": 1784051911.733875,
     "ast_hash": "97c680df82b953e781c7e1ccbeda7a5a",
     "semantic_hash": "97c680df82b953e781c7e1ccbeda7a5a"
+  },
+  "Platforms/iOS/AgentMeterDesignSystem.swift": {
+    "mtime": 1784813132.799425,
+    "ast_hash": "3c4a4b966de68abbb99ef853aacbb1c8",
+    "semantic_hash": "3c4a4b966de68abbb99ef853aacbb1c8"
+  },
+  "Platforms/iOS/AgentMeterHomeView.swift": {
+    "mtime": 1784813132.799703,
+    "ast_hash": "2a5d8b4d5c29213ef20a344945ed8ec3",
+    "semantic_hash": "2a5d8b4d5c29213ef20a344945ed8ec3"
+  },
+  "Platforms/iOS/AgentMeterMobileApp.swift": {
+    "mtime": 1784813132.7999434,
+    "ast_hash": "ea7c897be192482e6f7687bf95e1cd07",
+    "semantic_hash": "ea7c897be192482e6f7687bf95e1cd07"
+  },
+  "Platforms/iOS/AppLanguage.swift": {
+    "mtime": 1784813132.800144,
+    "ast_hash": "6a28f8a24d9ae649bf1238ab8115a890",
+    "semantic_hash": "6a28f8a24d9ae649bf1238ab8115a890"
+  },
+  "Platforms/iOS/MobileRootView.swift": {
+    "mtime": 1784813132.8003979,
+    "ast_hash": "e97765573a66bdbe4344c10ad9b597ba",
+    "semantic_hash": "e97765573a66bdbe4344c10ad9b597ba"
+  },
+  "Platforms/iOS/RenewalNotificationScheduler.swift": {
+    "mtime": 1784813132.800689,
+    "ast_hash": "1eea2863d7bf5a3008cc196a90705ca2",
+    "semantic_hash": "1eea2863d7bf5a3008cc196a90705ca2"
+  },
+  "Platforms/iOS/SubscriptionWalletView.swift": {
+    "mtime": 1784813132.8009937,
+    "ast_hash": "4792439d155cd4302c5b16bc230cd097",
+    "semantic_hash": "4792439d155cd4302c5b16bc230cd097"
+  },
+  "Platforms/watchOS/AgentMeterWatchApp.swift": {
+    "mtime": 1784813132.801332,
+    "ast_hash": "868cadc744693c5d48628ae7530715b4",
+    "semantic_hash": "868cadc744693c5d48628ae7530715b4"
+  },
+  "Platforms/watchOS/WatchRootView.swift": {
+    "mtime": 1784813132.8015482,
+    "ast_hash": "da649561afff0f8f3058232bcdb196e6",
+    "semantic_hash": "da649561afff0f8f3058232bcdb196e6"
+  },
+  "Sources/AgentMeterCore/CloudSubscriptionSync.swift": {
+    "mtime": 1784813132.805981,
+    "ast_hash": "affaa0285946effd61d3864bcd40248a",
+    "semantic_hash": "affaa0285946effd61d3864bcd40248a"
+  },
+  "Sources/AgentMeterCore/Expense.swift": {
+    "mtime": 1784813132.8062627,
+    "ast_hash": "9d0d5be073e65fb62eba5a79dedf81c2",
+    "semantic_hash": "9d0d5be073e65fb62eba5a79dedf81c2"
+  },
+  "Sources/AgentMeterCore/InvoiceImport.swift": {
+    "mtime": 1784813132.8065186,
+    "ast_hash": "954eaa76b8407810e095463e9a214ab8",
+    "semantic_hash": "954eaa76b8407810e095463e9a214ab8"
+  },
+  "Sources/AgentMeterCore/MonthlyHistory.swift": {
+    "mtime": 1784813132.8066983,
+    "ast_hash": "2bba85129e2159e1c7626d8d5cfbbc9b",
+    "semantic_hash": "2bba85129e2159e1c7626d8d5cfbbc9b"
+  },
+  "Sources/AgentMeterCore/ProductIdentity.swift": {
+    "mtime": 1784813132.8069048,
+    "ast_hash": "13895a126b8c6bb048394a03b124eb87",
+    "semantic_hash": "13895a126b8c6bb048394a03b124eb87"
+  },
+  "Sources/AgentMeterCore/Subscription.swift": {
+    "mtime": 1784813132.807145,
+    "ast_hash": "af57fc13f08cdb5603f31685a670c03a",
+    "semantic_hash": "af57fc13f08cdb5603f31685a670c03a"
+  },
+  "Sources/AgentMeterCore/SubscriptionHistory.swift": {
+    "mtime": 1784813132.8073473,
+    "ast_hash": "2a23114c197bdae2abd84d3fb5be49fe",
+    "semantic_hash": "2a23114c197bdae2abd84d3fb5be49fe"
+  },
+  "Sources/AgentMeterCore/SubscriptionImport.swift": {
+    "mtime": 1784813132.8075984,
+    "ast_hash": "8f721475bd1c401dbbdf510bc12f3485",
+    "semantic_hash": "8f721475bd1c401dbbdf510bc12f3485"
+  },
+  "Sources/AgentMeterCore/SubscriptionStore.swift": {
+    "mtime": 1784813132.807901,
+    "ast_hash": "709876c455a3f588ae9dc8e3d4f95c6a",
+    "semantic_hash": "709876c455a3f588ae9dc8e3d4f95c6a"
+  },
+  "Sources/NotchAgent/Core/Services/CostLayers.swift": {
+    "mtime": 1784813132.8093536,
+    "ast_hash": "4d565df0c0d9b72f07cd02ae8675dfba",
+    "semantic_hash": "4d565df0c0d9b72f07cd02ae8675dfba"
+  },
+  "Sources/NotchAgent/Core/Services/DecisionAdvisor.swift": {
+    "mtime": 1784813132.8096805,
+    "ast_hash": "9cb055e01b3e35160bbc5f90362bccc2",
+    "semantic_hash": "9cb055e01b3e35160bbc5f90362bccc2"
+  },
+  "Sources/NotchAgent/Features/Spending/SpendingView.swift": {
+    "mtime": 1784813132.8124065,
+    "ast_hash": "45810f9e479386b62f3561627df7aaf1",
+    "semantic_hash": "45810f9e479386b62f3561627df7aaf1"
+  },
+  "Tests/AgentMeterCoreTests/InvoiceImportTests.swift": {
+    "mtime": 1784813132.8126707,
+    "ast_hash": "94922ab8351f288915cc45406a7c0d41",
+    "semantic_hash": "94922ab8351f288915cc45406a7c0d41"
+  },
+  "Tests/AgentMeterCoreTests/ProductIdentityTests.swift": {
+    "mtime": 1784813132.8129537,
+    "ast_hash": "ef9d19905caa8221b7bdfdf01f2ff6bd",
+    "semantic_hash": "ef9d19905caa8221b7bdfdf01f2ff6bd"
+  },
+  "Tests/AgentMeterCoreTests/SubscriptionImportTests.swift": {
+    "mtime": 1784813132.813125,
+    "ast_hash": "a189e6a67a22f42a0d93a49d42888923",
+    "semantic_hash": "a189e6a67a22f42a0d93a49d42888923"
+  },
+  "Tests/AgentMeterCoreTests/SubscriptionTests.swift": {
+    "mtime": 1784813132.8133445,
+    "ast_hash": "0367c280b54a0ffb50a1ad7f2a34525d",
+    "semantic_hash": "0367c280b54a0ffb50a1ad7f2a34525d"
+  },
+  "Tests/AgentMeterMobileUITests/AgentMeterMobileUITests.swift": {
+    "mtime": 1784813132.8135803,
+    "ast_hash": "c384f4951e8a38856c63cde7617cbbd1",
+    "semantic_hash": "c384f4951e8a38856c63cde7617cbbd1"
+  },
+  "Tests/NotchAgentTests/CostLayersTests.swift": {
+    "mtime": 1784813132.8137636,
+    "ast_hash": "b6abe2f866f3a8f5b480bee4ba1545ee",
+    "semantic_hash": "b6abe2f866f3a8f5b480bee4ba1545ee"
+  },
+  "Tests/NotchAgentTests/DecisionAdvisorTests.swift": {
+    "mtime": 1784813132.8139236,
+    "ast_hash": "8a67d30bda71a276ab685546ed3b64b3",
+    "semantic_hash": "8a67d30bda71a276ab685546ed3b64b3"
+  },
+  "DESIGN.md": {
+    "mtime": 1784813132.7978625,
+    "ast_hash": "d401120e6ee928a9fb4eec0c1ac7a8a3",
+    "semantic_hash": "d401120e6ee928a9fb4eec0c1ac7a8a3"
+  },
+  "PRODUCT.md": {
+    "mtime": 1784813132.7987978,
+    "ast_hash": "5a4012eff929c7ac74e89c54c9d7b9bf",
+    "semantic_hash": "5a4012eff929c7ac74e89c54c9d7b9bf"
+  },
+  "Resources/iOS/Fonts/FONT-LICENSES.md": {
+    "mtime": 1784813132.8037593,
+    "ast_hash": "05ecc313b0a64333418a83e43f5195d7",
+    "semantic_hash": "05ecc313b0a64333418a83e43f5195d7"
+  },
+  "SPACEX_STYLE_AUDIT.md": {
+    "mtime": 1784813132.8054085,
+    "ast_hash": "14a3de3389550efde377c3d838b9e89e",
+    "semantic_hash": "14a3de3389550efde377c3d838b9e89e"
+  },
+  "graphify-out/memory/query_20260717_222301_relembre_o_projeto_notchagent.md": {
+    "mtime": 1784813132.8487573,
+    "ast_hash": "b26af8aa45983a13261ecd51329818a7",
+    "semantic_hash": "b26af8aa45983a13261ecd51329818a7"
+  },
+  "graphify-out/memory/query_20260717_222945_como_o_notchagent_atual_calcula_ou_estima_as_cotas.md": {
+    "mtime": 1784813132.849691,
+    "ast_hash": "24ede706d9b362aca3fd6c5d0a56103d",
+    "semantic_hash": "24ede706d9b362aca3fd6c5d0a56103d"
+  },
+  "graphify-out/memory/query_20260717_223706_compare_a_confianca_do_estimador_ios_com_o_produto.md": {
+    "mtime": 1784813132.8518672,
+    "ast_hash": "e3e342204067b6ec68a77a3ac6b74140",
+    "semantic_hash": "e3e342204067b6ec68a77a3ac6b74140"
+  },
+  "graphify-out/memory/query_20260718_020046_trazer_refer\u00eancias_funcionais_de_jogos_cl\u00e1ssicos_8.md": {
+    "mtime": 1784813132.852013,
+    "ast_hash": "f1ea4c7fdab481d0b23e0060d56b5612",
+    "semantic_hash": "f1ea4c7fdab481d0b23e0060d56b5612"
+  },
+  "Resources/iOS/MarketOrbit.jpg": {
+    "mtime": 1784813132.8051522,
+    "ast_hash": "6bfe3b5c9643ad98c026e5234e89e16f",
+    "semantic_hash": "6bfe3b5c9643ad98c026e5234e89e16f"
   }
 }
