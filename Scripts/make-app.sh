@@ -1,7 +1,9 @@
 #!/bin/zsh
 # Builds NotchAgent.app from the SwiftPM release binary — no Xcode project
-# needed. Output: dist/NotchAgent.app (ad-hoc signed; use Developer ID +
-# notarization for public distribution).
+# needed. Output: dist/NotchAgent.app (signed with local Apple Development
+# identity so Keychain ACL grants persist across rebuilds; use Developer ID
+# + notarization for public distribution).
+SIGN_IDENTITY="Apple Development: luis roquette (K74FG72F9W)"
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -53,8 +55,8 @@ for spec in "16 icon_16x16" "32 icon_16x16@2x" "32 icon_32x32" "64 icon_32x32@2x
 done
 iconutil -c icns "$ICONDIR" -o "$APP/Contents/Resources/AppIcon.icns"
 
-echo "▸ signing (ad-hoc)"
-codesign --force --deep -s - "$APP"
+echo "▸ signing ($SIGN_IDENTITY)"
+codesign --force --deep -s "$SIGN_IDENTITY" "$APP"
 
 echo "✓ $APP pronto ($(du -sh "$APP" | cut -f1))"
 echo "  instalar: cp -R $APP /Applications/"
