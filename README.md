@@ -2,6 +2,12 @@
 
 **The fuel gauge for your AI agents, living in your MacBook's notch.**
 
+<p align="center">
+  <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
+  <a href="https://github.com/luisroquette/notchagent/releases/tag/v1.0.1"><img src="https://img.shields.io/badge/release-v1.0.1-38D6C7?style=flat-square" alt="Release v1.0.1" /></a>
+  <a href="#install"><img src="https://img.shields.io/badge/install-Homebrew-F3B85A?style=flat-square" alt="Install with Homebrew" /></a>
+</p>
+
 A native macOS menu-bar + notch overlay that answers one question at a glance: **how much of my Claude Code / Codex limit is left?** Official quota percentages (read from Anthropic's rate-limit headers), burn-rate projections ("runs out at 16:40"), per-model usage and cost estimates, escalating low-fuel alerts — all local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
 
 **Also available for Windows** — a system-tray companion (.NET 8 + Avalonia, same parsers, same quota probe) since Windows has no notch. See [`windows/README.md`](windows/README.md) for the current (v1) feature set and build instructions.
@@ -81,8 +87,8 @@ Monitor nativo (Swift 6 + SwiftUI/AppKit, zero Electron) de uso, quotas e custos
 
 ```bash
 swift run                 # desenvolvimento (menu bar + overlay na hora)
-swift test                # 52 testes
-./Scripts/make-app.sh     # gera dist/NotchAgent.app (ícone incluso, ad-hoc signed)
+swift test                # suíte automatizada
+./Scripts/make-app.sh     # gera dist/NotchAgent.app (ícone e assinatura estável inclusos)
 open dist/NotchAgent.app
 ```
 
@@ -132,15 +138,17 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 
 - Geometria do notch é inferida (`safeAreaInsets` + auxiliary areas) — sem API oficial; fallback pill cobre mudanças da Apple.
 - Custos são estimativas por tabela pública; planos por assinatura não faturam por token.
-- Assinatura ad-hoc: o consentimento do Keychain re-pergunta a cada rebuild (muda a assinatura). Resolve com Developer ID.
+- Distribuição ainda não notarizada: o primeiro lançamento pode exigir a remoção da quarentena. Builds locais usam uma identidade Apple Development estável para preservar o consentimento do Keychain.
 - `Limited` na página MODELS reflete o rate-limit unificado da conta no momento da sonda, não indisponibilidade do modelo em si.
 
-## Checklist de comercialização
+## Estado de distribuição
 
-- [x] Feature-complete v1.0 · 52 testes · smoke em máquina real
+- [x] Release pública [v1.0.1](https://github.com/luisroquette/notchagent/releases/tag/v1.0.1)
+- [x] Instalação via Homebrew Cask
+- [x] Feature-complete v1.0 · suíte automatizada · smoke em máquina real
 - [x] .app empacotado com ícone + launch-at-login + notificações
 - [ ] Conta Apple Developer → assinar com Developer ID + `notarytool` + staple *(requer credenciais do dono)*
-- [ ] DMG (`create-dmg`) e/ou cask Homebrew apontando para GitHub Releases
+- [ ] DMG (`create-dmg`)
 - [ ] Auto-update (Sparkle) — pós-lançamento
 - [ ] Site/landing + licenciamento (Paddle/Lemon Squeezy) — decisão de negócio
 
@@ -149,3 +157,10 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 ```bash
 /usr/bin/log stream --predicate 'subsystem == "br.com.lfrprojects.notchagent"' --level debug
 ```
+
+---
+
+<p align="center">
+  <strong>NotchAgent is a flagship project from <a href="https://github.com/luisroquette/RocketLabs">RocketLabs</a>.</strong><br />
+  <sub>Applied AI systems built in public.</sub>
+</p>
