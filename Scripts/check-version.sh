@@ -19,7 +19,7 @@ if ! grep -Eq "^## ${version} — " CHANGELOG.md; then
     exit 1
 fi
 
-if ! grep -Fq "**Versão atual: ${version}**" README.md; then
+if ! grep -Fq "**Current version: ${version}**" README.md; then
     echo "ERRO: README.md não declara a versão $version."
     exit 1
 fi
