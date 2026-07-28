@@ -6,7 +6,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VERSION="1.0.0"
+VERSION=$(tr -d '[:space:]' < VERSION)
+if [[ ! "$VERSION" =~ '^[0-9]+\.[0-9]+\.[0-9]+$' ]]; then
+    echo "ERRO: VERSION deve usar SemVer, por exemplo 2.0.0."
+    exit 1
+fi
+BUILD_NUMBER="${NOTCHAGENT_BUILD_NUMBER:-2}"
 APP="dist/NotchAgent.app"
 BUNDLE_IDENTIFIER="${NOTCHAGENT_BUNDLE_IDENTIFIER:-br.com.lfrprojects.notchagent}"
 SIGN_IDENTITY="${NOTCHAGENT_SIGN_IDENTITY:-}"
@@ -42,7 +47,7 @@ cat > "$APP/Contents/Info.plist" << PLIST
     <key>CFBundleExecutable</key><string>NotchAgent</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleVersion</key><string>${BUILD_NUMBER}</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>

@@ -17,6 +17,8 @@ jobs:
           fetch-depth: 0
       - name: Audit public source and history
         run: zsh Scripts/audit-public-release.sh
+      - name: Validate release version
+        run: zsh Scripts/check-version.sh
       - name: Test without paid probes
         env:
           NOTCHAGENT_DISABLE_PAID_PROBES: "1"

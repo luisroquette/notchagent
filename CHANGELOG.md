@@ -1,5 +1,56 @@
 # Changelog
 
+## 2.0.0 — 2026-07-28
+
+Segunda geração do NotchAgent, agora também voltada ao monitoramento financeiro
+de contas de API.
+
+### Monitoramento de APIs
+
+- Cadastro genérico de múltiplas contas por provedor, com credenciais isoladas
+  no macOS Keychain e sessões web separadas por conta.
+- Dashboard financeiro em BRL com **Gasto da janela**, **Saldo atual** e
+  **Plano mensal**, sem misturar recargas, assinaturas e quotas.
+- Integrações para Anthropic API, OpenAI, DeepSeek, OpenRouter, Google/Gemini,
+  xAI, ElevenLabs, Firecrawl, twitterapi.io e múltiplos projetos X/Twitter.
+- Assinaturas Claude/Claude Code, ChatGPT, Google AI e Firecrawl separadas do
+  consumo faturado das APIs.
+
+### Precisão e atualização
+
+- Origem registrada por campo: API oficial, portal oficial, valor manual ou
+  estimativa proporcional.
+- Reconciliação entre API e portal com tolerâncias explícitas; divergências
+  deixam o card parcial em vez de exibir um valor como confirmado.
+- Janela padrão de 30 dias, Google em 28 dias oficiais e mês-calendário
+  identificado quando exigido pelo provedor.
+- Valores oficiais em BRL preservados sem reconversão; USD convertido pela
+  cotação PTAX atual do Banco Central.
+- Refresh individual por card, invalidação forçada de cache e proteção contra
+  respostas antigas sobrescrevendo leituras novas.
+
+### Interface e operação
+
+- Lista rolável com todos os provedores, detalhes expansíveis e reordenação por
+  arrastar.
+- Estados visíveis: atualizando, atualizado, desatualizado, parcial e erro.
+- Correção do gesto vertical que mudava indevidamente a página do notch.
+
+### Segurança e distribuição
+
+- Diagnóstico exportável sem credenciais, cookies, nomes, IDs ou valores.
+- Auditoria pública, hook `pre-push` e workflow de CI bloqueiam padrões de
+  segredo e identificadores pessoais.
+- Assinatura do bundle configurável por ambiente, sem certificado pessoal
+  fixado no código.
+- `graphify-out` removido do Git por replicar código e dados gerados.
+
+### Qualidade
+
+- 200 testes automatizados aprovados, incluindo integridade financeira, cache,
+  persistência, segurança, scroll e E2E somente leitura das contas configuradas.
+- Testes e builds de release executados com probes pagos desativados.
+
 ## 1.0.0 — 2026-07-14
 
 Primeira versão completa.

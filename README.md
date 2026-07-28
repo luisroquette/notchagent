@@ -2,6 +2,8 @@
 
 **The fuel gauge for your AI agents, living in your MacBook's notch.**
 
+**Versão atual: 2.0.0** · lançada em 28/07/2026 · [histórico de versões](CHANGELOG.md)
+
 A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
 financial monitoring of external API accounts. It shows provider-reported
 spend, balance, plans and quotas with explicit sources and time windows —
@@ -125,6 +127,47 @@ O repositório não contém contas predefinidas. Nomes, projetos, chaves, cookie
 histórico e valores pessoais permanecem fora do Git. Veja
 [`docs/API_ACCOUNT_MONITORING.md`](docs/API_ACCOUNT_MONITORING.md).
 
+## Novidades da versão 2.0: monitoramento financeiro de APIs
+
+- **Múltiplas contas** — adicione quantas contas quiser, inclusive duas ou mais
+  do mesmo provedor, sem compartilhar credenciais entre elas.
+- **Leitura financeira uniforme** — cada card separa **Gasto da janela**,
+  **Saldo atual** e **Plano mensal**; recarga nunca é classificada como gasto.
+- **Fontes verificáveis** — cada valor registra se veio de API oficial, portal
+  oficial, configuração manual ou estimativa proporcional do plano.
+- **Períodos explícitos** — padrão de 30 dias; Google AI Studio mantém sua
+  janela oficial de 28 dias; mês-calendário aparece identificado quando for a
+  única janela oferecida pelo provedor.
+- **Operação segura** — refresh individual, proteção contra cache antigo,
+  sessões web isoladas, diagnóstico sanitizado e conversão USD/BRL pela PTAX
+  atual do Banco Central.
+
+Serviços cobertos na 2.0 incluem Anthropic API, OpenAI, DeepSeek, OpenRouter,
+Google/Gemini, xAI, ElevenLabs, Firecrawl, twitterapi.io e múltiplos projetos
+X/Twitter. Planos web como Claude/Claude Code e ChatGPT aparecem separados do
+consumo de API.
+
+## Controle de versão e releases
+
+O projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/):
+
+- **MAJOR**: mudança incompatível ou nova geração do produto.
+- **MINOR**: funcionalidade compatível.
+- **PATCH**: correção compatível.
+
+`VERSION` é a fonte oficial da versão. `Scripts/make-app.sh` lê esse arquivo no
+empacotamento; `Resources/Info.plist`, README e CHANGELOG devem acompanhar o
+mesmo número. Antes de qualquer publicação:
+
+```bash
+./Scripts/check-version.sh
+./Scripts/audit-public-release.sh
+NOTCHAGENT_DISABLE_PAID_PROBES=1 swift test
+```
+
+Toda versão deve adicionar uma entrada no topo de `CHANGELOG.md` com data,
+novidades, correções, segurança e validação.
+
 ## Arquitetura
 
 ```
@@ -164,7 +207,7 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 
 ## Checklist de comercialização
 
-- [x] Feature-complete v1.0 · suíte automatizada · smoke em máquina real
+- [x] NotchAgent 2.0 · monitoramento financeiro de APIs · suíte automatizada
 - [x] .app empacotado com ícone + launch-at-login + notificações
 - [ ] Conta Apple Developer → assinar com Developer ID + `notarytool` + staple *(requer credenciais do dono)*
 - [ ] DMG (`create-dmg`) e/ou cask Homebrew apontando para GitHub Releases
