@@ -193,6 +193,7 @@ struct ProviderCardView: View {
         switch refreshState {
         case .refreshing: "syncing…"
         case .success(let date): Format.relative(date)
+        case .stale(let date): "stale \(Format.relative(date))"
         case .failure(let date, _): "failed \(Format.relative(date))"
         case .idle: ""
         }

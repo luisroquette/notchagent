@@ -4,11 +4,16 @@
 
 <p align="center">
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
-  <a href="https://github.com/luisroquette/notchagent/releases/tag/v1.0.1"><img src="https://img.shields.io/badge/release-v1.0.1-38D6C7?style=flat-square" alt="Release v1.0.1" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.0.0-38D6C7?style=flat-square" alt="Version v2.0.0" /></a>
   <a href="#install"><img src="https://img.shields.io/badge/install-Homebrew-F3B85A?style=flat-square" alt="Install with Homebrew" /></a>
 </p>
 
-A native macOS menu-bar + notch overlay that answers one question at a glance: **how much of my Claude Code / Codex limit is left?** Official quota percentages (read from Anthropic's rate-limit headers), burn-rate projections ("runs out at 16:40"), per-model usage and cost estimates, escalating low-fuel alerts — all local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
+**Versão atual: 2.0.0** · lançada em 28/07/2026 · [histórico de versões](CHANGELOG.md)
+
+A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
+financial monitoring of external API accounts. It shows provider-reported
+spend, balance, plans and quotas with explicit sources and time windows —
+local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
 
 **Also available for Windows** — a system-tray companion (.NET 8 + Avalonia, same parsers, same quota probe) since Windows has no notch. See [`windows/README.md`](windows/README.md) for the current (v1) feature set and build instructions.
 
@@ -57,16 +62,27 @@ open /Applications/NotchAgent.app
 
 ```bash
 git clone https://github.com/luisroquette/notchagent.git && cd notchagent
+./Scripts/audit-public-release.sh
+git config core.hooksPath .githooks
 ./Scripts/make-app.sh && open dist/NotchAgent.app
 ```
 
-> **Why trust it?** The optional quota probe reads your local Claude Code OAuth token (env var → `~/.claude/.credentials.json` → Keychain, with macOS consent prompt) and sends a single 1-token request to `api.anthropic.com` — nothing else, nowhere else. The token is never logged. That's exactly why this project is open source: read `ClaudeQuotaProbe.swift` yourself.
+`make-app.sh` uses the first local Apple Development identity. Override it with
+`NOTCHAGENT_SIGN_IDENTITY`; without an identity it falls back to ad-hoc signing.
+
+> **Why trust it?** API credentials stay in the macOS Keychain, portal sessions
+> use isolated WebKit profiles, and diagnostics remove credentials, identity and
+> financial amounts. Monitoring is opt-in per account. The optional Claude quota
+> probe is the only feature that sends a paid one-token model request and can be
+> disabled in Settings.
 
 ---
 
 **O medidor de combustível dos seus agentes de IA, morando no notch do MacBook.**
 
-Monitor nativo (Swift 6 + SwiftUI/AppKit, zero Electron) de uso, quotas e custos de Claude Code, Codex e Gemini CLI. Local-first: lê os arquivos de sessão dos CLIs no disco; a única chamada de rede é uma sonda opcional de 1 token à API da Anthropic para ler a quota oficial.
+Monitor nativo (Swift 6 + SwiftUI/AppKit, zero Electron) de uso, quotas e custos
+de Claude Code, Codex, Gemini CLI e contas externas de API. Todas as conexões
+são opcionais e vão diretamente do Mac ao provedor configurado.
 
 ## O produto
 
@@ -87,7 +103,8 @@ Monitor nativo (Swift 6 + SwiftUI/AppKit, zero Electron) de uso, quotas e custos
 
 ```bash
 swift run                 # desenvolvimento (menu bar + overlay na hora)
-swift test                # suíte automatizada
+swift test                         # suíte unitária e de integração
+./Scripts/audit-public-release.sh # bloqueia segredos e IDs pessoais
 ./Scripts/make-app.sh     # gera dist/NotchAgent.app (ícone e assinatura estável inclusos)
 open dist/NotchAgent.app
 ```
@@ -104,6 +121,58 @@ O bundle habilita: launch at login (SMAppService), notificações do sistema e c
 | **Gemini CLI** `~/.gemini/tmp/*/logs.json` | prompts/sessões/última atividade | tokens não existem no disco — o app declara, não inventa |
 
 Token OAuth: `CLAUDE_CODE_OAUTH_TOKEN` → `~/.claude/.credentials.json` → Keychain (prompt de consentimento do macOS). Nunca é logado; nunca sai da máquina exceto para `api.anthropic.com`. Desligável em Settings (budgets manuais viram fallback).
+
+## Personalizar contas de API
+
+1. Abra **Settings → Contas de API**.
+2. Clique em **+** e escolha o serviço.
+3. Salve a credencial no Keychain ou use **Conectar conta**.
+4. Confirme no card a fonte, a janela e o estado da leitura.
+
+O repositório não contém contas predefinidas. Nomes, projetos, chaves, cookies,
+histórico e valores pessoais permanecem fora do Git. Veja
+[`docs/API_ACCOUNT_MONITORING.md`](docs/API_ACCOUNT_MONITORING.md).
+
+## Novidades da versão 2.0: monitoramento financeiro de APIs
+
+- **Múltiplas contas** — adicione quantas contas quiser, inclusive duas ou mais
+  do mesmo provedor, sem compartilhar credenciais entre elas.
+- **Leitura financeira uniforme** — cada card separa **Gasto da janela**,
+  **Saldo atual** e **Plano mensal**; recarga nunca é classificada como gasto.
+- **Fontes verificáveis** — cada valor registra se veio de API oficial, portal
+  oficial, configuração manual ou estimativa proporcional do plano.
+- **Períodos explícitos** — padrão de 30 dias; Google AI Studio mantém sua
+  janela oficial de 28 dias; mês-calendário aparece identificado quando for a
+  única janela oferecida pelo provedor.
+- **Operação segura** — refresh individual, proteção contra cache antigo,
+  sessões web isoladas, diagnóstico sanitizado e conversão USD/BRL pela PTAX
+  atual do Banco Central.
+
+Serviços cobertos na 2.0 incluem Anthropic API, OpenAI, DeepSeek, OpenRouter,
+Google/Gemini, xAI, ElevenLabs, Firecrawl, twitterapi.io e múltiplos projetos
+X/Twitter. Planos web como Claude/Claude Code e ChatGPT aparecem separados do
+consumo de API.
+
+## Controle de versão e releases
+
+O projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/):
+
+- **MAJOR**: mudança incompatível ou nova geração do produto.
+- **MINOR**: funcionalidade compatível.
+- **PATCH**: correção compatível.
+
+`VERSION` é a fonte oficial da versão. `Scripts/make-app.sh` lê esse arquivo no
+empacotamento; `Resources/Info.plist`, README e CHANGELOG devem acompanhar o
+mesmo número. Antes de qualquer publicação:
+
+```bash
+./Scripts/check-version.sh
+./Scripts/audit-public-release.sh
+NOTCHAGENT_DISABLE_PAID_PROBES=1 swift test
+```
+
+Toda versão deve adicionar uma entrada no topo de `CHANGELOG.md` com data,
+novidades, correções, segurança e validação.
 
 ## Arquitetura
 
@@ -138,14 +207,14 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 
 - Geometria do notch é inferida (`safeAreaInsets` + auxiliary areas) — sem API oficial; fallback pill cobre mudanças da Apple.
 - Custos são estimativas por tabela pública; planos por assinatura não faturam por token.
-- Distribuição ainda não notarizada: o primeiro lançamento pode exigir a remoção da quarentena. Builds locais usam uma identidade Apple Development estável para preservar o consentimento do Keychain.
+- Distribuição ainda não notarizada: o primeiro lançamento pode exigir a remoção da quarentena. Builds locais usam a primeira identidade Apple Development disponível; configure `NOTCHAGENT_SIGN_IDENTITY` para escolher outra identidade estável.
 - `Limited` na página MODELS reflete o rate-limit unificado da conta no momento da sonda, não indisponibilidade do modelo em si.
 
 ## Estado de distribuição
 
+- [x] NotchAgent 2.0 · monitoramento financeiro de APIs · suíte automatizada
 - [x] Release pública [v1.0.1](https://github.com/luisroquette/notchagent/releases/tag/v1.0.1)
 - [x] Instalação via Homebrew Cask
-- [x] Feature-complete v1.0 · suíte automatizada · smoke em máquina real
 - [x] .app empacotado com ícone + launch-at-login + notificações
 - [ ] Conta Apple Developer → assinar com Developer ID + `notarytool` + staple *(requer credenciais do dono)*
 - [ ] DMG (`create-dmg`)

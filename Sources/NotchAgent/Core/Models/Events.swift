@@ -67,5 +67,6 @@ public enum RefreshState: Sendable, Equatable {
     case idle
     case refreshing
     case success(Date)
+    case stale(Date)
     case failure(Date, String)
 }

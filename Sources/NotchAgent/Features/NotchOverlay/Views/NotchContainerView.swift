@@ -36,10 +36,10 @@ struct NotchContainerView: View {
                 viewModel.hoverChanged(hovering)
             }
             .onTapGesture {
-                // Click the compact bar to expand-and-pin (trackpad-friendly);
-                // buttons inside the expanded panel keep their own actions.
+                // Clicking opens a temporary panel. Pinning is explicit via
+                // the pin button; an ordinary click must never trap the panel.
                 if !viewModel.isExpanded {
-                    viewModel.togglePin()
+                    viewModel.forceExpand()
                 }
             }
             .animation(.spring(duration: 0.38, bounce: 0.16), value: viewModel.isExpanded)
@@ -47,6 +47,9 @@ struct NotchContainerView: View {
             Spacer(minLength: 0)
         }
         .frame(width: NotchViewModel.canvasSize.width, height: NotchViewModel.canvasSize.height, alignment: .top)
+        .onExitCommand {
+            _ = viewModel.handleEscape()
+        }
         .onChange(of: store.activeThresholdAlert) { _, alert in
             // A threshold crossing takes over the panel, escalating with severity.
             viewModel.isAlertPresented = alert != nil

@@ -1,4 +1,5 @@
 import SwiftUI
+import AgentMeterCore
 
 /// Glanceable strip with fixed, labeled sides: CLAUDE on the left wing, CODEX
 /// on the right. Every number is self-explanatory — provider name on top,
@@ -6,6 +7,7 @@ import SwiftUI
 struct NotchCompactView: View {
     @Environment(UsageStore.self) private var store
     @Environment(NotchViewModel.self) private var viewModel
+    @EnvironmentObject private var spending: SubscriptionStore
 
     var body: some View {
         HStack(spacing: 0) {
@@ -65,6 +67,15 @@ struct NotchCompactView: View {
                     GaugeLabel(
                         text: metric.isWeekly ? "WK LEFT" : "5H LEFT",
                         color: Theme.textFaint,
+                        size: 6.5
+                    )
+                }
+                if provider == .claudeCode {
+                    let budget = spending.monthlyBudgetStatus
+                    GaugeLabel(
+                        text: budget.map { "ORÇ \(Int($0.projectedPercent.rounded()))%" }
+                            ?? ("PAGO " + spending.format(spending.monthlySpend.paidBRL, compact: true)),
+                        color: Theme.coral,
                         size: 6.5
                     )
                 }

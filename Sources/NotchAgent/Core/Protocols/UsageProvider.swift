@@ -10,4 +10,10 @@ public protocol UsageProvider: Sendable {
 
     func detectInstallation() -> ProviderInstallation
     func fetchSnapshot(settings: AppSettings) async throws -> UsageSnapshot
+    /// Clears provider-local throttling before an explicit user refresh.
+    func invalidateCache() async
+}
+
+public extension UsageProvider {
+    func invalidateCache() async {}
 }

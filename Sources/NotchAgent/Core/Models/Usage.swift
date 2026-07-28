@@ -215,6 +215,8 @@ public struct UsageSnapshot: Codable, Sendable, Equatable {
     public var modelBreakdown: [ModelUsage]?
     /// Live per-model probe results, when the API probe is enabled.
     public var modelHealth: [ModelHealth]?
+    /// Per-account cost, balance, or quota data from opt-in API monitors.
+    public var accountUsage: [APIAccountUsage]?
 
     public init(
         provider: ProviderID,
@@ -227,7 +229,8 @@ public struct UsageSnapshot: Codable, Sendable, Equatable {
         note: String? = nil,
         quotaStatus: QuotaStatus? = nil,
         modelBreakdown: [ModelUsage]? = nil,
-        modelHealth: [ModelHealth]? = nil
+        modelHealth: [ModelHealth]? = nil,
+        accountUsage: [APIAccountUsage]? = nil
     ) {
         self.provider = provider
         self.capturedAt = capturedAt
@@ -240,5 +243,6 @@ public struct UsageSnapshot: Codable, Sendable, Equatable {
         self.quotaStatus = quotaStatus
         self.modelBreakdown = modelBreakdown
         self.modelHealth = modelHealth
+        self.accountUsage = accountUsage
     }
 }

@@ -45,7 +45,7 @@ enum JSONLReader {
         defer { try? handle.close() }
 
         let size = try handle.seekToEnd()
-        var offset = size > UInt64(maxBytes) ? size - UInt64(maxBytes) : 0
+        let offset = size > UInt64(maxBytes) ? size - UInt64(maxBytes) : 0
         // If the cut lands exactly after a newline, the first line in the
         // window is already complete — dropping it would discard valid data.
         var firstLineIsPartial = offset > 0

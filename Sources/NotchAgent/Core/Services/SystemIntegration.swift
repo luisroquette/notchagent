@@ -1,6 +1,7 @@
 import AppKit
 import ServiceManagement
 import UserNotifications
+import AgentMeterCore
 
 /// Both integrations below require a real .app bundle (see Scripts/make-app.sh).
 /// When running unbundled (`swift run`), they report unavailable and the UI
@@ -79,6 +80,20 @@ final class NotificationService {
         content.sound = .default
         center.add(UNNotificationRequest(
             identifier: "restore-\(moment.provider.rawValue)-\(Int(moment.firedAt.timeIntervalSince1970))",
+            content: content,
+            trigger: nil
+        ))
+    }
+
+    func postBudget(_ alert: MonthlyBudgetAlert, settings: AppSettings) {
+        guard Self.isAvailable, settings.notificationsEnabled else { return }
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+        content.title = alert.level == .exceeded ? "Orçamento excedido" : "Orçamento de IA em risco"
+        content.body = "Previsão mensal em \(Int(alert.percent.rounded()))% do orçamento."
+        if alert.level == .critical || alert.level == .exceeded { content.sound = .default }
+        center.add(UNNotificationRequest(
+            identifier: "budget-\(alert.level.rawValue)-\(Calendar.current.component(.month, from: .now))",
             content: content,
             trigger: nil
         ))

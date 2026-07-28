@@ -1,9 +1,11 @@
 import Charts
 import SwiftUI
+import AgentMeterCore
 
 /// Full window: history charts, per-provider breakdown, event log with filters.
 struct DashboardView: View {
     @Environment(UsageStore.self) private var store
+    @EnvironmentObject private var spending: SubscriptionStore
 
     @State private var rangeHours = 24
     @State private var providerFilter: ProviderID?
@@ -13,6 +15,8 @@ struct DashboardView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 controls
+                spendingSummary
+                decisionMode
                 historyChart
                 hourlyRhythm
                 providerBreakdown
@@ -28,6 +32,50 @@ struct DashboardView: View {
             // Keep the chart live while the window stays open.
             Task {
                 historyPoints = await AppEnvironment.shared.historyStore.allPoints(lastHours: rangeHours)
+            }
+        }
+    }
+
+    private var spendingSummary: some View {
+        let estimate = EstimatedCostLayers.fromSnapshots(store.snapshots)
+        return GroupBox("Custo: camadas separadas") {
+            HStack(spacing: 28) {
+                statColumn("Pago · mês", spending.format(spending.monthlySpend.paidBRL))
+                statColumn("Previsto · mês", spending.format(spending.monthlySpend.forecastPlanBRL))
+                statColumn("Estimado · 7d", spending.formatEstimatedUSD(estimate.totalUSD))
+                if let budget = spending.monthlyBudgetStatus {
+                    statColumn("Orçamento", "\(Int(budget.projectedPercent.rounded()))%")
+                }
+                statColumn("Planos confirmados", spending.format(spending.monthlySpend.planChargesBRL))
+                Spacer()
+                Button("Gerenciar gastos") { AppEnvironment.shared.router.openSpending() }
+            }
+            .padding(.vertical, 6)
+            Text("Pago = cobrança confirmada. Previsto = renovação ainda pendente. Estimado = tokens locais × tabela pública; não é uma fatura.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            if let budget = spending.monthlyBudgetStatus {
+                Text("Previsão: \(spending.format(budget.projectedBRL)) de \(spending.format(budget.budgetBRL)).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var decisionMode: some View {
+        let advice = DecisionAdvisor.advise(snapshots: store.snapshots, budget: spending.monthlyBudgetStatus)
+        return GroupBox("Modo decisão") {
+            VStack(alignment: .leading, spacing: 7) {
+                ForEach(advice) { item in
+                    HStack(spacing: 8) {
+                        Image(systemName: item.severity == .critical ? "exclamationmark.octagon.fill" : item.severity == .warning ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                            .foregroundStyle(item.severity == .critical ? .red : item.severity == .warning ? .orange : .green)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(item.title).font(.subheadline.bold())
+                            Text(item.detail).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
         }
     }
@@ -233,7 +281,7 @@ struct DashboardView: View {
 
     private func costStat(_ snapshot: UsageSnapshot?) -> String {
         guard let cost = snapshot?.weekly?.cost else { return "—" }
-        return "~" + Format.usd(cost.amountUSD)
+        return "Estimado " + spending.formatEstimatedUSD(cost.amountUSD)
     }
 
     private var eventLog: some View {

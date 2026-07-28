@@ -8,6 +8,7 @@ import Observation
 final class UsageStore {
     private(set) var snapshots: [ProviderID: UsageSnapshot] = [:]
     private(set) var refreshStates: [ProviderID: RefreshState] = [:]
+    private(set) var accountRefreshStates: [UUID: RefreshState] = [:]
     private(set) var events: [UsageEvent] = []
     private(set) var sparklines: [ProviderID: [Double]] = [:]
     /// Recent session-percent observations per provider, feeding burn-rate
@@ -65,12 +66,37 @@ final class UsageStore {
 
     func markRefreshing(_ provider: ProviderID) {
         refreshStates[provider] = .refreshing
+        if provider == .apiAccounts {
+            for account in settings.apiAccounts where account.enabled {
+                accountRefreshStates[account.id] = .refreshing
+            }
+        }
     }
 
-    func apply(_ snapshot: UsageSnapshot) {
+    func markAccountRefreshing(_ accountID: UUID) {
+        accountRefreshStates[accountID] = .refreshing
+    }
+
+    func apply(_ snapshot: UsageSnapshot, updatingAccountIDs: Set<UUID>? = nil) {
         let alerts = StatusAggregator.transitionAlerts(old: snapshots, new: snapshot, settings: settings)
         snapshots[snapshot.provider] = snapshot
         refreshStates[snapshot.provider] = .success(snapshot.capturedAt)
+        if snapshot.provider == .apiAccounts {
+            for usage in snapshot.accountUsage ?? []
+            where updatingAccountIDs?.contains(usage.accountID) ?? true {
+                let date = usage.capturedAt ?? snapshot.capturedAt
+                switch usage.readStatus {
+                case .updated, .partial:
+                    accountRefreshStates[usage.accountID] = .success(date)
+                case .stale:
+                    accountRefreshStates[usage.accountID] = .stale(date)
+                case .needsCredential, .needsLogin, .unavailable:
+                    accountRefreshStates[usage.accountID] = .failure(date, usage.summary)
+                case nil:
+                    accountRefreshStates[usage.accountID] = .failure(date, "Leitura sem estado")
+                }
+            }
+        }
         if let percent = snapshot.session?.usedPercent {
             var samples = percentHistory[snapshot.provider] ?? []
             samples.append(PercentSample(date: snapshot.capturedAt, percent: percent))
@@ -91,9 +117,30 @@ final class UsageStore {
         }
     }
 
-    func applyFailure(_ provider: ProviderID, error: String) {
+    func applyFailure(
+        _ provider: ProviderID,
+        error: String,
+        updatingAccountIDs: Set<UUID>? = nil
+    ) {
         refreshStates[provider] = .failure(Date(), error)
+        if provider == .apiAccounts {
+            for account in settings.apiAccounts
+            where account.enabled && (updatingAccountIDs?.contains(account.id) ?? true) {
+                accountRefreshStates[account.id] = .failure(Date(), error)
+            }
+        }
         record(UsageEvent(provider: provider, kind: .error, level: .warning, message: error))
+    }
+
+    func accountRefreshState(
+        _ accountID: UUID,
+        now: Date = Date(),
+        staleAfter: TimeInterval? = nil
+    ) -> RefreshState {
+        let state = accountRefreshStates[accountID] ?? .idle
+        guard case .success(let date) = state else { return state }
+        let threshold = staleAfter ?? max(settings.refreshIntervalSeconds * 3, 20 * 60)
+        return now.timeIntervalSince(date) > threshold ? .stale(date) : state
     }
 
     func record(_ event: UsageEvent) {

@@ -1,0 +1,780 @@
+{
+  "sourceLanguage" : "pt-BR",
+  "strings" : {
+    "Alertar %lld dias antes" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Alert %lld days before" } } }
+    },
+    "Cancelado" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancelled" } } }
+    },
+    "Cobrança confirmada" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Charge confirmed" } } }
+    },
+    "Concluído" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Done" } } }
+    },
+    "Importado" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Imported" } } }
+    },
+    "Seu primeiro plano" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Your first plan" } } }
+    },
+    "Abra Ajustes para permitir lembretes de renovação" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Open Settings to allow renewal reminders" } } }
+    },
+    "Adicione o essencial agora. Impostos e alertas podem ser ajustados depois." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Add the essentials now. Taxes and alerts can be adjusted later." } } }
+    },
+    "Adicione uma assinatura para ver custos e renovações aqui." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Add a subscription to see costs and renewals here." } } }
+    },
+    "Agora não" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Not now" } } }
+    },
+    "Alertas bloqueados" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Alerts blocked" } } }
+    },
+    "Baixar modelo CSV" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Download CSV template" } } }
+    },
+    "Comece por um plano" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Start with a plan" } } }
+    },
+    "Começar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Get started" } } }
+    },
+    "Confirmado neste mês" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Confirmed this month" } } }
+    },
+    "Confirmar cobrança" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Confirm charge" } } }
+    },
+    "Confirmar cobrança?" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Confirm charge?" } } }
+    },
+    "Corrija as linhas abaixo ou baixe o modelo CSV para recomeçar." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Fix the lines below or download the CSV template to start again." } } }
+    },
+    "Dados privados neste aparelho. A sincronização com iCloud é opcional." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Private data on this device. iCloud sync is optional." } } }
+    },
+    "Desativar sincronização iCloud" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Disable iCloud sync" } } }
+    },
+    "Duplicados ignorados" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Duplicates ignored" } } }
+    },
+    "Este mês" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "This month" } } }
+    },
+    "Eventos dos últimos 24 meses neste aparelho." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Events from the last 24 months on this device." } } }
+    },
+    "Histórico" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "History" } } }
+    },
+    "Importar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Import" } } }
+    },
+    "Importar assinaturas" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Import subscriptions" } } }
+    },
+    "Importação concluída" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Import complete" } } }
+    },
+    "Linhas com erro" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Lines with errors" } } }
+    },
+    "Linhas não importadas" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Lines not imported" } } }
+    },
+    "Manter os dados somente neste aparelho" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Keep data on this device only" } } }
+    },
+    "Nada será alterado até você confirmar." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Nothing changes until you confirm." } } }
+    },
+    "Nenhuma assinatura pôde ser importada" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "No subscriptions could be imported" } } }
+    },
+    "Não foi possível importar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn’t import" } } }
+    },
+    "Não foi possível ler o arquivo. Verifique se ele é um CSV ou JSON válido e tente novamente." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn’t read the file. Check that it is a valid CSV or JSON and try again." } } }
+    },
+    "Plano ativo" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Active plan" } } }
+    },
+    "Preencha e importe suas assinaturas em lote" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Fill it in and import your subscriptions in bulk" } } }
+    },
+    "Preço atualizado" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Price updated" } } }
+    },
+    "Prontos para importar" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Ready to import" } } }
+    },
+    "Revisar importação" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Review import" } } }
+    },
+    "Serviços" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Services" } } }
+    },
+    "Sincronizar agora" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Sync now" } } }
+    },
+    "Sua carteira de serviços de IA." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Your AI services wallet." } } }
+    },
+    "Sua carteira de serviços de IA, em um só lugar." : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Your AI services wallet, all in one place." } } }
+    },
+    "Tentar sincronizar iCloud" : {
+      "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Try iCloud sync again" } } }
+    },
+    "AgentMeter" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "AgentMeter" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "AgentMeter" } }
+      }
+    },
+    "A assinatura de %@ será renovada em breve." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your %@ subscription will renew soon." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tu suscripción de %@ se renovará pronto." } }
+      }
+    },
+    "Alertas ativados" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Alerts enabled" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Alertas activadas" } }
+      }
+    },
+    "Assinatura próxima da renovação" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Subscription renewal approaching" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Próxima renovación de suscripción" } }
+      }
+    },
+    "Ativar alertas de renovação" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Enable renewal alerts" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Activar alertas de renovación" } }
+      }
+    },
+    "Adicionar assinatura" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add subscription" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir suscripción" } }
+      }
+    },
+    "Adicione seus planos para acompanhar custos e renovações." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add your plans to track costs and renewals." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añade tus planes para controlar costes y renovaciones." } }
+      }
+    },
+    "Anual" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Yearly" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Anual" } }
+      }
+    },
+    "Assinaturas" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Subscriptions" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Suscripciones" } }
+      }
+    },
+    "Cancelar" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cancelar" } }
+      }
+    },
+    "Ciclo" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cycle" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ciclo" } }
+      }
+    },
+    "Cobrança" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Billing" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Facturación" } }
+      }
+    },
+    "Excluir" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Eliminar" } }
+      }
+    },
+    "Editar assinatura" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit subscription" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Editar suscripción" } }
+      }
+    },
+    "Desativar sincronização iCloud" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Disable iCloud sync" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Desactivar sincronización con iCloud" } }
+      }
+    },
+    "Entre no iCloud para sincronizar" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign in to iCloud to sync" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Inicia sesión en iCloud para sincronizar" } }
+      }
+    },
+    "Não foi possível sincronizar" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unable to sync" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudo sincronizar" } }
+      }
+    },
+    "Sincronizado com iCloud" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Synced with iCloud" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sincronizado con iCloud" } }
+      }
+    },
+    "Sincronizando…" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Syncing…" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sincronizando…" } }
+      }
+    },
+    "Sincronizar" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sync" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sincronizar" } }
+      }
+    },
+    "Sincronizar com iCloud" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sync with iCloud" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sincronizar con iCloud" } }
+      }
+    },
+    "Somente neste aparelho" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "On this device only" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Solo en este dispositivo" } }
+      }
+    },
+    "Usar iCloud" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Use iCloud" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Usar iCloud" } }
+      }
+    },
+    "Há uma cobrança próxima" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "A charge is coming up" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Hay un cobro próximo" } }
+      }
+    },
+    "Impostos (%)" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Taxes (%)" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Impuestos (%)" } }
+      }
+    },
+    "Mensal" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Monthly" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mensual" } }
+      }
+    },
+    "Nenhuma assinatura cadastrada" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No subscriptions yet" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No hay suscripciones" } }
+      }
+    },
+    "Nome do plano" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Plan name" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Nombre del plan" } }
+      }
+    },
+    "Nova assinatura" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New subscription" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Nueva suscripción" } }
+      }
+    },
+    "Os valores são informados por você. O AgentMeter não estima nem altera preços automaticamente." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You provide the values. AgentMeter does not estimate or change prices automatically." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tú proporcionas los valores. AgentMeter no estima ni cambia precios automáticamente." } }
+      }
+    },
+    "Plano" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Plan" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Plan" } }
+      }
+    },
+    "Preço em reais" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Price in Brazilian reais" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Precio en reales brasileños" } }
+      }
+    },
+    "Provedor" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Provider" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Proveedor" } }
+      }
+    },
+    "Próxima renovação" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Next renewal" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Próxima renovación" } }
+      }
+    },
+    "Resumo" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Summary" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Resumen" } }
+      }
+    },
+    "Salvar" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Guardar" } }
+      }
+    },
+    "Seus planos" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your plans" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tus planes" } }
+      }
+    },
+    "por mês" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "per month" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "al mes" } }
+      }
+    },
+    "por mês em assinaturas" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "per month in subscriptions" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "al mes en suscripciones" } }
+      }
+    },
+    "Carteira de assinaturas" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Subscription wallet" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cartera de suscripciones" } }
+      }
+    },
+    "Controle seu uso de IA" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Take control of your AI usage" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Controla tu uso de IA" } }
+      }
+    },
+    "Funciona localmente. iCloud é opcional." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Works locally. iCloud is optional." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Funciona localmente. iCloud es opcional." } }
+      }
+    },
+    "Próximos resets" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Upcoming resets" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Próximos reinicios" } }
+      }
+    },
+    "Seu painel de IA" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your AI dashboard" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tu panel de IA" } }
+      }
+    },
+    "Seu uso de IA no pulso." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your AI usage on your wrist." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tu uso de IA en la muñeca." } }
+      }
+    },
+    "Adicionar plano" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add plan" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir plan" } }
+      }
+    },
+    "Adicione um plano para acompanhar a próxima cobrança." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add a plan to track your next charge." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añade un plan para controlar el próximo cobro." } }
+      }
+    },
+    "Central de resets" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reset center" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Central de reinicios" } }
+      }
+    },
+    "Contagem regressiva por modelo" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Countdown by model" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cuenta regresiva por modelo" } }
+      }
+    },
+    "Em breve" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Coming soon" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Próximamente" } }
+      }
+    },
+    "Gasto mensal" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Monthly spending" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Gasto mensual" } }
+      }
+    },
+    "Importação com fonte e confiança" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Import with source and confidence" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Importación con fuente y confianza" } }
+      }
+    },
+    "Limites oficiais" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Official limits" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Límites oficiales" } }
+      }
+    },
+    "Metas diárias e semanais" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Daily and weekly goals" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Metas diarias y semanales" } }
+      }
+    },
+    "Não cadastrado" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Not added" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No añadido" } }
+      }
+    },
+    "planos ativos" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "active plans" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "planes activos" } }
+      }
+    },
+    "projeção anual" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "annual projection" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "proyección anual" } }
+      }
+    },
+    "Seus provedores" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your providers" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tus proveedores" } }
+      }
+    },
+    "Tempo com IA" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Time with AI" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tiempo con IA" } }
+      }
+    },
+    "Ver carteira" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "View wallet" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ver cartera" } }
+      }
+    },
+    "Adicionar" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir" } }
+      }
+    },
+    "Adicione seu primeiro plano para receber lembretes." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add your first plan to receive reminders." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Añade tu primer plan para recibir recordatorios." } }
+      }
+    },
+    "Ativando alertas…" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Enabling alerts…" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Activando alertas…" } }
+      }
+    },
+    "Atualizando iCloud…" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Updating iCloud…" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Actualizando iCloud…" } }
+      }
+    },
+    "Carteira" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Wallet" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cartera" } }
+      }
+    },
+    "Configurar" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Set up" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Configurar" } }
+      }
+    },
+    "Custo mensal" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Monthly cost" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Coste mensual" } }
+      }
+    },
+    "iCloud ativo" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "iCloud on" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "iCloud activo" } }
+      }
+    },
+    "Local" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "On device" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "En el dispositivo" } }
+      }
+    },
+    "Nenhuma renovação programada" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No renewals scheduled" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No hay renovaciones programadas" } }
+      }
+    },
+    "Planos ativos" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Active plans" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Planes activos" } }
+      }
+    },
+    "Privado por padrão" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Private by default" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Privado de forma predeterminada" } }
+      }
+    },
+    "Projeção anual" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Annual projection" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Proyección anual" } }
+      }
+    },
+    "Provedores" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Providers" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Proveedores" } }
+      }
+    },
+    "Renova amanhã" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Renews tomorrow" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Se renueva mañana" } }
+      }
+    },
+    "Renova em %lld dias" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Renews in %lld days" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Se renueva en %lld días" } }
+      }
+    },
+    "Renova hoje" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Renews today" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Se renueva hoy" } }
+      }
+    },
+    "Seu centro de controle de IA" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your AI control center" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tu centro de control de IA" } }
+      }
+    },
+    "Seus dados ficam neste aparelho. O iCloud é opcional." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your data stays on this device. iCloud is optional." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tus datos permanecen en este dispositivo. iCloud es opcional." } }
+      }
+    },
+    "Valores informados por você" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Values provided by you" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Valores proporcionados por ti" } }
+      }
+    },
+    "Visão geral" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Overview" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Resumen" } }
+      }
+    },
+    "Impostos" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Taxes" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Impuestos" } }
+      }
+    },
+    "Preço" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Price" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Precio" } }
+      }
+    },
+    "Selecionar idioma" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Choose language" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Elegir idioma" } }
+      }
+    },
+    "%lld de %lld provedores ativos" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%1$lld of %2$lld active providers" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%1$lld de %2$lld proveedores activos" } }
+      }
+    },
+    "%lld planos ativos" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld active plans" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%lld planes activos" } }
+      }
+    },
+    "1 plano ativo" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "1 active plan" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "1 plan activo" } }
+      }
+    },
+    "Aguardando configuração" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Awaiting setup" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Esperando configuración" } }
+      }
+    },
+    "Assinatura ativa" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Active subscription" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Suscripción activa" } }
+      }
+    },
+    "Ativo" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Active" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Activo" } }
+      }
+    },
+    "Cobertura da missão" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Mission coverage" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cobertura de la misión" } }
+      }
+    },
+    "Fonte dos valores" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Value source" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Fuente de los valores" } }
+      }
+    },
+    "Informado por você" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Provided by you" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Proporcionado por ti" } }
+      }
+    },
+    "Inativo" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Inactive" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Inactivo" } }
+      }
+    },
+    "Limites oficiais ainda não importados" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Official limits not imported yet" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Límites oficiales aún no importados" } }
+      }
+    },
+    "Manifesto financeiro" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Financial manifest" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Manifiesto financiero" } }
+      }
+    },
+    "Não configurado" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Not configured" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No configurado" } }
+      }
+    },
+    "Não programada" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Not scheduled" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No programada" } }
+      }
+    },
+    "Próxima cobrança" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Next charge" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Próximo cobro" } }
+      }
+    },
+    "Próximo evento" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Next event" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Próximo evento" } }
+      }
+    },
+    "provedores ativos" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "active providers" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "proveedores activos" } }
+      }
+    },
+    "Receba avisos antes das cobranças" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Get alerts before charges" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Recibe avisos antes de los cobros" } }
+      }
+    },
+    "Renovações monitoradas neste aparelho" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Renewals monitored on this device" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Renovaciones supervisadas en este dispositivo" } }
+      }
+    },
+    "Sistema operacional" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "System operational" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sistema operativo" } }
+      }
+    },
+    "Sistemas" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Systems" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Sistemas" } }
+      }
+    },
+    "Tempo gasto com IA" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Time spent with AI" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tiempo dedicado a la IA" } }
+      }
+    },
+    "Tempo, planos e gastos em um só lugar." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Time, plans, and spending in one place." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Tiempo, planes y gastos en un solo lugar." } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -25,10 +25,10 @@ final class NotchViewModel {
     /// While a threshold takeover is on screen, paging gestures are ignored.
     var isAlertPresented = false
     var geometry: NotchGeometry
-    static let pageCount = 5
+    static let pageCount = 6
 
     /// Current page of the expanded pager
-    /// (0 Now, 1 Burn, 2 Rhythm, 3 Claude Models, 4 OpenAI Models).
+    /// (0 Now, 1 Burn, 2 Rhythm, 3 Claude Models, 4 OpenAI Models, 5 API Accounts).
     /// Persists across hover-expands so users return to where they were.
     var expandedPage: Int = 0
     /// Which edge the incoming page slides from (drives the transition).
@@ -95,8 +95,10 @@ final class NotchViewModel {
     }
 
     func togglePin() {
-        isPinned.toggle()
         if isPinned {
+            collapseNow()
+        } else {
+            isPinned = true
             mode = .expanded
         }
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
@@ -110,6 +112,15 @@ final class NotchViewModel {
     func collapseNow() {
         isPinned = false
         mode = .compact
+    }
+
+    /// Explicit dismissal path shared by Escape and the visible close button.
+    /// It intentionally ignores hover state: a user-requested close always wins.
+    @discardableResult
+    func handleEscape() -> Bool {
+        guard isExpanded else { return false }
+        collapseNow()
+        return true
     }
 
     // MARK: Pager
@@ -129,8 +140,11 @@ final class NotchViewModel {
     /// momentum events can't stack extra flips; a new gesture (phase .began)
     /// or a real pause unlocks. Plain scroll wheels (no phases) rely on the
     /// pause-based unlock.
-    func handleScroll(deltaX: CGFloat, phase: NSEvent.Phase, momentumPhase: NSEvent.Phase) {
+    func handleScroll(deltaX: CGFloat, deltaY: CGFloat = 0, phase: NSEvent.Phase, momentumPhase: NSEvent.Phase) {
         guard isExpanded, !isAlertPresented else { return }
+        // Trackpad vertical scrolling often has a slight horizontal component.
+        // Never let that component accumulate into a pager transition.
+        guard abs(deltaX) >= 12, abs(deltaX) > abs(deltaY) * 1.5 else { return }
         let now = Date()
 
         let isNewGesture = phase.contains(.began)

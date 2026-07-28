@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import AgentMeterCore
 
 /// Owns the overlay panel lifecycle: creation, screen placement, and
 /// repositioning on display/space/resolution changes.
@@ -9,13 +10,15 @@ final class NotchWindowController {
     private let viewModel: NotchViewModel
     private let store: UsageStore
     private let router: WindowRouter
+    private let spending: SubscriptionStore
     private var scrollMonitor: Any?
     private var keyMonitor: Any?
 
-    init(viewModel: NotchViewModel, store: UsageStore, router: WindowRouter) {
+    init(viewModel: NotchViewModel, store: UsageStore, router: WindowRouter, spending: SubscriptionStore) {
         self.viewModel = viewModel
         self.store = store
         self.router = router
+        self.spending = spending
     }
 
     func show() {
@@ -69,6 +72,7 @@ final class NotchWindowController {
                     .environment(store)
                     .environment(store.preferences)
                     .environment(router)
+                    .environmentObject(spending)
             )
             let hosting = NotchHitTestView(rootView: root)
             hosting.interactiveRect = { [weak viewModel] in
@@ -91,9 +95,12 @@ final class NotchWindowController {
         guard scrollMonitor == nil else { return }
         scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
             guard let self, let panel = self.panel, event.window === panel else { return event }
-            // Natural scrolling: swiping left advances, like flipping a page.
+            // Only an intentional horizontal swipe may page. A vertical
+            // ScrollView gesture carries a small horizontal trackpad drift;
+            // forwarding that drift used to flip pages while reading APIs.
             self.viewModel.handleScroll(
                 deltaX: event.scrollingDeltaX,
+                deltaY: event.scrollingDeltaY,
                 phase: event.phase,
                 momentumPhase: event.momentumPhase
             )
@@ -106,7 +113,7 @@ final class NotchWindowController {
                   let panel = self.panel, event.window === panel,
                   self.viewModel.isExpanded
             else { return event }
-            self.viewModel.collapseNow()
+            _ = self.viewModel.handleEscape()
             return nil
         }
     }

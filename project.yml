@@ -4,21 +4,50 @@
 name: NotchAgent
 options:
   bundleIdPrefix: br.com.lfrprojects
+  developmentLanguage: pt-BR
   deploymentTarget:
     macOS: "14.0"
+    iOS: "16.1"
+    watchOS: "9.0"
 settings:
   SWIFT_VERSION: "6.0"
+schemes:
+  AgentMeterMobile:
+    build:
+      targets:
+        AgentMeterMobile: all
+    test:
+      targets:
+        - AgentMeterMobileUITests
 targets:
+  AgentMeterCore:
+    type: framework
+    platform: auto
+    supportedDestinations: [iOS, macOS, watchOS]
+    sources:
+      - Sources/AgentMeterCore
+    info:
+      path: Generated/AgentMeterCore-Info.plist
+      properties:
+        CFBundleName: AgentMeterCore
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: br.com.lfrprojects.agentmeter.core
+      SKIP_INSTALL: YES
+
   NotchAgent:
     type: application
     platform: macOS
     sources:
       - Sources/NotchAgent
+    dependencies:
+      - target: AgentMeterCore
     info:
       path: Resources/Info.plist
       properties:
-        CFBundleName: NotchAgent
-        CFBundleDisplayName: NotchAgent
+        CFBundleName: AgentMeter
+        CFBundleDisplayName: "AgentMeter: NotchAgent"
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         # Agent app: menu bar + overlay only, no Dock icon.
@@ -27,6 +56,85 @@ targets:
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: br.com.lfrprojects.notchagent
       ENABLE_HARDENED_RUNTIME: YES
+
+  AgentMeterMobile:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.1"
+    sources:
+      - Platforms/iOS
+      - path: Resources/iOS
+        buildPhase: resources
+      - path: Resources/Shared
+        buildPhase: resources
+    dependencies:
+      - target: AgentMeterCore
+    info:
+      path: Generated/AgentMeterMobile-Info.plist
+      properties:
+        CFBundleName: AgentMeter
+        CFBundleDisplayName: AgentMeter
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        UIAppFonts:
+          - D-DIN.otf
+          - D-DIN-Bold.otf
+          - RobotoMono-Regular.ttf
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    entitlements:
+      path: Config/AgentMeterMobile.entitlements
+      properties:
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.br.com.lfrprojects.agentmeter
+        com.apple.developer.icloud-services:
+          - CloudKit
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: br.com.lfrprojects.agentmeter.mobile
+      DEVELOPMENT_TEAM: S3YCFYY8SC
+      CODE_SIGN_STYLE: Automatic
+      TARGETED_DEVICE_FAMILY: "1,2"
+
+  AgentMeterWatch:
+    type: application
+    platform: watchOS
+    deploymentTarget: "9.0"
+    sources:
+      - Platforms/watchOS
+      - path: Resources/Shared
+        buildPhase: resources
+    dependencies:
+      - target: AgentMeterCore
+    info:
+      path: Generated/AgentMeterWatch-Info.plist
+      properties:
+        CFBundleName: AgentMeter
+        CFBundleDisplayName: AgentMeter
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        WKApplication: true
+        WKWatchOnly: true
+    entitlements:
+      path: Config/AgentMeterWatch.entitlements
+      properties:
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.br.com.lfrprojects.agentmeter
+        com.apple.developer.icloud-services:
+          - CloudKit
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: br.com.lfrprojects.agentmeter.watch
+      DEVELOPMENT_TEAM: S3YCFYY8SC
+      CODE_SIGN_STYLE: Automatic
+      TARGETED_DEVICE_FAMILY: "4"
+
   NotchAgentTests:
     type: bundle.unit-test
     platform: macOS
@@ -34,3 +142,20 @@ targets:
       - Tests/NotchAgentTests
     dependencies:
       - target: NotchAgent
+
+  AgentMeterCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/AgentMeterCoreTests
+    dependencies:
+      - target: AgentMeterCore
+
+  AgentMeterMobileUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "16.1"
+    sources:
+      - Tests/AgentMeterMobileUITests
+    dependencies:
+      - target: AgentMeterMobile

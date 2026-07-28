@@ -17,6 +17,9 @@ struct ClaudeProvider: UsageProvider {
     private let cache = ClaudeScanCache()
     private let probe: ClaudeQuotaProbe?
     private static let lookback: TimeInterval = 8 * 24 * 3600
+    private static var paidProbeAllowed: Bool {
+        ProcessInfo.processInfo.environment["NOTCHAGENT_DISABLE_PAID_PROBES"] != "1"
+    }
 
     /// Every place Claude Code writes transcripts on this Mac: the CLI and
     /// the Desktop app's agent mode (same JSONL format, different root).
@@ -52,12 +55,20 @@ struct ClaudeProvider: UsageProvider {
         // expired token or dead network must never freeze yesterday's 60%
         // as today's truth. Stale quota degrades to the local heuristics.
         var quota: ClaudeQuota?
-        if settings.claudeQuotaProbeEnabled, let probe {
+        if settings.claudeQuotaProbeEnabled, Self.paidProbeAllowed, let probe {
             quota = await probe.currentQuota()
             if let fetched = quota?.fetchedAt, now.timeIntervalSince(fetched) > 15 * 60 {
                 quota = nil
             }
         }
+        #if os(macOS)
+        if quota == nil,
+           let accountID = settings.apiAccounts.first(where: {
+               $0.enabled && $0.service == .anthropicConsole
+           })?.id {
+            quota = await AnthropicUsageQuotaReader(accountID: accountID).fetchQuota()
+        }
+        #endif
         let freshSessionReset = quota?.sessionResetsAt.flatMap { $0 > now ? $0 : nil }
         let freshWeeklyReset = quota?.weeklyResetsAt.flatMap { $0 > now ? $0 : nil }
 
@@ -118,7 +129,7 @@ struct ClaudeProvider: UsageProvider {
                 cost: CostEstimate(amountUSD: cost),
                 startedAt: window.start,
                 resetsAt: window.end,
-                usedPercent: (freshSessionReset != nil ? quota?.sessionPercent : nil)
+                usedPercent: quota?.sessionPercent
                     ?? settings.claudeSessionTokenBudget.map { budget in
                         min(100, Double(tokens.total) / Double(max(budget, 1)) * 100)
                     }
@@ -144,7 +155,7 @@ struct ClaudeProvider: UsageProvider {
         let weekly = WeeklyUsage(
             tokens: weekTokens,
             cost: CostEstimate(amountUSD: weekCost),
-            usedPercent: (freshWeeklyReset != nil ? quota?.weeklyPercent : nil)
+            usedPercent: quota?.weeklyPercent
                 ?? settings.claudeWeeklyTokenBudget.map { budget in
                     min(100, Double(weekTokens.total) / Double(max(budget, 1)) * 100)
                 },
@@ -160,7 +171,7 @@ struct ClaudeProvider: UsageProvider {
             .sorted { $0.costUSD > $1.costUSD }
 
         var modelHealth: [ModelHealth]?
-        if settings.claudeQuotaProbeEnabled, let probe {
+        if settings.claudeQuotaProbeEnabled, Self.paidProbeAllowed, let probe {
             let recorded = await probe.modelHealthSnapshot()
             modelHealth = recorded.isEmpty ? nil : recorded
         }
@@ -178,7 +189,7 @@ struct ClaudeProvider: UsageProvider {
             activeModel: lastModel,
             lastActivityAt: lastActivity,
             note: limitingNote(quota),
-            quotaStatus: freshSessionReset != nil || freshWeeklyReset != nil ? quota?.status : nil,
+            quotaStatus: quota?.sessionPercent != nil || quota?.weeklyPercent != nil ? quota?.status : nil,
             modelBreakdown: breakdown.isEmpty ? nil : breakdown,
             modelHealth: modelHealth
         )
