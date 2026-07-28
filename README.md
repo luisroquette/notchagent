@@ -55,6 +55,7 @@ open /Applications/NotchAgent.app
 ```bash
 git clone https://github.com/luisroquette/notchagent.git && cd notchagent
 ./Scripts/audit-public-release.sh
+git config core.hooksPath .githooks
 ./Scripts/make-app.sh && open dist/NotchAgent.app
 ```
 
