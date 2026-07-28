@@ -1,169 +1,258 @@
 # NotchAgent
 
-**The fuel gauge for your AI agents, living in your MacBook's notch.**
+<p align="center">
+  <strong>Know when your AI agents will hit a limit, what your APIs have cost, and how much balance remains.</strong>
+</p>
 
 <p align="center">
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.0.0-38D6C7?style=flat-square" alt="Version v2.0.0" /></a>
+  <a href="https://github.com/luisroquette/notchagent/actions/workflows/public-release-security.yml"><img src="https://img.shields.io/github/actions/workflow/status/luisroquette/notchagent/public-release-security.yml?branch=master&style=flat-square&label=security%20%2B%20tests" alt="Security and tests" /></a>
   <a href="#install"><img src="https://img.shields.io/badge/install-Homebrew-F3B85A?style=flat-square" alt="Install with Homebrew" /></a>
 </p>
 
-**Versão atual: 2.0.0** · lançada em 28/07/2026 · [histórico de versões](CHANGELOG.md)
+<p align="center">
+  <a href="#install"><strong>Install NotchAgent</strong></a>
+  &nbsp;·&nbsp;
+  <a href="#api-cost-monitoring">See what 2.0 monitors</a>
+  &nbsp;·&nbsp;
+  <a href="docs/API_ACCOUNT_MONITORING.md">Read the data model</a>
+</p>
 
-A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
-financial monitoring of external API accounts. It shows provider-reported
-spend, balance, plans and quotas with explicit sources and time windows —
-local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
+**Current version: 2.0.0** · Source release dated July 28, 2026 · [Changelog](CHANGELOG.md)
 
-**Also available for Windows** — a system-tray companion (.NET 8 + Avalonia, same parsers, same quota probe) since Windows has no notch. See [`windows/README.md`](windows/README.md) for the current (v1) feature set and build instructions.
+NotchAgent is a native macOS control panel for Claude Code, Codex, API accounts,
+and AI subscriptions. It lives in the MacBook notch, stays out of the way, and
+shows the numbers that decide whether work can continue: quota left, reset time,
+burn rate, recent spend, current balance, and recurring plan cost.
 
-![The compact notch bar: Claude on the left wing, Codex on the right](docs/img/notch-compact.png)
+There is no hosted dashboard or product telemetry, and credentials are never
+sent to a NotchAgent server.
 
-![Hover the notch to expand the gauge panel](docs/img/desktop-now.png)
+![NotchAgent compact bar showing Claude and Codex capacity](docs/img/notch-compact.png)
 
-| NOW — % left per provider | BURN — will the session last? |
+![NotchAgent expanded above the desktop](docs/img/desktop-now.png)
+
+## Stop finding out after the workflow stops
+
+An agent can fail for painfully ordinary reasons: a weekly limit expires, an API
+balance reaches zero, or a plan renews at a price nobody remembered. Those
+numbers usually live across several provider portals and incompatible billing
+screens.
+
+NotchAgent keeps the operational answer visible:
+
+| You need to know | NotchAgent shows |
 |---|---|
-| ![NOW page](docs/img/panel-now.png) | ![BURN page with projection and scrubbing](docs/img/panel-burn.png) |
+| Can the agent finish this session? | Official quota left, reset time, and burn projection |
+| What did the API cost recently? | Provider-reported spend with its exact time window |
+| How much can still be used? | Current prepaid balance or native service quota |
+| What will renew? | Monthly plan cost, renewal date, and budget forecast |
+| Can this number be trusted? | Source, freshness, and whether it is official or derived |
 
-| RHYTHM — when do you burn? | MODELS — live probe + cost per model |
+## What you see in three seconds
+
+- **NOW:** quota remaining, reset countdown, account health, and the limiting window.
+- **BURN:** whether the current pace reaches the reset or runs out first.
+- **API COSTS:** spend, balance, and plan price kept as separate financial fields.
+- **ALERTS:** escalating warnings at 25%, 15%, 10%, and 5% remaining.
+- **HISTORY:** daily usage, hourly rhythm, provider breakdown, and sanitized events.
+
+| NOW: capacity and reset | BURN: pace and projection |
+|---|---|
+| ![NOW page](docs/img/panel-now.png) | ![BURN page](docs/img/panel-burn.png) |
+
+| RHYTHM: usage by hour | MODELS: availability and local cost estimate |
 |---|---|
 | ![RHYTHM page](docs/img/panel-rhythm.png) | ![MODELS page](docs/img/panel-models.png) |
 
-![Low-fuel alert: an escalating takeover fires at 25/15/10/5% left, in light theme here](docs/img/alert-almost-empty.png)
+![Escalating low-fuel alert](docs/img/alert-almost-empty.png)
 
 <details>
-<summary><b>More screenshots</b> — dashboard, burn scrubbing, settings</summary>
+<summary><strong>More product screenshots</strong></summary>
 
-![Burn chart hover scrubbing over the desktop](docs/img/desktop-burn.png)
-![Dashboard: session tokens over time + hourly rhythm](docs/img/dashboard-1.png)
-![Dashboard: per-provider breakdown](docs/img/dashboard-2.png)
-![Settings: appearance, login item, alerts, quota probe](docs/img/settings.png)
+![Burn chart scrubbing](docs/img/desktop-burn.png)
+![Dashboard usage history](docs/img/dashboard-1.png)
+![Dashboard provider breakdown](docs/img/dashboard-2.png)
+![NotchAgent settings](docs/img/settings.png)
 
 </details>
 
+## API cost monitoring
+
+Version 2.0 adds a financial layer for AI infrastructure. Each account gets the
+same three-column answer whenever the provider exposes it:
+
+> **Spent, last 30 days** · **Balance now** · **Plan per month**
+
+For example, an illustrative card can show `R$ 24.00 spent`, `R$ 76.00
+available`, and `R$ 100.00/month`. These are independent values. A top-up never
+becomes spend, and missing data stays missing instead of being presented as zero.
+
+### Supported accounts
+
+| Provider | What NotchAgent can read |
+|---|---|
+| Anthropic API | Console spend, credits, and the period exposed by the account |
+| OpenAI API | Usage costs and prepaid balance |
+| DeepSeek | 30-day spend and current balance |
+| OpenRouter | 30-day spend and current balance |
+| Google AI Studio / Gemini | Official BRL spend for Google's 28-day window |
+| xAI / Grok | Spend and balance when exposed by the account |
+| ElevenLabs | Used quota, remaining quota, reset, and plan |
+| Firecrawl | Credits used, credits remaining, overage, reset, and plan |
+| twitterapi.io | Credits, usage, and balance equivalent when the plan is known |
+| X / Twitter | Consumption, top-ups, and balance for each connected project |
+| Custom read-only endpoint | Declared quota fields from your own HTTPS endpoint |
+
+Add as many accounts as needed, including multiple accounts from the same
+provider. Cards can be reordered, refreshed individually, and disconnected
+without touching the other accounts.
+
+Web subscriptions such as Claude, Claude Code, and ChatGPT appear in a separate
+section. Subscription charges are never mixed with API consumption.
+
+## Numbers with provenance
+
+Financial dashboards become dangerous when they make different kinds of data
+look equally certain. NotchAgent records the origin of every monetary field:
+
+- **Official API:** returned by a documented provider endpoint.
+- **Official portal:** read from the provider account you explicitly connected.
+- **Manual:** entered by you when no machine-readable source exists.
+- **Derived estimate:** proportional value calculated from a confirmed plan and quota.
+
+The default comparison window is 30 rolling days. Google AI Studio keeps its
+official 28-day window, clearly labeled. USD values are converted with the
+current Banco Central do Brasil PTAX rate, never a hardcoded exchange rate.
+
+If a provider does not expose spend or balance, the card shows the field as
+unavailable. NotchAgent does not manufacture an "official" number.
+
+## Privacy by design
+
+- API credentials are stored in the macOS Keychain.
+- Connected portals use one isolated WebKit profile per account.
+- Account monitoring is opt-in and talks directly to the selected provider.
+- Exported diagnostics remove credentials, cookies, identities, labels, and amounts.
+- There is no NotchAgent backend and no product telemetry.
+
+The optional Anthropic quota probe is the only feature that can send a paid
+one-token model request. It can be disabled in Settings. External API account
+monitoring is read-only and does not call paid generation models.
+
 ## Install
 
-**Homebrew** (recommended):
+### Homebrew
+
+The Homebrew cask installs the latest published stable release:
 
 ```bash
 brew install --cask luisroquette/tap/notchagent
-xattr -dr com.apple.quarantine /Applications/NotchAgent.app   # free & unsigned — clears Gatekeeper once
+xattr -dr com.apple.quarantine /Applications/NotchAgent.app
 open /Applications/NotchAgent.app
 ```
 
-**Or download** the latest `NotchAgent.app` from [Releases](../../releases), unzip, move to `/Applications`, then clear the quarantine flag:
+### Download
+
+Download the latest package available on
+[GitHub Releases](https://github.com/luisroquette/notchagent/releases/latest),
+move NotchAgent to `/Applications`, then run:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/NotchAgent.app
 open /Applications/NotchAgent.app
 ```
 
-**Or build from source** (Xcode 15+ / Swift 6 toolchain):
+### Build version 2.0 from source
+
+Requires macOS, Xcode 15+, and a Swift 6 toolchain:
 
 ```bash
-git clone https://github.com/luisroquette/notchagent.git && cd notchagent
+git clone https://github.com/luisroquette/notchagent.git
+cd notchagent
 ./Scripts/audit-public-release.sh
 git config core.hooksPath .githooks
-./Scripts/make-app.sh && open dist/NotchAgent.app
-```
-
-`make-app.sh` uses the first local Apple Development identity. Override it with
-`NOTCHAGENT_SIGN_IDENTITY`; without an identity it falls back to ad-hoc signing.
-
-> **Why trust it?** API credentials stay in the macOS Keychain, portal sessions
-> use isolated WebKit profiles, and diagnostics remove credentials, identity and
-> financial amounts. Monitoring is opt-in per account. The optional Claude quota
-> probe is the only feature that sends a paid one-token model request and can be
-> disabled in Settings.
-
----
-
-**O medidor de combustível dos seus agentes de IA, morando no notch do MacBook.**
-
-Monitor nativo (Swift 6 + SwiftUI/AppKit, zero Electron) de uso, quotas e custos
-de Claude Code, Codex, Gemini CLI e contas externas de API. Todas as conexões
-são opcionais e vão diretamente do Mac ao provedor configurado.
-
-## O produto
-
-**A pergunta que o NotchAgent responde o tempo todo: "quantos % do meu limite ainda tenho?"**
-
-- **Notch compacto** — Claude na asa esquerda, Codex na direita: nome, `% LEFT` da janela (5H ou WK) colorido por estado, micro-medidor que esvazia como tanque de combustível.
-- **Painel expandido** (hover expande, clique fixa, **scroll lateral de trackpad troca de página**, Esc fecha) com 4 páginas:
-  - **NOW** — cards por provider: `% restante` gigante, medidor segmentado, "RESETS • 16:30" + countdown vivo, tokens/custo estimado, burn verdict, pills de saúde.
-  - **BURN** — gráfico da janela 5h: uso real (linha coral) + projeção pontilhada no ritmo atual + veredito "runs out 16:40 (in 1h 32m)".
-  - **RHYTHM** — 24 barras por hora local (hoje/7 dias), hora atual em destaque.
-  - **MODELS** — Fable, Opus, Sonnet e Haiku com sonda viva (`OK 0.9s` / `Limited` / `Error`, 1 modelo por ciclo) + uso e custo por modelo dos transcripts.
-- **Alertas escalonados em 25/15/10/5% livres** — takeover animado do notch que fica mais grave conforme o fim se aproxima (pulso âmbar → alarme vermelho com mascote tremendo aos 5%, que só sai com clique). Notificação do sistema junto. Um disparo por marco por janela, com rearme no reset.
-- **Menu bar** — `% restante` no topo + popover com resumo por provider e controles.
-- **Dashboard** — histórico (Swift Charts), ritmo por hora, breakdown diário, log de eventos.
-- Fallback elegante em displays sem notch (pill flutuante) e mascote pixel-art procedural como assinatura visual.
-
-## Rodar / Empacotar
-
-```bash
-swift run                 # desenvolvimento (menu bar + overlay na hora)
-swift test                         # suíte unitária e de integração
-./Scripts/audit-public-release.sh # bloqueia segredos e IDs pessoais
-./Scripts/make-app.sh     # gera dist/NotchAgent.app (ícone e assinatura estável inclusos)
+./Scripts/make-app.sh
 open dist/NotchAgent.app
 ```
 
-O bundle habilita: launch at login (SMAppService), notificações do sistema e consentimento persistente do Keychain. `project.yml` (XcodeGen) existe para quem preferir um `.xcodeproj`.
+NotchAgent uses the first local Apple Development identity when available.
+Set `NOTCHAGENT_SIGN_IDENTITY` to choose another stable signing identity. It
+falls back to ad-hoc signing when no identity is available.
 
-## Dados: o que é real, o que é estimado
+## Connect your first account
 
-| Fonte | Real | Estimado |
-|---|---|---|
-| **Probe Anthropic** (opcional, ~1 token/min) — headers `anthropic-ratelimit-unified-*` via token OAuth local do Claude Code | % oficial 5h/7d, resets, status `allowed/warning/rejected`, janela limitante, saúde por modelo | — |
-| **Transcripts Claude** `~/.claude/projects/**/*.jsonl` | tokens (input/output/cache), modelo por mensagem, blocos 5h, ritmo horário | custo (tabela pública em `PricingTable.swift`) |
-| **Rollouts Codex** `~/.codex/sessions/**` | % exato por janela (classificada por `window_minutes` — planos weekly-only como o Spark são detectados), resets, plano, tokens | custo |
-| **Gemini CLI** `~/.gemini/tmp/*/logs.json` | prompts/sessões/última atividade | tokens não existem no disco — o app declara, não inventa |
+1. Open **Settings → API Accounts**.
+2. Click **+** and choose a provider.
+3. Store a read-only credential in Keychain or select **Connect account**.
+4. Confirm the source, time window, and freshness shown on the card.
 
-Token OAuth: `CLAUDE_CODE_OAUTH_TOKEN` → `~/.claude/.credentials.json` → Keychain (prompt de consentimento do macOS). Nunca é logado; nunca sai da máquina exceto para `api.anthropic.com`. Desligável em Settings (budgets manuais viram fallback).
+The public repository ships with no configured accounts, names, projects,
+credentials, cookies, or personal financial history.
 
-## Personalizar contas de API
+## Who it is for
 
-1. Abra **Settings → Contas de API**.
-2. Clique em **+** e escolha o serviço.
-3. Salve a credencial no Keychain ou use **Conectar conta**.
-4. Confirme no card a fonte, a janela e o estado da leitura.
+- Developers running Claude Code, Codex, or several model providers every day.
+- Small teams that cannot afford a silent API balance failure.
+- AI operators managing multiple client, project, or social accounts.
+- Anyone paying for overlapping AI plans and trying to understand the real monthly total.
 
-O repositório não contém contas predefinidas. Nomes, projetos, chaves, cookies,
-histórico e valores pessoais permanecem fora do Git. Veja
-[`docs/API_ACCOUNT_MONITORING.md`](docs/API_ACCOUNT_MONITORING.md).
+NotchAgent also works on Macs without a physical notch using a floating compact
+pill. A Windows system-tray companion is available in
+[`windows/README.md`](windows/README.md) with the current Windows feature set.
 
-## Novidades da versão 2.0: monitoramento financeiro de APIs
+## Frequently asked questions
 
-- **Múltiplas contas** — adicione quantas contas quiser, inclusive duas ou mais
-  do mesmo provedor, sem compartilhar credenciais entre elas.
-- **Leitura financeira uniforme** — cada card separa **Gasto da janela**,
-  **Saldo atual** e **Plano mensal**; recarga nunca é classificada como gasto.
-- **Fontes verificáveis** — cada valor registra se veio de API oficial, portal
-  oficial, configuração manual ou estimativa proporcional do plano.
-- **Períodos explícitos** — padrão de 30 dias; Google AI Studio mantém sua
-  janela oficial de 28 dias; mês-calendário aparece identificado quando for a
-  única janela oferecida pelo provedor.
-- **Operação segura** — refresh individual, proteção contra cache antigo,
-  sessões web isoladas, diagnóstico sanitizado e conversão USD/BRL pela PTAX
-  atual do Banco Central.
+<details>
+<summary><strong>Is NotchAgent an official client from Anthropic, OpenAI, or another provider?</strong></summary>
 
-Serviços cobertos na 2.0 incluem Anthropic API, OpenAI, DeepSeek, OpenRouter,
-Google/Gemini, xAI, ElevenLabs, Firecrawl, twitterapi.io e múltiplos projetos
-X/Twitter. Planos web como Claude/Claude Code e ChatGPT aparecem separados do
-consumo de API.
+No. NotchAgent is an independent RocketLabs product. Provider names and logos
+identify compatible services and do not imply endorsement.
 
-## Controle de versão e releases
+</details>
 
-O projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/):
+<details>
+<summary><strong>Why can one provider show spend but not balance?</strong></summary>
 
-- **MAJOR**: mudança incompatível ou nova geração do produto.
-- **MINOR**: funcionalidade compatível.
-- **PATCH**: correção compatível.
+Providers expose different billing fields. NotchAgent displays only what the
+connected source can verify and marks unavailable fields explicitly.
 
-`VERSION` é a fonte oficial da versão. `Scripts/make-app.sh` lê esse arquivo no
-empacotamento; `Resources/Info.plist`, README e CHANGELOG devem acompanhar o
-mesmo número. Antes de qualquer publicação:
+</details>
+
+<details>
+<summary><strong>Does monitoring consume model tokens?</strong></summary>
+
+API account monitoring uses read-only billing, quota, and portal sources. The
+optional Anthropic quota probe sends a one-token request at its configured
+cadence and can be disabled.
+
+</details>
+
+<details>
+<summary><strong>Does it work without a MacBook notch?</strong></summary>
+
+Yes. The compact monitor becomes a floating pill on displays without a notch.
+
+</details>
+
+## For contributors
+
+<details>
+<summary><strong>Architecture, precision model, and local verification</strong></summary>
+
+```text
+Providers → UsageSnapshot → UsageStore → Notch · Menu Bar · Dashboard
+     ↑ parsers/actors       ↑ alerts, burn rate, status aggregation
+RefreshScheduler ──────────→ SnapshotStore / HistoryStore
+```
+
+Local sources include Claude transcripts under `~/.claude/projects`, Codex
+rollouts under `~/.codex/sessions`, and Gemini CLI logs. Official quota
+percentages and reset times remain separate from locally counted tokens and
+public-price cost estimates.
+
+Run the complete public validation:
 
 ```bash
 ./Scripts/check-version.sh
@@ -171,65 +260,37 @@ mesmo número. Antes de qualquer publicação:
 NOTCHAGENT_DISABLE_PAID_PROBES=1 swift test
 ```
 
-Toda versão deve adicionar uma entrada no topo de `CHANGELOG.md` com data,
-novidades, correções, segurança e validação.
-
-## Arquitetura
-
-```
-Providers (plugin) ─▶ UsageSnapshot ─▶ UsageStore (@Observable) ─▶ Notch · MenuBar · Dashboard
-      ▲ FileScanCache/actors    ▲ StatusAggregator + ThresholdAlerts + BurnRate (puros, testados)
-RefreshScheduler ───────────────┴─▶ SnapshotStore/HistoryStore (JSON, 30d)
-```
-
-- **Overlay**: `NSPanel` borderless não-ativante (`.statusBar` level, todos os Spaces, sobre fullscreen) com `hitTest` custom — só a forma visível captura cliques; o resto da janela transparente é click-through.
-- **Interações**: monitores locais de `scrollWheel` (paging) e `keyDown` (Esc), haptics em página/pin, `TimelineView` para countdowns vivos.
-- **Novo provider** = 1 pasta com parser puro + `UsageProvider` + fixture; a UI se adapta às capacidades declaradas.
-
-## Modelo de precisão (o que é exato, o que é estimado)
-
-**Exato (fonte oficial):**
-- Os **percentuais** de quota do Claude vêm dos headers `anthropic-ratelimit-unified-*` da API — são **da conta inteira**: cobrem Claude Code CLI, app Desktop, claude.ai web e mobile. O mesmo vale para os percentuais do Codex (rollouts locais refletem o estado da conta).
-- Horários de reset e status (`allowed/warning/rejected`) — idem.
-
-**Contado localmente (alinhado à janela oficial):**
-- Tokens e custos do Claude somam **todas** as fontes locais de transcript: CLI (`~/.claude/projects`) **e as sessões de agente do app Desktop** (`~/Library/Application Support/Claude/local-agent-mode-sessions`).
-- As somas de sessão/semana usam **a mesma janela do percentual** (início = reset oficial − 5h/7d), não "últimas N horas corridas".
-- Sessão do Codex soma **todos os rollouts ativos dentro da janela** (sessões concorrentes não subcontam).
-
-**Margens conhecidas (medidas, não estimadas):**
-- Conversas de *chat* (Desktop/web) não geram transcript local → contam no **%**, não nos tokens locais.
-- Buckets horários ⇒ fronteira de janela com precisão de ±1h nos tokens (o % não é afetado).
-- Duplicatas de retry entre arquivos: **0,18%** de inflação medida nesta base (dedup é por arquivo).
-- Custos usam tabela de preços pública (`PricingTable.swift`) — planos por assinatura não faturam por token; trate como ordem de grandeza.
-
-## Limitações conhecidas
-
-- Geometria do notch é inferida (`safeAreaInsets` + auxiliary areas) — sem API oficial; fallback pill cobre mudanças da Apple.
-- Custos são estimativas por tabela pública; planos por assinatura não faturam por token.
-- Distribuição ainda não notarizada: o primeiro lançamento pode exigir a remoção da quarentena. Builds locais usam a primeira identidade Apple Development disponível; configure `NOTCHAGENT_SIGN_IDENTITY` para escolher outra identidade estável.
-- `Limited` na página MODELS reflete o rate-limit unificado da conta no momento da sonda, não indisponibilidade do modelo em si.
-
-## Estado de distribuição
-
-- [x] NotchAgent 2.0 · monitoramento financeiro de APIs · suíte automatizada
-- [x] Release pública [v1.0.1](https://github.com/luisroquette/notchagent/releases/tag/v1.0.1)
-- [x] Instalação via Homebrew Cask
-- [x] .app empacotado com ícone + launch-at-login + notificações
-- [ ] Conta Apple Developer → assinar com Developer ID + `notarytool` + staple *(requer credenciais do dono)*
-- [ ] DMG (`create-dmg`)
-- [ ] Auto-update (Sparkle) — pós-lançamento
-- [ ] Site/landing + licenciamento (Paddle/Lemon Squeezy) — decisão de negócio
-
-## Observabilidade
+The suite currently contains 200 tests. Live account E2E is read-only and
+opt-in:
 
 ```bash
-/usr/bin/log stream --predicate 'subsystem == "br.com.lfrprojects.notchagent"' --level debug
+NOTCHAGENT_DISABLE_PAID_PROBES=1 \
+NOTCHAGENT_LIVE_E2E=1 \
+swift test --filter testLiveE2EAccountMonitoringWhenExplicitlyEnabled
 ```
+
+See [API account monitoring](docs/API_ACCOUNT_MONITORING.md) for field
+semantics, refresh behavior, source tolerances, and the custom endpoint
+contract.
+
+</details>
+
+## Known limitations
+
+- Public packages are not notarized yet, so first launch requires clearing quarantine.
+- Provider portals can change without notice and may require reconnecting the account.
+- Some providers expose quota but no monetary balance; unavailable fields remain blank.
+- Local token counts cannot include web conversations that leave no local transcript.
+
+## Versioning
+
+NotchAgent follows [Semantic Versioning](https://semver.org/). `VERSION` is the
+source of truth. The app bundle, README, and top entry in `CHANGELOG.md` must
+match before a release can pass CI.
 
 ---
 
 <p align="center">
-  <strong>NotchAgent is a flagship project from <a href="https://github.com/luisroquette/RocketLabs">RocketLabs</a>.</strong><br />
-  <sub>Applied AI systems built in public.</sub>
+  <strong>Built by <a href="https://github.com/luisroquette/RocketLabs">RocketLabs</a>.</strong><br />
+  <sub>Operational clarity for people who depend on AI every day.</sub>
 </p>
