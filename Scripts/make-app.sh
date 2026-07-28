@@ -1,14 +1,23 @@
 #!/bin/zsh
 # Builds NotchAgent.app from the SwiftPM release binary — no Xcode project
-# needed. Output: dist/NotchAgent.app (signed with local Apple Development
-# identity so Keychain ACL grants persist across rebuilds; use Developer ID
-# + notarization for public distribution).
-SIGN_IDENTITY="Apple Development: luis roquette (K74FG72F9W)"
+# needed. Output: dist/NotchAgent.app. Set NOTCHAGENT_SIGN_IDENTITY to a
+# Developer ID or Apple Development identity. Without one, the script uses the
+# first local Apple Development identity and falls back to ad-hoc signing.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VERSION="1.0.0"
 APP="dist/NotchAgent.app"
+BUNDLE_IDENTIFIER="${NOTCHAGENT_BUNDLE_IDENTIFIER:-br.com.lfrprojects.notchagent}"
+SIGN_IDENTITY="${NOTCHAGENT_SIGN_IDENTITY:-}"
+if [[ -z "$SIGN_IDENTITY" ]]; then
+    SIGN_IDENTITY=$(
+        security find-identity -v -p codesigning 2>/dev/null \
+            | sed -n 's/.*"\(Apple Development:[^"]*\)".*/\1/p' \
+            | head -1
+    ) || true
+fi
+SIGN_IDENTITY="${SIGN_IDENTITY:--}"
 
 echo "▸ stopping running instances"
 pkill -9 -f "NotchAgent.app/Contents/MacOS/NotchAgent" 2>/dev/null || true
@@ -27,7 +36,7 @@ cat > "$APP/Contents/Info.plist" << PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleIdentifier</key><string>br.com.lfrprojects.notchagent</string>
+    <key>CFBundleIdentifier</key><string>${BUNDLE_IDENTIFIER}</string>
     <key>CFBundleName</key><string>NotchAgent</string>
     <key>CFBundleDisplayName</key><string>NotchAgent</string>
     <key>CFBundleExecutable</key><string>NotchAgent</string>

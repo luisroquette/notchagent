@@ -1,0 +1,23 @@
+name: Public release security
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Audit public source and history
+        run: zsh Scripts/audit-public-release.sh
+      - name: Test without paid probes
+        env:
+          NOTCHAGENT_DISABLE_PAID_PROBES: "1"
+        run: swift test

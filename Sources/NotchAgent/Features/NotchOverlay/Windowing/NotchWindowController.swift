@@ -95,9 +95,12 @@ final class NotchWindowController {
         guard scrollMonitor == nil else { return }
         scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel]) { [weak self] event in
             guard let self, let panel = self.panel, event.window === panel else { return event }
-            // Natural scrolling: swiping left advances, like flipping a page.
+            // Only an intentional horizontal swipe may page. A vertical
+            // ScrollView gesture carries a small horizontal trackpad drift;
+            // forwarding that drift used to flip pages while reading APIs.
             self.viewModel.handleScroll(
                 deltaX: event.scrollingDeltaX,
+                deltaY: event.scrollingDeltaY,
                 phase: event.phase,
                 momentumPhase: event.momentumPhase
             )
@@ -110,7 +113,7 @@ final class NotchWindowController {
                   let panel = self.panel, event.window === panel,
                   self.viewModel.isExpanded
             else { return event }
-            self.viewModel.collapseNow()
+            _ = self.viewModel.handleEscape()
             return nil
         }
     }

@@ -56,6 +56,55 @@ final class ClaudeQuotaProbeParseTests: XCTestCase {
         XCTAssertNil(ClaudeTokenLocator.parseCredentials(Data(expired.utf8), now: now), "expired tokens must be rejected")
         XCTAssertNil(ClaudeTokenLocator.parseCredentials(Data("not json".utf8)))
     }
+
+    #if os(macOS)
+    func testUsagePortalParsesRemainingPercentAndResetDurations() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let quota = try XCTUnwrap(AnthropicUsageQuotaReader.parseUsageText("""
+        CLAUDE
+        93%
+        OF 5H SESSION LEFT
+        RESETS • 13:40
+        4h 45m
+        CODEX
+        88%
+        OF WEEKLY LIMIT LEFT
+        RESETS • 17:02
+        5d 8h
+        """, now: now))
+
+        XCTAssertEqual(quota.sessionPercent, 7)
+        XCTAssertEqual(quota.weeklyPercent, 12)
+        XCTAssertEqual(try XCTUnwrap(quota.sessionResetsAt).timeIntervalSince(now), 17_100, accuracy: 1)
+        XCTAssertEqual(try XCTUnwrap(quota.weeklyResetsAt).timeIntervalSince(now), 460_800, accuracy: 1)
+        XCTAssertEqual(quota.status, .ok)
+        XCTAssertEqual(quota.limitingWindow, "seven_day")
+    }
+
+    func testUsagePortalParsesCurrentPortugueseUsedPercentFormat() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let quota = try XCTUnwrap(AnthropicUsageQuotaReader.parseUsageText("""
+        Seus limites de uso Equipe
+        Sessão atual
+        Reinicia em 4 h 48 min
+        12% usado
+        Limites semanais
+        Seus limites estão temporariamente aumentados.
+        Todos os modelos
+        Reinicia dom., 02:59
+        47% usado
+        Fable
+        Você ainda não usou Fable
+        0% usado
+        """, now: now))
+
+        XCTAssertEqual(quota.sessionPercent, 12)
+        XCTAssertEqual(quota.weeklyPercent, 47)
+        XCTAssertEqual(try XCTUnwrap(quota.sessionResetsAt).timeIntervalSince(now), 17_280, accuracy: 1)
+        XCTAssertEqual(quota.status, .ok)
+        XCTAssertEqual(quota.limitingWindow, "seven_day")
+    }
+    #endif
 }
 
 final class BurnRateTests: XCTestCase {

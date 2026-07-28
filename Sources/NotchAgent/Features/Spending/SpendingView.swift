@@ -75,6 +75,8 @@ struct SpendingView: View {
                 Button("Adicionar plano", systemImage: "plus") { showingPlanEditor = true }
             }
 
+            connectedSubscriptionsSection
+
             Section("Chamadas extras e créditos") {
                 let currentExpenses = store.expenses.filter {
                     Calendar.current.isDate($0.incurredAt, equalTo: .now, toGranularity: .month)
@@ -157,6 +159,52 @@ struct SpendingView: View {
             }
         } message: {
             Text("\(invoicePreview?.expenses.count ?? 0) lançamento(s) oficial(is). \(invoicePreview?.issues.count ?? 0) linha(s) ignorada(s).")
+        }
+    }
+
+    private var connectedSubscriptions: [APIAccountUsage] {
+        (usageStore.snapshots[.apiAccounts]?.accountUsage ?? [])
+            .filter { $0.service == .anthropicConsole && $0.monthlyPlanBRL != nil }
+    }
+
+    @ViewBuilder
+    private var connectedSubscriptionsSection: some View {
+        Section("Assinaturas conectadas") {
+            if connectedSubscriptions.isEmpty {
+                Text("Nenhuma assinatura conectada.")
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(connectedSubscriptions) { plan in
+                connectedSubscriptionRow(plan)
+            }
+            Text("Assinaturas conectadas não são consumo de API.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func connectedSubscriptionRow(_ plan: APIAccountUsage) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Claude · \(plan.planName ?? "Assinatura")")
+                Text("Oficial · lido diretamente do portal Claude")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let amount = plan.monthlyPlanBRL {
+                Text(store.format(amount))
+                    .monospacedDigit()
+            }
+        }
+        if let credits = plan.balanceBRL {
+            LabeledContent("Créditos de uso") {
+                Text(store.format(credits))
+                    .foregroundStyle(credits >= 0 ? Color.secondary : Color.red)
+                    .monospacedDigit()
+            }
+            .font(.caption)
         }
     }
 

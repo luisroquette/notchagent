@@ -2,7 +2,10 @@
 
 **The fuel gauge for your AI agents, living in your MacBook's notch.**
 
-A native macOS menu-bar + notch overlay that answers one question at a glance: **how much of my Claude Code / Codex limit is left?** Official quota percentages (read from Anthropic's rate-limit headers), burn-rate projections ("runs out at 16:40"), per-model usage and cost estimates, escalating low-fuel alerts — all local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
+A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
+financial monitoring of external API accounts. It shows provider-reported
+spend, balance, plans and quotas with explicit sources and time windows —
+local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
 
 **Also available for Windows** — a system-tray companion (.NET 8 + Avalonia, same parsers, same quota probe) since Windows has no notch. See [`windows/README.md`](windows/README.md) for the current (v1) feature set and build instructions.
 
@@ -51,16 +54,26 @@ open /Applications/NotchAgent.app
 
 ```bash
 git clone https://github.com/luisroquette/notchagent.git && cd notchagent
+./Scripts/audit-public-release.sh
 ./Scripts/make-app.sh && open dist/NotchAgent.app
 ```
 
-> **Why trust it?** The optional quota probe reads your local Claude Code OAuth token (env var → `~/.claude/.credentials.json` → Keychain, with macOS consent prompt) and sends a single 1-token request to `api.anthropic.com` — nothing else, nowhere else. The token is never logged. That's exactly why this project is open source: read `ClaudeQuotaProbe.swift` yourself.
+`make-app.sh` uses the first local Apple Development identity. Override it with
+`NOTCHAGENT_SIGN_IDENTITY`; without an identity it falls back to ad-hoc signing.
+
+> **Why trust it?** API credentials stay in the macOS Keychain, portal sessions
+> use isolated WebKit profiles, and diagnostics remove credentials, identity and
+> financial amounts. Monitoring is opt-in per account. The optional Claude quota
+> probe is the only feature that sends a paid one-token model request and can be
+> disabled in Settings.
 
 ---
 
 **O medidor de combustível dos seus agentes de IA, morando no notch do MacBook.**
 
-Monitor nativo (Swift 6 + SwiftUI/AppKit, zero Electron) de uso, quotas e custos de Claude Code, Codex e Gemini CLI. Local-first: lê os arquivos de sessão dos CLIs no disco; a única chamada de rede é uma sonda opcional de 1 token à API da Anthropic para ler a quota oficial.
+Monitor nativo (Swift 6 + SwiftUI/AppKit, zero Electron) de uso, quotas e custos
+de Claude Code, Codex, Gemini CLI e contas externas de API. Todas as conexões
+são opcionais e vão diretamente do Mac ao provedor configurado.
 
 ## O produto
 
@@ -81,8 +94,9 @@ Monitor nativo (Swift 6 + SwiftUI/AppKit, zero Electron) de uso, quotas e custos
 
 ```bash
 swift run                 # desenvolvimento (menu bar + overlay na hora)
-swift test                # 52 testes
-./Scripts/make-app.sh     # gera dist/NotchAgent.app (ícone incluso, ad-hoc signed)
+swift test                         # suíte unitária e de integração
+./Scripts/audit-public-release.sh # bloqueia segredos e IDs pessoais
+./Scripts/make-app.sh              # gera dist/NotchAgent.app
 open dist/NotchAgent.app
 ```
 
@@ -98,6 +112,17 @@ O bundle habilita: launch at login (SMAppService), notificações do sistema e c
 | **Gemini CLI** `~/.gemini/tmp/*/logs.json` | prompts/sessões/última atividade | tokens não existem no disco — o app declara, não inventa |
 
 Token OAuth: `CLAUDE_CODE_OAUTH_TOKEN` → `~/.claude/.credentials.json` → Keychain (prompt de consentimento do macOS). Nunca é logado; nunca sai da máquina exceto para `api.anthropic.com`. Desligável em Settings (budgets manuais viram fallback).
+
+## Personalizar contas de API
+
+1. Abra **Settings → Contas de API**.
+2. Clique em **+** e escolha o serviço.
+3. Salve a credencial no Keychain ou use **Conectar conta**.
+4. Confirme no card a fonte, a janela e o estado da leitura.
+
+O repositório não contém contas predefinidas. Nomes, projetos, chaves, cookies,
+histórico e valores pessoais permanecem fora do Git. Veja
+[`docs/API_ACCOUNT_MONITORING.md`](docs/API_ACCOUNT_MONITORING.md).
 
 ## Arquitetura
 
@@ -132,12 +157,13 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 
 - Geometria do notch é inferida (`safeAreaInsets` + auxiliary areas) — sem API oficial; fallback pill cobre mudanças da Apple.
 - Custos são estimativas por tabela pública; planos por assinatura não faturam por token.
-- Assinatura ad-hoc: o consentimento do Keychain re-pergunta a cada rebuild (muda a assinatura). Resolve com Developer ID.
+- Assinatura ad-hoc: o consentimento do Keychain re-pergunta a cada rebuild.
+  Configure `NOTCHAGENT_SIGN_IDENTITY` para manter uma identidade estável.
 - `Limited` na página MODELS reflete o rate-limit unificado da conta no momento da sonda, não indisponibilidade do modelo em si.
 
 ## Checklist de comercialização
 
-- [x] Feature-complete v1.0 · 52 testes · smoke em máquina real
+- [x] Feature-complete v1.0 · suíte automatizada · smoke em máquina real
 - [x] .app empacotado com ícone + launch-at-login + notificações
 - [ ] Conta Apple Developer → assinar com Developer ID + `notarytool` + staple *(requer credenciais do dono)*
 - [ ] DMG (`create-dmg`) e/ou cask Homebrew apontando para GitHub Releases

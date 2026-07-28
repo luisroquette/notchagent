@@ -5,6 +5,8 @@ public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, H
     case claudeCode = "claude-code"
     case codex = "codex"
     case geminiCLI = "gemini-cli"
+    /// Aggregates the opt-in API account monitors configured in Settings.
+    case apiAccounts = "api-accounts"
 
     public var id: String { rawValue }
 
@@ -13,6 +15,7 @@ public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, H
         case .claudeCode: "Claude Code"
         case .codex: "Codex"
         case .geminiCLI: "Gemini CLI"
+        case .apiAccounts: "API Accounts"
         }
     }
 
@@ -21,6 +24,7 @@ public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, H
         case .claudeCode: "Claude"
         case .codex: "Codex"
         case .geminiCLI: "Gemini"
+        case .apiAccounts: "APIs"
         }
     }
 
@@ -30,6 +34,7 @@ public enum ProviderID: String, Codable, CaseIterable, Sendable, Identifiable, H
         case .claudeCode: "asterisk"
         case .codex: "chevron.left.forwardslash.chevron.right"
         case .geminiCLI: "sparkle"
+        case .apiAccounts: "gauge.with.dots.needle.33percent"
         }
     }
 }

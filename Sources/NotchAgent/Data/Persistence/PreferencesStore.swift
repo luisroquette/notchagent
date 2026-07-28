@@ -12,12 +12,18 @@ final class PreferencesStore {
     }
 
     init(defaults: UserDefaults = .standard) {
+        var loaded: AppSettings
         self.defaults = defaults
         if let data = defaults.data(forKey: Self.key),
            let decoded = try? JSONDecoder().decode(AppSettings.self, from: data) {
-            settings = decoded
+            loaded = decoded
         } else {
-            settings = AppSettings()
+            loaded = AppSettings()
+        }
+        loaded.ensureWebSubscriptionAccountsIfNeeded()
+        settings = loaded
+        if let data = try? JSONEncoder().encode(loaded) {
+            defaults.set(data, forKey: Self.key)
         }
     }
 

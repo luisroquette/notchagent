@@ -6,6 +6,16 @@ import XCTest
 /// eventos de momentum continuavam acumulando flips após o primeiro.
 @MainActor
 final class ScrollPagingTests: XCTestCase {
+    func testVerticalScrollWithHorizontalTrackpadDriftDoesNotPage() {
+        let vm = makeViewModel()
+
+        for _ in 0..<20 {
+            vm.handleScroll(deltaX: -8, deltaY: -42, phase: .changed, momentumPhase: [])
+        }
+
+        XCTAssertEqual(vm.expandedPage, 0)
+    }
+
     private func makeViewModel() -> NotchViewModel {
         let vm = NotchViewModel(geometry: NotchGeometry(
             hasNotch: true, notchWidth: 200, topInset: 38,
@@ -52,5 +62,35 @@ final class ScrollPagingTests: XCTestCase {
         vm.collapseNow()
         vm.handleScroll(deltaX: -200, phase: .began, momentumPhase: [])
         XCTAssertEqual(vm.expandedPage, 0)
+    }
+
+    func testUnpinImmediatelyCollapsesPanel() {
+        let vm = makeViewModel()
+        vm.togglePin()
+        XCTAssertTrue(vm.isPinned)
+
+        vm.togglePin()
+
+        XCTAssertFalse(vm.isPinned)
+        XCTAssertFalse(vm.isExpanded)
+    }
+
+    func testEscapeAlwaysCollapsesPinnedPanel() {
+        let vm = makeViewModel()
+        vm.togglePin()
+
+        XCTAssertTrue(vm.handleEscape())
+        XCTAssertFalse(vm.isPinned)
+        XCTAssertFalse(vm.isExpanded)
+        XCTAssertFalse(vm.handleEscape(), "Escape is ignored after the panel is already compact")
+    }
+
+    func testOrdinaryExpansionDoesNotPinPanel() {
+        let vm = NotchViewModel()
+
+        vm.forceExpand()
+
+        XCTAssertTrue(vm.isExpanded)
+        XCTAssertFalse(vm.isPinned)
     }
 }
