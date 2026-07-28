@@ -14,12 +14,12 @@ if [[ "$plist_version" != "$version" ]]; then
     exit 1
 fi
 
-if ! rg -q "^## $version — " CHANGELOG.md; then
+if ! grep -Eq "^## ${version} — " CHANGELOG.md; then
     echo "ERRO: CHANGELOG.md não contém a versão $version."
     exit 1
 fi
 
-if ! rg -q "\\*\\*Versão atual: $version\\*\\*" README.md; then
+if ! grep -Fq "**Versão atual: ${version}**" README.md; then
     echo "ERRO: README.md não declara a versão $version."
     exit 1
 fi
