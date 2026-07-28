@@ -134,6 +134,67 @@ final class SubscriptionTests: XCTestCase {
         XCTAssertEqual(Set(merged.history.map(\.id)), Set([first.id, second.id]))
     }
 
+    func testLedgerOwnsMutationsAndRenewalHistory() {
+        let due = calendar.date(from: DateComponents(year: 2026, month: 8, day: 15))!
+        let confirmed = calendar.date(from: DateComponents(year: 2026, month: 8, day: 10))!
+        let subscription = AISubscription(
+            provider: .claude,
+            planName: "Pro",
+            basePriceBRL: 100,
+            nextRenewalDate: due
+        )
+        var ledger = SubscriptionLedger()
+
+        ledger.add(subscription)
+        let renewed = ledger.confirmRenewal(id: subscription.id, on: confirmed)
+
+        XCTAssertEqual(renewed?.nextRenewalDate, calendar.date(from: DateComponents(year: 2026, month: 9, day: 15)))
+        XCTAssertEqual(ledger.history.map(\.kind), [.renewalConfirmed])
+    }
+
+    func testSpendingEngineProjectsLedgerWithoutPersistence() {
+        let expense = AIExpense(
+            provider: .claude,
+            title: "Invoice",
+            amountBRL: 25,
+            kind: .apiUsage,
+            source: .officialInvoice
+        )
+        var ledger = SubscriptionLedger()
+        ledger.addExpense(expense)
+
+        let summary = SpendingEngine.summary(for: ledger)
+        let status = SpendingEngine.budgetStatus(for: ledger, monthlyBudgetBRL: 100)
+
+        XCTAssertEqual(summary.paidBRL, 25)
+        XCTAssertEqual(status?.projectedPercent, 25)
+    }
+
+    @MainActor
+    func testRepositoryReadsExistingStorageKeysAndPreferences() throws {
+        let suite = "SubscriptionRepositoryTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let key = "subscriptions"
+        let subscription = AISubscription(
+            provider: .chatGPT,
+            planName: "Plus",
+            basePriceBRL: 99,
+            nextRenewalDate: .distantFuture
+        )
+        defaults.set(try JSONEncoder().encode([subscription]), forKey: key)
+        defaults.set("usd", forKey: "\(key).display-currency")
+        defaults.set("5.25", forKey: "\(key).brl-per-usd")
+
+        let repository = SubscriptionRepository(defaults: defaults, storageKey: key)
+        let ledger = repository.loadLedger()
+        let preferences = repository.loadPreferences()
+
+        XCTAssertEqual(ledger.subscriptions, [subscription])
+        XCTAssertEqual(preferences.displayCurrency, .usd)
+        XCTAssertEqual(preferences.brlPerUSD, Decimal(string: "5.25"))
+    }
+
     @MainActor
     func testStorePersistsSubscriptions() {
         let suite = "SubscriptionTests.\(UUID().uuidString)"
