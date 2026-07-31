@@ -40,8 +40,12 @@ public enum PricingTable {
 
     /// `usage.input` must already exclude cached tokens for providers that
     /// report cache reads separately (Claude does; Codex is normalized upstream).
-    public static func costUSD(model: String, usage: TokenUsage) -> Double {
-        guard let p = pricing(forModel: model) else { return 0 }
+    /// Returns `nil` when `model` isn't in `entries` (new/renamed release, or an
+    /// "unknown" alias) — the model's cost is genuinely unknown, never invented
+    /// as a verified-looking $0. Callers that need a number for arithmetic must
+    /// coalesce explicitly (`?? 0`) so the exclusion stays visible at the call site.
+    public static func costUSD(model: String, usage: TokenUsage) -> Double? {
+        guard let p = pricing(forModel: model) else { return nil }
         return Double(usage.input) / 1e6 * p.inputPerMTok
             + Double(usage.output) / 1e6 * p.outputPerMTok
             + Double(usage.cacheWrite) / 1e6 * p.cacheWritePerMTok

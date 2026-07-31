@@ -72,15 +72,18 @@ final class PricingTests: XCTestCase {
         XCTAssertNil(PricingTable.pricing(forModel: "totally-unknown-model"))
     }
 
-    func testClaudeCostMath() {
+    func testClaudeCostMath() throws {
         // 1M of everything on sonnet: 3 + 15 + 3.75 + 0.3 = 22.05
         let usage = TokenUsage(input: 1_000_000, output: 1_000_000, cacheWrite: 1_000_000, cacheRead: 1_000_000)
-        XCTAssertEqual(PricingTable.costUSD(model: "claude-sonnet-5", usage: usage), 22.05, accuracy: 0.001)
+        let cost = try XCTUnwrap(PricingTable.costUSD(model: "claude-sonnet-5", usage: usage))
+        XCTAssertEqual(cost, 22.05, accuracy: 0.001)
     }
 
-    func testUnknownModelCostsZero() {
+    // REGRESSÃO: modelo desconhecido é custo NÃO INFORMADO, nunca um $0 verificado
+    // (achado 30/07/2026 — a versão antiga deste teste travava o $0 como "correto").
+    func testUnknownModelCostIsNilNotZero() {
         let usage = TokenUsage(input: 1_000_000, output: 0, cacheWrite: 0, cacheRead: 0)
-        XCTAssertEqual(PricingTable.costUSD(model: "mystery", usage: usage), 0)
+        XCTAssertNil(PricingTable.costUSD(model: "mystery", usage: usage))
     }
 }
 

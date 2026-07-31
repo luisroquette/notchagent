@@ -96,7 +96,7 @@ struct CodexProvider: UsageProvider {
         }
         let session = SessionUsage(
             tokens: sessionTokens,
-            cost: CostEstimate(amountUSD: PricingTable.costUSD(model: defaultModel, usage: sessionTokens)),
+            cost: CostEstimate(amountUSD: PricingTable.costUSD(model: defaultModel, usage: sessionTokens) ?? 0),
             // On plans with no official 5h window (session % unavailable),
             // this is the closest honest equivalent to Claude's "current
             // window": when the active rollout itself began — so the UI can
@@ -116,7 +116,9 @@ struct CodexProvider: UsageProvider {
             let info = entry.info
             guard entry.start >= weekCutoff else { continue }
             weekTokens += info.totals
-            let cost = PricingTable.costUSD(model: defaultModel, usage: info.totals)
+            // nil (model not in PricingTable) excludes the day from the estimate
+            // rather than counting it as a verified $0.
+            let cost = PricingTable.costUSD(model: defaultModel, usage: info.totals) ?? 0
             let day = entry.start.flooredToDay
             let current = byDay[day] ?? (0, 0)
             byDay[day] = (current.tokens + info.totals.total, current.cost + cost)
@@ -128,14 +130,15 @@ struct CodexProvider: UsageProvider {
                 ModelUsage(
                     model: model,
                     tokens: tokens.total,
-                    // Unknown aliases (router combos) price at 0 — never invented.
-                    costUSD: PricingTable.costUSD(model: model, usage: tokens)
+                    // Unknown aliases (router combos, or "unknown" itself) are
+                    // never invented — excluded from the estimate, not $0.
+                    costUSD: PricingTable.costUSD(model: model, usage: tokens) ?? 0
                 )
             }
             .sorted { $0.tokens > $1.tokens }
         let weekly = WeeklyUsage(
             tokens: weekTokens,
-            cost: CostEstimate(amountUSD: PricingTable.costUSD(model: defaultModel, usage: weekTokens)),
+            cost: CostEstimate(amountUSD: PricingTable.costUSD(model: defaultModel, usage: weekTokens) ?? 0),
             usedPercent: weeklyWindow?.usedPercent,
             resetsAt: weeklyWindow?.resetsAt,
             dailyTotals: byDay

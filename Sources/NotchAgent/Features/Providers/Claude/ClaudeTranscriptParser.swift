@@ -91,7 +91,9 @@ enum ClaudeTranscriptParser {
                 cacheRead: usage.cacheReadInputTokens ?? 0
             )
 
-            let cost = PricingTable.costUSD(model: model, usage: tokens)
+            // nil means the model isn't in PricingTable (new/renamed release) — the
+            // estimate excludes it rather than claiming a verified $0 cost.
+            let cost = PricingTable.costUSD(model: model, usage: tokens) ?? 0
             let hour = timestamp.flooredToHour
             var bucket = stat.hours[hour] ?? .init()
             bucket.tokens += tokens
