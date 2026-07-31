@@ -133,24 +133,30 @@ O repositório não contém contas predefinidas. Nomes, projetos, chaves, cookie
 histórico e valores pessoais permanecem fora do Git. Veja
 [`docs/API_ACCOUNT_MONITORING.md`](docs/API_ACCOUNT_MONITORING.md).
 
-## Novidades da versão 3.0: monitoramento financeiro de APIs
+## Chega de descobrir o estouro de gasto de API só quando a fatura chega
 
-- **Múltiplas contas** — adicione quantas contas quiser, inclusive duas ou mais
-  do mesmo provedor, sem compartilhar credenciais entre elas.
-- **Leitura financeira uniforme** — cada card separa **Gasto da janela**,
-  **Saldo atual** e **Plano mensal**; recarga nunca é classificada como gasto.
-- **Fontes verificáveis** — cada valor registra se veio de API oficial, portal
-  oficial, configuração manual ou estimativa proporcional do plano.
-- **Períodos explícitos** — padrão de 30 dias; Google AI Studio mantém sua
-  janela oficial de 28 dias; mês-calendário aparece identificado quando for a
-  única janela oferecida pelo provedor.
-- **Operação segura** — refresh individual, proteção contra cache antigo,
-  sessões web isoladas, diagnóstico sanitizado e conversão USD/BRL pela PTAX
-  atual do Banco Central.
+Se você tem chaves de API espalhadas em vários provedores — e às vezes mais de
+uma conta no mesmo provedor — nenhum painel nativo mostra tudo junto. A versão
+3.0 transformou o NotchAgent também num painel financeiro de APIs:
 
-Serviços cobertos na 3.0 incluem Anthropic API, OpenAI, DeepSeek, OpenRouter,
-Google/Gemini, xAI, ElevenLabs, Firecrawl, twitterapi.io e múltiplos projetos
-X/Twitter. Planos web como Claude/Claude Code e ChatGPT aparecem separados do
+- **Nunca mais confunda qual chave é qual** — cadastre quantas contas quiser,
+  inclusive duas do mesmo provedor, cada uma com credenciais e sessão isoladas.
+- **Gasto, saldo e plano, sem misturar** — cada card separa **Gasto da
+  janela**, **Saldo atual** e **Plano mensal**; recarga nunca é contada como
+  gasto por engano.
+- **Confie no número que você está vendo** — cada valor mostra a própria
+  origem: API oficial, portal oficial, configuração manual ou estimativa
+  proporcional — nunca um número inventado apresentado como certeza.
+- **Comparação justa entre provedores** — padrão de 30 dias corridos; Google
+  AI Studio na janela oficial de 28 dias; mês-calendário identificado quando é
+  a única opção do provedor, sem misturar janelas diferentes numa soma só.
+- **Seguro por padrão** — refresh individual por conta, proteção contra dado
+  velho sobrescrever leitura nova, diagnóstico exportável sem credenciais, e
+  conversão USD/BRL pela cotação PTAX do Banco Central.
+
+Cobre Anthropic API, OpenAI, DeepSeek, OpenRouter, Google/Gemini, xAI,
+ElevenLabs, Firecrawl, twitterapi.io e múltiplos projetos X/Twitter —
+assinaturas como Claude/Claude Code e ChatGPT sempre aparecem separadas do
 consumo de API.
 
 ## Controle de versão e releases
