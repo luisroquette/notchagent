@@ -1,0 +1,53 @@
+name: Sync to public repo
+
+# One-way mirror: notchagent-personal (private, source of truth) -> notchagent
+# (public). Every push to master here re-runs the same audit the public repo
+# already requires (Scripts/audit-public-release.sh: secret patterns + the
+# hardcoded personal-identifier blocklist, scanned in current files AND full
+# git history) before anything reaches the public repo. If the audit, version
+# check or tests fail, this job fails and NOTHING is pushed — no partial or
+# redacted sync, the whole push is blocked until fixed here.
+#
+# Push is fast-forward only (plain `git push`, never --force): if the public
+# repo ever has commits that aren't in this history, the push fails loudly
+# instead of overwriting them.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Audit for secrets and personal identifiers
+        run: zsh Scripts/audit-public-release.sh
+
+      - name: Validate release version
+        run: zsh Scripts/check-version.sh
+
+      - name: Test without paid probes
+        env:
+          NOTCHAGENT_DISABLE_PAID_PROBES: "1"
+        run: swift test
+
+      - name: Push to public repo
+        env:
+          DEPLOY_KEY: ${{ secrets.PUBLIC_REPO_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes"
+          git remote add public git@github.com:luisroquette/notchagent.git
+          git push public HEAD:master
