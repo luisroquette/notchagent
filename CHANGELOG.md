@@ -1,9 +1,14 @@
 # Changelog
 
-## 2.0.0 — 2026-07-28
+## 2.0.0 — 2026-07-28 (atualizado em 2026-07-30)
 
 Segunda geração do NotchAgent, agora também voltada ao monitoramento financeiro
 de contas de API.
+
+### Descontinuações
+
+- O companion iOS/watchOS "AgentMeter" foi descontinuado e removido do
+  repositório. O monitoramento financeiro de contas de API segue só no app Mac.
 
 ### Monitoramento de APIs
 
@@ -28,6 +33,10 @@ de contas de API.
   cotação PTAX atual do Banco Central.
 - Refresh individual por card, invalidação forçada de cache e proteção contra
   respostas antigas sobrescrevendo leituras novas.
+- Total consumido de 30 dias explica no card quando uma conta fica de fora por
+  dividir billing scope com outra já contada, em vez de sumir sem explicação.
+- Estimativa de custo por modelo não reconhecido na tabela de preços deixou de
+  contar como US$0 verificado — fica de fora da estimativa, não zerado.
 
 ### Interface e operação
 
