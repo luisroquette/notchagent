@@ -4,11 +4,11 @@
 
 <p align="center">
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v2.0.0-38D6C7?style=flat-square" alt="Version v2.0.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.0.0-38D6C7?style=flat-square" alt="Version v3.0.0" /></a>
   <a href="#install"><img src="https://img.shields.io/badge/install-Homebrew-F3B85A?style=flat-square" alt="Install with Homebrew" /></a>
 </p>
 
-**Versão atual: 2.0.0** · lançada em 28/07/2026 · [histórico de versões](CHANGELOG.md)
+**Versão atual: 3.0.0** · lançada em 30/07/2026 · [histórico de versões](CHANGELOG.md)
 
 A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
 financial monitoring of external API accounts. It shows provider-reported

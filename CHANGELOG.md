@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 — 2026-07-28 (atualizado em 2026-07-30)
+## 3.0.0 — 2026-07-30
 
 Segunda geração do NotchAgent, agora também voltada ao monitoramento financeiro
 de contas de API.
@@ -44,6 +44,8 @@ de contas de API.
   arrastar.
 - Estados visíveis: atualizando, atualizado, desatualizado, parcial e erro.
 - Correção do gesto vertical que mudava indevidamente a página do notch.
+- Tipografia da tela de APIs aumentada — rótulos e valores estavam entre 4,9pt
+  e 6,5pt, ilegíveis mesmo no painel expandido de 660pt de largura.
 
 ### Segurança e distribuição
 
