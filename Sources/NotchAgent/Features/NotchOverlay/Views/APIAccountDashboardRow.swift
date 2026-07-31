@@ -7,6 +7,25 @@ struct APIAccountDashboardRow: Identifiable {
     var id: UUID { account.id }
 }
 
+/// Cross-provider total counts only rolling-30-day spend, and only once per
+/// shared billing scope (two credentials for the same org must not double-count).
+/// This is the single source of truth for that exclusion, shared by the header
+/// total and the per-card "excluded from total" label so they can never drift.
+enum APIAccountBilling {
+    static func excludedFromTotal(_ usages: [APIAccountUsage]) -> Set<UUID> {
+        var seenScopes = Set<String>()
+        var excluded = Set<UUID>()
+        for usage in usages {
+            guard usage.rolling30DaySpendUSD != nil else { continue }
+            guard let scope = usage.billingScopeID else { continue }
+            if !seenScopes.insert(scope).inserted {
+                excluded.insert(usage.accountID)
+            }
+        }
+        return excluded
+    }
+}
+
 struct APIAccountFinancialSummary: Equatable {
     let consumedUSD: Double?
     let consumedDays: Int?

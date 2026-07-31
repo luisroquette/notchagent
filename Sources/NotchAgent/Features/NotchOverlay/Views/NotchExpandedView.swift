@@ -255,12 +255,14 @@ struct NotchExpandedView: View {
             }
     }
 
+    private var apiAccountsExcludedFromTotal: Set<UUID> {
+        APIAccountBilling.excludedFromTotal(apiUsage)
+    }
+
     private var totalKnownAPISpendBRL: String? {
-        var seenBillingScopes = Set<String>()
+        let excluded = apiAccountsExcludedFromTotal
         let spends = apiUsage.compactMap { usage -> Double? in
-            if let scope = usage.billingScopeID {
-                guard seenBillingScopes.insert(scope).inserted else { return nil }
-            }
+            guard !excluded.contains(usage.accountID) else { return nil }
             return usage.rolling30DaySpendUSD
         }
         guard !spends.isEmpty else { return nil }
@@ -311,6 +313,12 @@ struct NotchExpandedView: View {
                             .foregroundStyle(Theme.coral)
                     }
                 }
+                .help(
+                    "ASSINATURAS/MÊS soma planos fixos. TOTAL 30D soma só contas com "
+                    + "janela de 30 dias corridos oficial — contas com mês-calendário "
+                    + "(ex: Anthropic API), 28 dias (Google) ou billing compartilhado "
+                    + "com outra conta ficam de fora, mesmo com valor próprio no card."
+                )
                 Button {
                     AppEnvironment.shared.scheduler.refreshNow()
                 } label: {
@@ -511,6 +519,13 @@ struct NotchExpandedView: View {
                     if !(usage?.verificationFindings?.isEmpty ?? true) {
                         GaugeLabel(
                             text: "DIVERGÊNCIA ENTRE FONTES OFICIAIS",
+                            color: Theme.warning,
+                            size: 7
+                        )
+                    }
+                    if apiAccountsExcludedFromTotal.contains(account.id) {
+                        GaugeLabel(
+                            text: "MESMA CONTA DE BILLING · FORA DO TOTAL 30D",
                             color: Theme.warning,
                             size: 7
                         )

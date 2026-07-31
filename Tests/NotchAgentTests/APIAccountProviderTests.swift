@@ -1433,4 +1433,75 @@ final class APIAccountProviderTests: XCTestCase {
         XCTAssertEqual(merged.monthlySpendUSD, 100)
         XCTAssertEqual(merged.billingScopeID, "google-project:test")
     }
+
+    // MARK: - REGRESSÃO: total cruzado não deve contar duas credenciais da mesma conta
+
+    private func rolling30DayUsage(
+        accountID: UUID = UUID(),
+        spendUSD: Double,
+        billingScopeID: String? = nil
+    ) -> APIAccountUsage {
+        let end = Date(timeIntervalSince1970: 1_800_000_000)
+        return APIAccountUsage(
+            accountID: accountID,
+            label: "Conta",
+            service: .openAI,
+            usedPercent: nil,
+            resetsAt: nil,
+            summary: "Financeiro",
+            monthlySpendUSD: spendUSD,
+            spendPeriod: .rolling30Days,
+            spendWindowStart: end.addingTimeInterval(-APIAccountSpendWindow.duration),
+            spendWindowEnd: end,
+            billingScopeID: billingScopeID
+        )
+    }
+
+    func testExcludedFromTotalSkipsSecondCredentialSharingBillingScope() {
+        // Achado real: duas chaves diferentes (ex. GEMINI_API_KEY e
+        // GEMINI_API_KEY_1) apontando para a mesma org de billing — só a
+        // primeira pode entrar no total, ou o gasto é contado em dobro.
+        let first = rolling30DayUsage(spendUSD: 100, billingScopeID: "org:gemini-shared")
+        let second = rolling30DayUsage(spendUSD: 40, billingScopeID: "org:gemini-shared")
+
+        let excluded = APIAccountBilling.excludedFromTotal([first, second])
+
+        XCTAssertFalse(excluded.contains(first.accountID))
+        XCTAssertTrue(excluded.contains(second.accountID))
+    }
+
+    func testExcludedFromTotalKeepsAccountsWithoutSharedScope() {
+        let a = rolling30DayUsage(spendUSD: 100, billingScopeID: "org:a")
+        let b = rolling30DayUsage(spendUSD: 40, billingScopeID: "org:b")
+        let noScope = rolling30DayUsage(spendUSD: 10, billingScopeID: nil)
+
+        let excluded = APIAccountBilling.excludedFromTotal([a, b, noScope])
+
+        XCTAssertTrue(excluded.isEmpty)
+    }
+
+    func testExcludedFromTotalIgnoresAccountsOutsideRolling30DayWindow() {
+        // Uma conta de mês-calendário (ex. Anthropic API) e uma de 30 dias
+        // corridos não devem colidir só por dividirem billingScopeID: a
+        // primeira nunca entra no total, então não deve "consumir" o scope.
+        let end = Date(timeIntervalSince1970: 1_800_000_000)
+        let calendarMonth = APIAccountUsage(
+            accountID: UUID(),
+            label: "Conta mês-calendário",
+            service: .anthropicAPI,
+            usedPercent: nil,
+            resetsAt: nil,
+            summary: "Financeiro",
+            monthlySpendUSD: 3_677.07,
+            spendPeriod: .currentCalendarMonth,
+            spendWindowStart: end.addingTimeInterval(-30 * 24 * 60 * 60),
+            spendWindowEnd: end,
+            billingScopeID: "org:shared"
+        )
+        let rolling30 = rolling30DayUsage(spendUSD: 50, billingScopeID: "org:shared")
+
+        let excluded = APIAccountBilling.excludedFromTotal([calendarMonth, rolling30])
+
+        XCTAssertTrue(excluded.isEmpty)
+    }
 }
