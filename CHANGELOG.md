@@ -56,7 +56,7 @@ de contas de API.
 
 ### Qualidade
 
-- 200 testes automatizados aprovados, incluindo integridade financeira, cache,
+- 206 testes automatizados aprovados, incluindo integridade financeira, cache,
   persistência, segurança, scroll e E2E somente leitura das contas configuradas.
 - Testes e builds de release executados com probes pagos desativados.
 
