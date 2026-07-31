@@ -133,7 +133,7 @@ O repositório não contém contas predefinidas. Nomes, projetos, chaves, cookie
 histórico e valores pessoais permanecem fora do Git. Veja
 [`docs/API_ACCOUNT_MONITORING.md`](docs/API_ACCOUNT_MONITORING.md).
 
-## Novidades da versão 2.0: monitoramento financeiro de APIs
+## Novidades da versão 3.0: monitoramento financeiro de APIs
 
 - **Múltiplas contas** — adicione quantas contas quiser, inclusive duas ou mais
   do mesmo provedor, sem compartilhar credenciais entre elas.
@@ -148,7 +148,7 @@ histórico e valores pessoais permanecem fora do Git. Veja
   sessões web isoladas, diagnóstico sanitizado e conversão USD/BRL pela PTAX
   atual do Banco Central.
 
-Serviços cobertos na 2.0 incluem Anthropic API, OpenAI, DeepSeek, OpenRouter,
+Serviços cobertos na 3.0 incluem Anthropic API, OpenAI, DeepSeek, OpenRouter,
 Google/Gemini, xAI, ElevenLabs, Firecrawl, twitterapi.io e múltiplos projetos
 X/Twitter. Planos web como Claude/Claude Code e ChatGPT aparecem separados do
 consumo de API.
@@ -212,8 +212,8 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 
 ## Estado de distribuição
 
-- [x] NotchAgent 2.0 · monitoramento financeiro de APIs · suíte automatizada
-- [x] Release pública [v1.0.1](https://github.com/luisroquette/notchagent/releases/tag/v1.0.1)
+- [x] NotchAgent 3.0 · monitoramento financeiro de APIs · suíte automatizada
+- [x] Release pública [v3.0.0](https://github.com/luisroquette/notchagent/releases/tag/v3.0.0)
 - [x] Instalação via Homebrew Cask
 - [x] .app empacotado com ícone + launch-at-login + notificações
 - [ ] Conta Apple Developer → assinar com Developer ID + `notarytool` + staple *(requer credenciais do dono)*
