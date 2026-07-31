@@ -1,75 +1,76 @@
-# Monitoramento financeiro de APIs
+# API financial monitoring
 
-O NotchAgent monitora somente contas ativadas em **Settings → Contas de API**.
-Credenciais ficam no macOS Keychain. Preferências, snapshots, diagnósticos e
-logs não armazenam chaves, tokens, cookies, IDs de conta ou valores secretos.
+NotchAgent only monitors accounts enabled under **Settings → API Accounts**.
+Credentials live in the macOS Keychain. Preferences, snapshots, diagnostics
+and logs never store keys, tokens, cookies, account IDs, or secret values.
 
-## Modelo financeiro
+## Financial model
 
-Cada card mantém campos independentes. Um campo ausente continua ausente:
+Each card keeps independent fields. A missing field stays missing:
 
-- **Gasto da janela**: consumo cobrado no período oficial indicado no card.
-- **Saldo atual**: crédito disponível agora; recargas não são classificadas
-  como gasto.
-- **Plano mensal**: preço recorrente confirmado pelo provedor ou pelo portal.
-- **Recarga**: crédito comprado, separado do consumo.
-- **Quota**: unidade nativa do serviço. Uma conversão para reais só aparece
-  como **estimativa proporcional**, nunca como valor oficial.
+- **Window spend**: consumption billed in the official period shown on the card.
+- **Current balance**: credit available right now; top-ups are never
+  classified as spend.
+- **Monthly plan**: recurring price confirmed by the provider or the portal.
+- **Top-up**: purchased credit, kept separate from consumption.
+- **Quota**: the service's native unit. A conversion to reais only ever
+  appears as a **proportional estimate**, never as an official value.
 
-A janela padrão é **30 dias corridos**. Google AI Studio é a exceção explícita:
-o portal oficial fornece **28 dias**, preservados no card. O NotchAgent não soma
-períodos diferentes em um único total.
+The default window is **30 rolling days**. Google AI Studio is the explicit
+exception: its official portal provides **28 days**, preserved on the card.
+NotchAgent never sums different periods into a single total.
 
-Valores oficiais já publicados em reais, como Google AI Studio, permanecem em
-BRL. Valores oficiais em USD usam a cotação USD/BRL atual, com fonte e horário
-registrados; a cotação não é hardcoded.
+Official values already published in reais, like Google AI Studio's, stay in
+BRL. Official values in USD use the current USD/BRL rate, with its source and
+timestamp recorded; the rate is never hardcoded.
 
-## Contas e fontes
+## Accounts and sources
 
-| Conta | Fonte oficial preferida | Resultado |
+| Account | Preferred official source | Result |
 | --- | --- | --- |
-| Anthropic API | Console Anthropic conectado | gasto, saldo/créditos e janela disponíveis no portal |
-| OpenAI API | Usage/Costs + Billing conectados | gasto em 30 dias e saldo atual |
-| DeepSeek | API de saldo + portal conectado | gasto em 30 dias e saldo atual |
-| OpenRouter | API de créditos + portal conectado | gasto em 30 dias e saldo atual |
-| Google / Gemini | Google AI Studio conectado | gasto oficial em BRL por 28 dias; saldo somente se o provedor informar |
-| xAI / Grok | Management API/portal | gasto e saldo quando expostos pela conta |
-| ElevenLabs | API de assinatura | quota, uso, reset e plano |
-| Firecrawl | API de créditos | quota, uso, reset e plano; saldo negativo vira zero + excedente |
-| twitterapi.io | API de créditos | quota, uso e saldo equivalente quando o plano é conhecido |
-| X / Twitter (cada conta) | Console X conectado | consumo, recargas e saldo, sem misturar projetos |
-| Endpoint personalizado | HTTPS somente leitura | apenas campos declarados pelo contrato |
+| Anthropic API | Connected Anthropic Console | Spend, balance/credits and window available from the portal |
+| OpenAI API | Connected Usage/Costs + Billing | 30-day spend and current balance |
+| DeepSeek | Balance API + connected portal | 30-day spend and current balance |
+| OpenRouter | Credits API + connected portal | 30-day spend and current balance |
+| Google / Gemini | Connected Google AI Studio | Official BRL spend over 28 days; balance only if the provider reports it |
+| xAI / Grok | Management API/portal | Spend and balance when exposed by the account |
+| ElevenLabs | Subscription API | Quota, usage, reset and plan |
+| Firecrawl | Credits API | Quota, usage, reset and plan; a negative balance becomes zero + overage |
+| twitterapi.io | Credits API | Quota, usage, and equivalent balance when the plan is known |
+| X / Twitter (each account) | Connected X Console | Consumption, top-ups and balance, never mixing projects |
+| Custom endpoint | Read-only HTTPS | Only the fields declared by the contract |
 
-Assinaturas pessoais, como Claude/Claude Code e ChatGPT, ficam em
-**Assinaturas conectadas** e não contam como consumo de API.
+Personal subscriptions, like Claude/Claude Code and ChatGPT, live under
+**Connected subscriptions** and don't count as API consumption.
 
-## Integridade e atualização
+## Integrity and refresh
 
-Cada valor guarda sua origem: **API oficial**, **portal oficial**, **configuração
-manual** ou **estimativa derivada**. Quando API e portal informam o mesmo campo,
-o NotchAgent compara as fontes usando tolerância de 0,02 USD, 0,10 BRL ou uma
-unidade de quota. Divergências deixam o card parcial e aparecem no detalhe.
+Each value keeps its origin: **official API**, **official portal**, **manual
+entry**, or **derived estimate**. When both the API and the portal report the
+same field, NotchAgent compares the sources with a tolerance of 0.02 USD,
+0.10 BRL, or one quota unit. Discrepancies leave the card partial and show up
+in the detail view.
 
-O refresh periódico usa cache de 15 minutos. **Refresh global**, refresh
-individual do card, conclusão de login e desconexão invalidam o cache antes da
-nova leitura. Gerações de atualização impedem uma resposta antiga de
-sobrescrever dados mais novos.
+Periodic refresh uses a 15-minute cache. **Global refresh**, an individual
+card refresh, completing a login, and disconnecting all invalidate the cache
+before the next read. Refresh generations keep a stale response from
+overwriting newer data.
 
-Estados visíveis por card:
+Visible states per card:
 
-- **Atualizando**
-- **Atualizado**
-- **Desatualizado**
-- **Erro**, com a causa sanitizada
+- **Refreshing**
+- **Updated**
+- **Stale**
+- **Error**, with a sanitized cause
 
-## Segurança e diagnóstico
+## Security and diagnostics
 
-Conexões por portal usam um perfil WebKit isolado por conta. Desconectar remove
-somente a sessão daquele perfil. O diagnóstico exportável contém estados,
-fontes e janelas, mas remove credenciais, cookies, identificadores, rótulos,
-mensagens livres e valores financeiros.
+Portal connections use a WebKit profile isolated per account. Disconnecting
+only removes that profile's session. The exportable diagnostic contains
+states, sources and windows, but strips credentials, cookies, identifiers,
+labels, free-text messages and financial amounts.
 
-Testes E2E de integridade são somente leitura. Use:
+Integrity E2E tests are read-only. Use:
 
 ```bash
 NOTCHAGENT_DISABLE_PAID_PROBES=1 \
@@ -77,19 +78,18 @@ NOTCHAGENT_LIVE_E2E=1 \
 swift test --filter testLiveE2EAccountMonitoringWhenExplicitlyEnabled
 ```
 
-Essa execução não chama modelos pagos Anthropic, OpenAI, Gemini ou OpenRouter.
+This run never calls paid Anthropic, OpenAI, Gemini or OpenRouter models.
 
-## Endpoint personalizado
+## Custom endpoint
 
-O endpoint HTTPS deve aceitar `Authorization: Bearer` e retornar:
+The HTTPS endpoint must accept `Authorization: Bearer` and return:
 
 ```json
 {
   "used_percent": 42,
   "resets_at": "2026-08-01T00:00:00Z",
-  "note": "opcional"
+  "note": "optional"
 }
 ```
 
-`remaining_percent` pode substituir `used_percent`. Campos desconhecidos são
-ignorados.
+`remaining_percent` can replace `used_percent`. Unknown fields are ignored.

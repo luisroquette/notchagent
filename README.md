@@ -8,7 +8,7 @@
   <a href="#install"><img src="https://img.shields.io/badge/install-Homebrew-F3B85A?style=flat-square" alt="Install with Homebrew" /></a>
 </p>
 
-**Versão atual: 3.0.0** · lançada em 30/07/2026 · [histórico de versões](CHANGELOG.md)
+**Current version: 3.0.0** · released 2026-07-30 · [version history](CHANGELOG.md)
 
 A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
 financial monitoring of external API accounts. It shows provider-reported
@@ -78,98 +78,99 @@ git config core.hooksPath .githooks
 
 ---
 
-**O medidor de combustível dos seus agentes de IA, morando no notch do MacBook.**
+## The product
 
-Monitor nativo (Swift 6 + SwiftUI/AppKit, zero Electron) de uso, quotas e custos
-de Claude Code, Codex, Gemini CLI e contas externas de API. Todas as conexões
-são opcionais e vão diretamente do Mac ao provedor configurado.
+**The question NotchAgent answers at all times: "how much of my limit is left?"**
 
-## O produto
+- **Compact notch** — Claude on the left wing, Codex on the right: name, `% LEFT` for the window (5H or WK) colored by state, a micro-gauge that drains like a fuel tank.
+- **Expanded panel** (hover to expand, click to pin, **trackpad side-scroll switches pages**, Esc closes) with 4 pages:
+  - **NOW** — per-provider cards: giant `% left`, segmented gauge, "RESETS • 16:30" + a live countdown, tokens/estimated cost, burn verdict, health pills.
+  - **BURN** — 5h-window chart: actual usage (coral line) + dotted projection at the current pace + a verdict like "runs out 16:40 (in 1h 32m)".
+  - **RHYTHM** — 24 bars by local hour (today/7 days), current hour highlighted.
+  - **MODELS** — Fable, Opus, Sonnet and Haiku with a live probe (`OK 0.9s` / `Limited` / `Error`, 1 model per cycle) + per-model usage and cost from transcripts.
+- **Escalating alerts at 25/15/10/5% left** — an animated notch takeover that gets more severe as the window runs out (amber pulse → red alarm with a shaking mascot at 5%, dismissed only by clicking), plus a matching system notification. One trigger per threshold per window, re-armed on reset.
+- **Menu bar** — `% left` up top + a popover with a per-provider summary and controls.
+- **Dashboard** — history (Swift Charts), hourly rhythm, daily breakdown, event log.
+- A graceful fallback on notch-less displays (a floating pill) and a procedural pixel-art mascot as the visual signature.
 
-**A pergunta que o NotchAgent responde o tempo todo: "quantos % do meu limite ainda tenho?"**
-
-- **Notch compacto** — Claude na asa esquerda, Codex na direita: nome, `% LEFT` da janela (5H ou WK) colorido por estado, micro-medidor que esvazia como tanque de combustível.
-- **Painel expandido** (hover expande, clique fixa, **scroll lateral de trackpad troca de página**, Esc fecha) com 4 páginas:
-  - **NOW** — cards por provider: `% restante` gigante, medidor segmentado, "RESETS • 16:30" + countdown vivo, tokens/custo estimado, burn verdict, pills de saúde.
-  - **BURN** — gráfico da janela 5h: uso real (linha coral) + projeção pontilhada no ritmo atual + veredito "runs out 16:40 (in 1h 32m)".
-  - **RHYTHM** — 24 barras por hora local (hoje/7 dias), hora atual em destaque.
-  - **MODELS** — Fable, Opus, Sonnet e Haiku com sonda viva (`OK 0.9s` / `Limited` / `Error`, 1 modelo por ciclo) + uso e custo por modelo dos transcripts.
-- **Alertas escalonados em 25/15/10/5% livres** — takeover animado do notch que fica mais grave conforme o fim se aproxima (pulso âmbar → alarme vermelho com mascote tremendo aos 5%, que só sai com clique). Notificação do sistema junto. Um disparo por marco por janela, com rearme no reset.
-- **Menu bar** — `% restante` no topo + popover com resumo por provider e controles.
-- **Dashboard** — histórico (Swift Charts), ritmo por hora, breakdown diário, log de eventos.
-- Fallback elegante em displays sem notch (pill flutuante) e mascote pixel-art procedural como assinatura visual.
-
-## Rodar / Empacotar
+## Run / Package
 
 ```bash
-swift run                 # desenvolvimento (menu bar + overlay na hora)
-swift test                         # suíte unitária e de integração
-./Scripts/audit-public-release.sh # bloqueia segredos e IDs pessoais
-./Scripts/make-app.sh     # gera dist/NotchAgent.app (ícone e assinatura estável inclusos)
+swift run                          # development (menu bar + overlay live)
+swift test                         # unit + integration test suite
+./Scripts/audit-public-release.sh  # blocks secrets and personal IDs
+./Scripts/make-app.sh              # builds dist/NotchAgent.app (icon + stable signature included)
 open dist/NotchAgent.app
 ```
 
-O bundle habilita: launch at login (SMAppService), notificações do sistema e consentimento persistente do Keychain. `project.yml` (XcodeGen) existe para quem preferir um `.xcodeproj`.
+The bundle enables: launch at login (SMAppService), system notifications, and
+persistent Keychain consent. `project.yml` (XcodeGen) exists for anyone who
+prefers an `.xcodeproj`.
 
-## Dados: o que é real, o que é estimado
+## Data: what's real, what's estimated
 
-| Fonte | Real | Estimado |
+| Source | Real | Estimated |
 |---|---|---|
-| **Probe Anthropic** (opcional, ~1 token/min) — headers `anthropic-ratelimit-unified-*` via token OAuth local do Claude Code | % oficial 5h/7d, resets, status `allowed/warning/rejected`, janela limitante, saúde por modelo | — |
-| **Transcripts Claude** `~/.claude/projects/**/*.jsonl` | tokens (input/output/cache), modelo por mensagem, blocos 5h, ritmo horário | custo (tabela pública em `PricingTable.swift`) |
-| **Rollouts Codex** `~/.codex/sessions/**` | % exato por janela (classificada por `window_minutes` — planos weekly-only como o Spark são detectados), resets, plano, tokens | custo |
-| **Gemini CLI** `~/.gemini/tmp/*/logs.json` | prompts/sessões/última atividade | tokens não existem no disco — o app declara, não inventa |
+| **Anthropic probe** (optional, ~1 token/min) — `anthropic-ratelimit-unified-*` headers via Claude Code's local OAuth token | Official 5h/7d %, resets, `allowed/warning/rejected` status, limiting window, per-model health | — |
+| **Claude transcripts** `~/.claude/projects/**/*.jsonl` | Tokens (input/output/cache), per-message model, 5h blocks, hourly rhythm | Cost (public table in `PricingTable.swift`) |
+| **Codex rollouts** `~/.codex/sessions/**` | Exact % per window (classified by `window_minutes` — weekly-only plans like Spark are detected), resets, plan, tokens | Cost |
+| **Gemini CLI** `~/.gemini/tmp/*/logs.json` | Prompts/sessions/last activity | Tokens don't exist on disk — the app declares that, it never invents them |
 
-Token OAuth: `CLAUDE_CODE_OAUTH_TOKEN` → `~/.claude/.credentials.json` → Keychain (prompt de consentimento do macOS). Nunca é logado; nunca sai da máquina exceto para `api.anthropic.com`. Desligável em Settings (budgets manuais viram fallback).
+OAuth token: `CLAUDE_CODE_OAUTH_TOKEN` → `~/.claude/.credentials.json` →
+Keychain (macOS consent prompt). Never logged; never leaves the machine except
+to `api.anthropic.com`. Can be turned off in Settings (manual budgets become
+the fallback).
 
-## Personalizar contas de API
+## Configure API accounts
 
-1. Abra **Settings → Contas de API**.
-2. Clique em **+** e escolha o serviço.
-3. Salve a credencial no Keychain ou use **Conectar conta**.
-4. Confirme no card a fonte, a janela e o estado da leitura.
+1. Open **Settings → API Accounts**.
+2. Click **+** and choose the service.
+3. Save the credential to the Keychain, or use **Connect account**.
+4. Confirm the source, window, and read status on the card.
 
-O repositório não contém contas predefinidas. Nomes, projetos, chaves, cookies,
-histórico e valores pessoais permanecem fora do Git. Veja
+The repository ships with no predefined accounts. Names, projects, keys,
+cookies, history and personal amounts stay out of Git. See
 [`docs/API_ACCOUNT_MONITORING.md`](docs/API_ACCOUNT_MONITORING.md).
 
-## Chega de descobrir o estouro de gasto de API só quando a fatura chega
+## Stop finding out about an API cost blowout only when the invoice lands
 
-Se você tem chaves de API espalhadas em vários provedores — e às vezes mais de
-uma conta no mesmo provedor — nenhum painel nativo mostra tudo junto. A versão
-3.0 transformou o NotchAgent também num painel financeiro de APIs:
+If you have API keys scattered across several providers — sometimes more than
+one account on the same provider — no native dashboard shows it all together.
+Version 3.0 turned NotchAgent into an API financial dashboard too:
 
-- **Nunca mais confunda qual chave é qual** — cadastre quantas contas quiser,
-  inclusive duas do mesmo provedor, cada uma com credenciais e sessão isoladas.
-- **Gasto, saldo e plano, sem misturar** — cada card separa **Gasto da
-  janela**, **Saldo atual** e **Plano mensal**; recarga nunca é contada como
-  gasto por engano.
-- **Confie no número que você está vendo** — cada valor mostra a própria
-  origem: API oficial, portal oficial, configuração manual ou estimativa
-  proporcional — nunca um número inventado apresentado como certeza.
-- **Comparação justa entre provedores** — padrão de 30 dias corridos; Google
-  AI Studio na janela oficial de 28 dias; mês-calendário identificado quando é
-  a única opção do provedor, sem misturar janelas diferentes numa soma só.
-- **Seguro por padrão** — refresh individual por conta, proteção contra dado
-  velho sobrescrever leitura nova, diagnóstico exportável sem credenciais, e
-  conversão USD/BRL pela cotação PTAX do Banco Central.
+- **Never mix up which key is which** — add as many accounts as you want,
+  including two on the same provider, each with isolated credentials and
+  session.
+- **Spend, balance and plan, never mixed** — each card separates **Window
+  spend**, **Current balance** and **Monthly plan**; a top-up is never
+  mistaken for spend.
+- **Trust the number you're looking at** — every value shows its own origin:
+  official API, official portal, manual entry, or a proportional estimate —
+  never a made-up number presented as a fact.
+- **A fair comparison across providers** — 30 rolling days by default; Google
+  AI Studio keeps its official 28-day window; calendar-month is labeled
+  explicitly when it's the only window a provider offers — never mixing
+  different windows into one total.
+- **Secure by default** — per-account refresh, protection against stale data
+  overwriting a fresh read, a sanitized exportable diagnostic, and USD/BRL
+  conversion at the Brazilian Central Bank's current PTAX rate.
 
-Cobre Anthropic API, OpenAI, DeepSeek, OpenRouter, Google/Gemini, xAI,
-ElevenLabs, Firecrawl, twitterapi.io e múltiplos projetos X/Twitter —
-assinaturas como Claude/Claude Code e ChatGPT sempre aparecem separadas do
-consumo de API.
+Covers Anthropic API, OpenAI, DeepSeek, OpenRouter, Google/Gemini, xAI,
+ElevenLabs, Firecrawl, twitterapi.io, and multiple X/Twitter projects —
+subscriptions like Claude/Claude Code and ChatGPT always show up separate
+from API spend.
 
-## Controle de versão e releases
+## Version control and releases
 
-O projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/):
+The project uses [Semantic Versioning](https://semver.org/):
 
-- **MAJOR**: mudança incompatível ou nova geração do produto.
-- **MINOR**: funcionalidade compatível.
-- **PATCH**: correção compatível.
+- **MAJOR**: a breaking change or a new generation of the product.
+- **MINOR**: a backward-compatible feature.
+- **PATCH**: a backward-compatible fix.
 
-`VERSION` é a fonte oficial da versão. `Scripts/make-app.sh` lê esse arquivo no
-empacotamento; `Resources/Info.plist`, README e CHANGELOG devem acompanhar o
-mesmo número. Antes de qualquer publicação:
+`VERSION` is the single source of truth for the version number.
+`Scripts/make-app.sh` reads this file when packaging; `Resources/Info.plist`,
+README and CHANGELOG must all match the same number. Before any release:
 
 ```bash
 ./Scripts/check-version.sh
@@ -177,57 +178,57 @@ mesmo número. Antes de qualquer publicação:
 NOTCHAGENT_DISABLE_PAID_PROBES=1 swift test
 ```
 
-Toda versão deve adicionar uma entrada no topo de `CHANGELOG.md` com data,
-novidades, correções, segurança e validação.
+Every version must add an entry at the top of `CHANGELOG.md` with the date,
+what's new, fixes, security, and validation.
 
-## Arquitetura
+## Architecture
 
 ```
 Providers (plugin) ─▶ UsageSnapshot ─▶ UsageStore (@Observable) ─▶ Notch · MenuBar · Dashboard
-      ▲ FileScanCache/actors    ▲ StatusAggregator + ThresholdAlerts + BurnRate (puros, testados)
+      ▲ FileScanCache/actors    ▲ StatusAggregator + ThresholdAlerts + BurnRate (pure, tested)
 RefreshScheduler ───────────────┴─▶ SnapshotStore/HistoryStore (JSON, 30d)
 ```
 
-- **Overlay**: `NSPanel` borderless não-ativante (`.statusBar` level, todos os Spaces, sobre fullscreen) com `hitTest` custom — só a forma visível captura cliques; o resto da janela transparente é click-through.
-- **Interações**: monitores locais de `scrollWheel` (paging) e `keyDown` (Esc), haptics em página/pin, `TimelineView` para countdowns vivos.
-- **Novo provider** = 1 pasta com parser puro + `UsageProvider` + fixture; a UI se adapta às capacidades declaradas.
+- **Overlay**: a borderless, non-activating `NSPanel` (`.statusBar` level, all Spaces, above fullscreen) with a custom `hitTest` — only the visible shape captures clicks; the rest of the transparent window is click-through.
+- **Interactions**: local `scrollWheel` (paging) and `keyDown` (Esc) monitors, haptics on page/pin, `TimelineView` for live countdowns.
+- **New provider** = one folder with a pure parser + `UsageProvider` + fixture; the UI adapts to the declared capabilities.
 
-## Modelo de precisão (o que é exato, o que é estimado)
+## Precision model (what's exact, what's estimated)
 
-**Exato (fonte oficial):**
-- Os **percentuais** de quota do Claude vêm dos headers `anthropic-ratelimit-unified-*` da API — são **da conta inteira**: cobrem Claude Code CLI, app Desktop, claude.ai web e mobile. O mesmo vale para os percentuais do Codex (rollouts locais refletem o estado da conta).
-- Horários de reset e status (`allowed/warning/rejected`) — idem.
+**Exact (official source):**
+- Claude's quota **percentages** come from the API's `anthropic-ratelimit-unified-*` headers — they're **account-wide**: they cover the Claude Code CLI, the Desktop app, and claude.ai web and mobile. The same holds for Codex's percentages (local rollouts reflect account state).
+- Reset times and status (`allowed/warning/rejected`) — same.
 
-**Contado localmente (alinhado à janela oficial):**
-- Tokens e custos do Claude somam **todas** as fontes locais de transcript: CLI (`~/.claude/projects`) **e as sessões de agente do app Desktop** (`~/Library/Application Support/Claude/local-agent-mode-sessions`).
-- As somas de sessão/semana usam **a mesma janela do percentual** (início = reset oficial − 5h/7d), não "últimas N horas corridas".
-- Sessão do Codex soma **todos os rollouts ativos dentro da janela** (sessões concorrentes não subcontam).
+**Counted locally (aligned to the official window):**
+- Claude's tokens and costs sum **all** local transcript sources: the CLI (`~/.claude/projects`) **and the Desktop app's agent-mode sessions** (`~/Library/Application Support/Claude/local-agent-mode-sessions`).
+- Session/week totals use **the same window as the percentage** (start = official reset − 5h/7d), not "the last N wall-clock hours."
+- Codex's session sums **every rollout active within the window** (concurrent sessions never undercount).
 
-**Margens conhecidas (medidas, não estimadas):**
-- Conversas de *chat* (Desktop/web) não geram transcript local → contam no **%**, não nos tokens locais.
-- Buckets horários ⇒ fronteira de janela com precisão de ±1h nos tokens (o % não é afetado).
-- Duplicatas de retry entre arquivos: **0,18%** de inflação medida nesta base (dedup é por arquivo).
-- Custos usam tabela de preços pública (`PricingTable.swift`) — planos por assinatura não faturam por token; trate como ordem de grandeza.
+**Known margins (measured, not estimated):**
+- *Chat* conversations (Desktop/web) don't produce a local transcript → they count toward the **%**, not toward local tokens.
+- Hourly buckets ⇒ window-boundary precision of ±1h on tokens (the % is unaffected).
+- Retry duplicates across files: **0.18%** measured inflation on this base (dedup is per-file).
+- Costs use a public pricing table (`PricingTable.swift`) — subscription plans don't bill per token; treat this as an order of magnitude.
 
-## Limitações conhecidas
+## Known limitations
 
-- Geometria do notch é inferida (`safeAreaInsets` + auxiliary areas) — sem API oficial; fallback pill cobre mudanças da Apple.
-- Custos são estimativas por tabela pública; planos por assinatura não faturam por token.
-- Distribuição ainda não notarizada: o primeiro lançamento pode exigir a remoção da quarentena. Builds locais usam a primeira identidade Apple Development disponível; configure `NOTCHAGENT_SIGN_IDENTITY` para escolher outra identidade estável.
-- `Limited` na página MODELS reflete o rate-limit unificado da conta no momento da sonda, não indisponibilidade do modelo em si.
+- Notch geometry is inferred (`safeAreaInsets` + auxiliary areas) — there's no official API; a fallback pill covers Apple changes.
+- Costs are estimates from a public table; subscription plans don't bill per token.
+- Distribution isn't notarized yet: the first launch may require clearing quarantine. Local builds use the first available Apple Development identity; set `NOTCHAGENT_SIGN_IDENTITY` to pick a different stable identity.
+- `Limited` on the MODELS page reflects the account's unified rate limit at probe time, not the model itself being unavailable.
 
-## Estado de distribuição
+## Distribution status
 
-- [x] NotchAgent 3.0 · monitoramento financeiro de APIs · suíte automatizada
-- [x] Release pública [v3.0.0](https://github.com/luisroquette/notchagent/releases/tag/v3.0.0)
-- [x] Instalação via Homebrew Cask
-- [x] .app empacotado com ícone + launch-at-login + notificações
-- [ ] Conta Apple Developer → assinar com Developer ID + `notarytool` + staple *(requer credenciais do dono)*
+- [x] NotchAgent 3.0 · API financial monitoring · automated test suite
+- [x] Public release [v3.0.0](https://github.com/luisroquette/notchagent/releases/tag/v3.0.0)
+- [x] Homebrew Cask install
+- [x] Packaged `.app` with icon + launch-at-login + notifications
+- [ ] Apple Developer account → sign with Developer ID + `notarytool` + staple *(requires the owner's credentials)*
 - [ ] DMG (`create-dmg`)
-- [ ] Auto-update (Sparkle) — pós-lançamento
-- [ ] Site/landing + licenciamento (Paddle/Lemon Squeezy) — decisão de negócio
+- [ ] Auto-update (Sparkle) — post-launch
+- [ ] Site/landing page + licensing (Paddle/Lemon Squeezy) — business decision
 
-## Observabilidade
+## Observability
 
 ```bash
 /usr/bin/log stream --predicate 'subsystem == "br.com.lfrprojects.notchagent"' --level debug

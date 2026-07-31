@@ -2,85 +2,88 @@
 
 ## 3.0.0 — 2026-07-30
 
-Segunda geração do NotchAgent, agora também voltada ao monitoramento financeiro
-de contas de API.
+NotchAgent's second generation, now also focused on financial monitoring of
+API accounts.
 
-### Descontinuações
+### Discontinuations
 
-- O companion iOS/watchOS "AgentMeter" foi descontinuado e removido do
-  repositório. O monitoramento financeiro de contas de API segue só no app Mac.
+- The "AgentMeter" iOS/watchOS companion was discontinued and removed from
+  the repository. API account financial monitoring now lives only in the Mac
+  app.
 
-### Monitoramento de APIs
+### API monitoring
 
-- Cadastro genérico de múltiplas contas por provedor, com credenciais isoladas
-  no macOS Keychain e sessões web separadas por conta.
-- Dashboard financeiro em BRL com **Gasto da janela**, **Saldo atual** e
-  **Plano mensal**, sem misturar recargas, assinaturas e quotas.
-- Integrações para Anthropic API, OpenAI, DeepSeek, OpenRouter, Google/Gemini,
-  xAI, ElevenLabs, Firecrawl, twitterapi.io e múltiplos projetos X/Twitter.
-- Assinaturas Claude/Claude Code, ChatGPT, Google AI e Firecrawl separadas do
-  consumo faturado das APIs.
+- Generic multi-account registration per provider, with credentials isolated
+  in the macOS Keychain and separate web sessions per account.
+- BRL financial dashboard with **Window spend**, **Current balance** and
+  **Monthly plan**, never mixing top-ups, subscriptions and quotas.
+- Integrations for Anthropic API, OpenAI, DeepSeek, OpenRouter, Google/Gemini,
+  xAI, ElevenLabs, Firecrawl, twitterapi.io, and multiple X/Twitter projects.
+- Claude/Claude Code, ChatGPT, Google AI and Firecrawl subscriptions kept
+  separate from billed API spend.
 
-### Precisão e atualização
+### Precision and refresh
 
-- Origem registrada por campo: API oficial, portal oficial, valor manual ou
-  estimativa proporcional.
-- Reconciliação entre API e portal com tolerâncias explícitas; divergências
-  deixam o card parcial em vez de exibir um valor como confirmado.
-- Janela padrão de 30 dias, Google em 28 dias oficiais e mês-calendário
-  identificado quando exigido pelo provedor.
-- Valores oficiais em BRL preservados sem reconversão; USD convertido pela
-  cotação PTAX atual do Banco Central.
-- Refresh individual por card, invalidação forçada de cache e proteção contra
-  respostas antigas sobrescrevendo leituras novas.
-- Total consumido de 30 dias explica no card quando uma conta fica de fora por
-  dividir billing scope com outra já contada, em vez de sumir sem explicação.
-- Estimativa de custo por modelo não reconhecido na tabela de preços deixou de
-  contar como US$0 verificado — fica de fora da estimativa, não zerado.
+- Source recorded per field: official API, official portal, manual value, or
+  proportional estimate.
+- API/portal reconciliation with explicit tolerances; discrepancies leave the
+  card partial instead of showing a value as confirmed.
+- 30-day default window, Google on its official 28-day window, and
+  calendar-month labeled explicitly when the provider requires it.
+- Official BRL values preserved without reconversion; USD converted at the
+  Central Bank's current PTAX rate.
+- Per-card individual refresh, forced cache invalidation, and protection
+  against stale responses overwriting fresh reads.
+- The 30-day consumed total now explains on the card when an account is
+  excluded for sharing a billing scope with one already counted, instead of
+  disappearing with no explanation.
+- A cost estimate for a model not recognized in the pricing table stopped
+  counting as a verified US$0 — it's excluded from the estimate now, not
+  zeroed out.
 
-### Interface e operação
+### Interface and operation
 
-- Lista rolável com todos os provedores, detalhes expansíveis e reordenação por
-  arrastar.
-- Estados visíveis: atualizando, atualizado, desatualizado, parcial e erro.
-- Correção do gesto vertical que mudava indevidamente a página do notch.
-- Tipografia da tela de APIs aumentada — rótulos e valores estavam entre 4,9pt
-  e 6,5pt, ilegíveis mesmo no painel expandido de 660pt de largura.
+- Scrollable list with every provider, expandable details, and
+  drag-to-reorder.
+- Visible states: refreshing, updated, stale, partial, and error.
+- Fixed the vertical gesture that was wrongly changing the notch page.
+- Increased the API screen's typography — labels and values were between
+  4.9pt and 6.5pt, illegible even on the 660pt-wide expanded panel.
 
-### Segurança e distribuição
+### Security and distribution
 
-- Diagnóstico exportável sem credenciais, cookies, nomes, IDs ou valores.
-- Auditoria pública, hook `pre-push` e workflow de CI bloqueiam padrões de
-  segredo e identificadores pessoais.
-- Assinatura do bundle configurável por ambiente, sem certificado pessoal
-  fixado no código.
-- `graphify-out` removido do Git por replicar código e dados gerados.
+- Exportable diagnostic with no credentials, cookies, names, IDs, or amounts.
+- Public audit, `pre-push` hook, and CI workflow block secret patterns and
+  personal identifiers.
+- Bundle signing configurable per environment, with no personal certificate
+  hardcoded in the code.
+- `graphify-out` removed from Git for replicating generated code and data.
 
-### Qualidade
+### Quality
 
-- 206 testes automatizados aprovados, incluindo integridade financeira, cache,
-  persistência, segurança, scroll e E2E somente leitura das contas configuradas.
-- Testes e builds de release executados com probes pagos desativados.
+- 206 automated tests passing, including financial integrity, cache,
+  persistence, security, scroll, and read-only E2E for configured accounts.
+- Tests and release builds run with paid probes disabled.
 
 ## 1.0.0 — 2026-07-14
 
-Primeira versão completa.
+First complete version.
 
 ### Core
-- Providers plugin-like: Claude Code (transcripts + probe de quota oficial na API), Codex (rate limits exatos dos rollouts, janelas classificadas por duração), Gemini CLI (atividade; tokens declarados indisponíveis).
-- Scheduler central com refresh concorrente, cache de parse por arquivo, persistência JSON (snapshots + histórico 30d), refresh no wake.
-- Semântica única de produto: **% restante do limite** (tanque de combustível) em toda a UI.
+- Plugin-like providers: Claude Code (transcripts + official API quota probe), Codex (exact rate limits from rollouts, windows classified by duration), Gemini CLI (activity; declared tokens unavailable).
+- Central scheduler with concurrent refresh, per-file parse cache, JSON persistence (snapshots + 30-day history), refresh on wake.
+- A single product semantic: **% of limit left** (fuel tank) across the whole UI.
 
 ### Notch
-- Overlay com hit-test seletivo (click-through fora da forma), geometria redetectada em mudança de tela/espaço/wake, fallback pill sem notch.
-- Compacto: Claude à esquerda, Codex à direita, com nome + janela (5H/WK) + % restante + micro-medidor.
-- Expandido: 4 páginas (NOW / BURN / RHYTHM / MODELS), scroll lateral de trackpad, transições deslizantes, haptics, Esc fecha, countdowns vivos.
-- Alertas escalonados em 25/15/10/5% livres com takeover animado progressivamente mais grave; 5% requer clique; notificação do sistema junto.
-- Design system "retro hardware gauge": preto + coral, numerais SF Rounded heavy, medidores segmentados, mascote pixel-art procedural que reage à quota.
+- Overlay with selective hit-testing (click-through outside the shape), geometry re-detected on screen/space/wake changes, notch-less fallback pill.
+- Compact: Claude on the left, Codex on the right, with name + window (5H/WK) + % left + micro-gauge.
+- Expanded: 4 pages (NOW / BURN / RHYTHM / MODELS), trackpad side-scroll, sliding transitions, haptics, Esc to close, live countdowns.
+- Escalating alerts at 25/15/10/5% left with a progressively more severe animated takeover; 5% requires a click; a matching system notification fires too.
+- "Retro hardware gauge" design system: black + coral, SF Rounded heavy numerals, segmented gauges, a procedural pixel-art mascot that reacts to quota.
 
-### Distribuição
-- `Scripts/make-app.sh`: .app completo a partir do SwiftPM (Info.plist, ícone .icns gerado por código, assinatura ad-hoc).
-- Launch at login (SMAppService) e notificações — ativos no bundle.
+### Distribution
+- `Scripts/make-app.sh`: a complete `.app` built from SwiftPM (Info.plist, code-generated `.icns` icon, ad-hoc signing).
+- Launch at login (SMAppService) and notifications — enabled in the bundle.
 
-### Qualidade
-- 52 testes (parsers com fixtures reais, agregador, thresholds, burn rate, pricing, geometria, integração end-to-end por provider).
+### Quality
+- 52 tests (parsers with real fixtures, aggregator, thresholds, burn rate, pricing, geometry, end-to-end integration per provider).
