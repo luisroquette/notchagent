@@ -287,17 +287,17 @@ struct NotchExpandedView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    GaugeLabel(text: "APIs · consumo e saldo", color: Theme.textSecondary, size: 8)
+                    GaugeLabel(text: "APIs · consumo e saldo", color: Theme.textSecondary, size: 9.5)
                     Text(apiDashboardHeadline)
-                        .font(Theme.body(12, weight: .semibold))
+                        .font(Theme.body(14, weight: .semibold))
                         .foregroundStyle(Theme.textPrimary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 3) {
                     if let totalMonthlyPlanBRL {
-                        GaugeLabel(text: "ASSINATURAS / MÊS", color: Theme.textDim, size: 6.5)
+                        GaugeLabel(text: "ASSINATURAS / MÊS", color: Theme.textDim, size: 8)
                         Text(totalMonthlyPlanBRL)
-                            .font(Theme.numeral(11))
+                            .font(Theme.numeral(13))
                             .foregroundStyle(Theme.textSecondary)
                     }
                     if let totalKnownAPISpendBRL {
@@ -306,10 +306,10 @@ struct NotchExpandedView: View {
                                 ? "TOTAL 30D · GOOGLE 28D À PARTE"
                                 : "CONSUMIDO 30 DIAS",
                             color: Theme.textDim,
-                            size: 6.5
+                            size: 8
                         )
                         Text(totalKnownAPISpendBRL)
-                            .font(Theme.numeral(14))
+                            .font(Theme.numeral(16))
                             .foregroundStyle(Theme.coral)
                     }
                 }
@@ -338,7 +338,7 @@ struct NotchExpandedView: View {
                     ? "ATUALIZANDO LEITURAS"
                     : "\(apiRefreshCaption) · PERÍODO \(apiSpendWindowCaption)",
                 color: Theme.textFaint,
-                size: 6.5
+                size: 8
             )
 
             ScrollView(.vertical, showsIndicators: false) {
@@ -384,9 +384,9 @@ struct NotchExpandedView: View {
 
     private func dashboardSectionLabel(title: String, subtitle: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
-            GaugeLabel(text: title, color: Theme.textSecondary, size: 7)
+            GaugeLabel(text: title, color: Theme.textSecondary, size: 8.5)
             Spacer()
-            GaugeLabel(text: subtitle.uppercased(), color: Theme.textFaint, size: 5.8)
+            GaugeLabel(text: subtitle.uppercased(), color: Theme.textFaint, size: 7.5)
         }
         .padding(.horizontal, 3)
         .padding(.top, 3)
@@ -444,19 +444,19 @@ struct NotchExpandedView: View {
             VStack(alignment: .leading, spacing: selected ? 8 : 0) {
                 HStack(spacing: 9) {
                     APIServiceLogo(service: account.service)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(account.label)
-                            .font(Theme.body(10.5, weight: .semibold))
+                            .font(Theme.body(13, weight: .semibold))
                             .foregroundStyle(Theme.textPrimary)
                             .lineLimit(1)
                         Text(selected ? (usage?.summary ?? pendingSummary(for: account)) : accountSubtitle(usage, account: account))
-                            .font(Theme.body(8.5))
+                            .font(Theme.body(10.5))
                             .foregroundStyle(Theme.textFaint)
                             .lineLimit(selected ? 3 : 1)
                         GaugeLabel(
                             text: accountRefreshCaption(refreshState),
                             color: accountRefreshColor(refreshState),
-                            size: 5.6
+                            size: 7.5
                         )
                         .lineLimit(1)
                     }
@@ -520,25 +520,25 @@ struct NotchExpandedView: View {
                         GaugeLabel(
                             text: "DIVERGÊNCIA ENTRE FONTES OFICIAIS",
                             color: Theme.warning,
-                            size: 7
+                            size: 8.5
                         )
                     }
                     if apiAccountsExcludedFromTotal.contains(account.id) {
                         GaugeLabel(
                             text: "MESMA CONTA DE BILLING · FORA DO TOTAL 30D",
                             color: Theme.warning,
-                            size: 7
+                            size: 8.5
                         )
                     }
                     rechargeDetail(usage)
                     cycleDetail(usage)
                     if let reset = usage?.resetsAt {
-                        GaugeLabel(text: "RESETA EM \(Format.countdown(to: reset))", color: Theme.textDim, size: 7.5)
+                        GaugeLabel(text: "RESETA EM \(Format.countdown(to: reset))", color: Theme.textDim, size: 8.5)
                     }
                 }
             }
             .padding(10)
-            .frame(maxWidth: .infinity, minHeight: selected ? 96 : 64, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: selected ? 108 : 72, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(selected ? Theme.surfaceRaised : Theme.surface.opacity(0.82))
@@ -721,7 +721,7 @@ struct NotchExpandedView: View {
     private var metricDivider: some View {
         Rectangle()
             .fill(Theme.textDim.opacity(0.2))
-            .frame(width: 1, height: 32)
+            .frame(width: 1, height: 40)
     }
 
     private func financialMetric(
@@ -729,23 +729,23 @@ struct NotchExpandedView: View {
         metric: APIAccountMoneyPresentation,
         color: Color
     ) -> some View {
-        VStack(alignment: .trailing, spacing: 2) {
-            GaugeLabel(text: label, color: Theme.textDim, size: 5.6)
+        VStack(alignment: .trailing, spacing: 3) {
+            GaugeLabel(text: label, color: Theme.textDim, size: 8)
                 .lineLimit(1)
             Text(metric.amountBRL.map(brlValueText) ?? "—")
-                .font(Theme.numeral(10.5))
+                .font(Theme.numeral(14))
                 .monospacedDigit()
                 .foregroundStyle(metric.amountBRL == nil ? Theme.textDim : color)
                 .lineLimit(1)
-                .minimumScaleFactor(0.72)
+                .minimumScaleFactor(0.85)
             GaugeLabel(
                 text: metric.confidence.label,
                 color: metric.confidence == .derived ? Theme.caution : Theme.textFaint,
-                size: 4.9
+                size: 7
             )
             .lineLimit(1)
         }
-        .frame(width: 88, alignment: .trailing)
+        .frame(width: 108, alignment: .trailing)
         .accessibilityElement(children: .combine)
     }
 
@@ -756,19 +756,19 @@ struct NotchExpandedView: View {
             brlPerUSD: spending.brlPerUSD
         )
         return HStack(spacing: 8) {
-            GaugeLabel(text: "GASTO: \(finance.spend.confidence.label)", color: Theme.textDim, size: 6.4)
-            GaugeLabel(text: "SALDO: \(finance.balance.confidence.label)", color: Theme.textDim, size: 6.4)
-            GaugeLabel(text: "PLANO: \(finance.plan.confidence.label)", color: Theme.textDim, size: 6.4)
+            GaugeLabel(text: "GASTO: \(finance.spend.confidence.label)", color: Theme.textDim, size: 8)
+            GaugeLabel(text: "SALDO: \(finance.balance.confidence.label)", color: Theme.textDim, size: 8)
+            GaugeLabel(text: "PLANO: \(finance.plan.confidence.label)", color: Theme.textDim, size: 8)
         }
     }
 
     @ViewBuilder
     private func rechargeDetail(_ usage: APIAccountUsage?) -> some View {
         if let recharge = usage?.rechargeBRL {
-            GaugeLabel(text: "RECARGAS NO PERÍODO \(brlValueText(recharge))", color: Theme.textSecondary, size: 7)
+            GaugeLabel(text: "RECARGAS NO PERÍODO \(brlValueText(recharge))", color: Theme.textSecondary, size: 8.5)
         } else if let recharge = usage?.rechargeUSD,
                   let converted = brlText(fromUSD: recharge) {
-            GaugeLabel(text: "RECARGAS NO PERÍODO \(converted)", color: Theme.textSecondary, size: 7)
+            GaugeLabel(text: "RECARGAS NO PERÍODO \(converted)", color: Theme.textSecondary, size: 8.5)
         }
     }
 
@@ -881,27 +881,27 @@ struct NotchExpandedView: View {
             GaugeLabel(
                 text: "CRÉDITOS DE USO \(brlValueText(balance))",
                 color: balance >= 0 ? Theme.ok : Theme.coral,
-                size: 7.5
+                size: 8.5
             )
         } else if let used = usage?.cycleUsed, let limit = usage?.cycleLimit, let unit = usage?.cycleUnit {
             let remaining = usage?.cycleRemaining ?? max(limit - used, 0)
             let overage = usage?.cycleOverage ?? 0
             HStack(spacing: 8) {
-                GaugeLabel(text: "CONSUMIDO \(cycleAmountText(used, unit: unit))", color: Theme.coral, size: 7.5)
+                GaugeLabel(text: "CONSUMIDO \(cycleAmountText(used, unit: unit))", color: Theme.coral, size: 8.5)
                 GaugeLabel(
                     text: overage > 0
                         ? "EXCEDENTE \(cycleAmountText(overage, unit: unit))"
                         : "SALDO \(cycleAmountText(remaining, unit: unit))",
                     color: overage > 0 ? Theme.coral : Theme.ok,
-                    size: 7.5
+                    size: 8.5
                 )
             }
         } else if usage?.monetaryKind == .balance {
-            GaugeLabel(text: "CONSUMO DESDE A RECARGA: API NÃO INFORMOU", color: Theme.textDim, size: 7)
+            GaugeLabel(text: "CONSUMO DESDE A RECARGA: API NÃO INFORMOU", color: Theme.textDim, size: 8.5)
         } else if usage?.monetaryKind == .spend {
-            GaugeLabel(text: "GASTO NO PERÍODO INFORMADO PELA API", color: Theme.coral, size: 7)
+            GaugeLabel(text: "GASTO NO PERÍODO INFORMADO PELA API", color: Theme.coral, size: 8.5)
         } else if usage == nil {
-            GaugeLabel(text: "AGUARDANDO ENDPOINT OU ESCOPO DE LEITURA", color: Theme.textDim, size: 7)
+            GaugeLabel(text: "AGUARDANDO ENDPOINT OU ESCOPO DE LEITURA", color: Theme.textDim, size: 8.5)
         }
     }
 
