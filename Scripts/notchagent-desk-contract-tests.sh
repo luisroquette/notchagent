@@ -907,6 +907,7 @@ assert_beta_status_invalid '(.gates[] | select(.id == "soak-24-hours")) |= (.sta
 assert_beta_status_invalid '(.gates[] | select(.id == "soak-24-hours")) |= (.status = "waived" | .evidence = "/missing/waiver.json")'
 assert_beta_status_invalid '(.gates[] | select(.id == "physical-touch-latency")) |= (.status = "waived" | .evidence = "/missing/touch-waiver.json")'
 assert_beta_status_invalid '(.gates[] | select(.id == "abrupt-power-recovery")) |= (.status = "waived" | .evidence = "/missing/power-waiver.json")'
+assert_beta_status_invalid '(.gates[] | select(.id == "bom-enclosure-cable-freeze")) |= (.status = "waived" | .evidence = "/missing/bom-waiver.json")'
 assert_beta_status_invalid '(.gates[] | select(.id == "five-user-seven-day-pilot")) |= (.status = "waived" | .evidence = "unsupported")'
 beta_status_link="$test_dir/beta-status-link.json"
 ln -s "$PWD/$status_fixture" "$beta_status_link"

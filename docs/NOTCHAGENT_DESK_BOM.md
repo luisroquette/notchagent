@@ -9,11 +9,17 @@ that still require a supplier sample and owner approval.
 |---|---|---|
 | Display controller | Guition JC4832W535, ESP32-S3, 480x320 touch, AXS15231B | Verified on prototype |
 | Flash / PSRAM | 16 MB flash, 8 MB OPI PSRAM | Verified by connected prototype |
-| Data link | USB data cable compatible with the board connector and the customer's Mac/dock | Verified function; final cable SKU pending |
+| Data link | Any USB data cable compatible with the board connector and the customer's Mac/dock | Verified function; commodity item, no fixed SKU |
 | Firmware | NotchAgent Desk factory image, protocol v1.1 | Build and recovery flow validated |
 | Mac software | NotchAgent macOS 14+ app with Desk firmware package | Build validated; notarization and public download pending |
 
 ## Purchasing gates
+
+For Beta 1, the product owner explicitly accepted commodity sourcing for the
+USB data cable and enclosure. Their supplier and SKU may vary between units or
+lots; functional QC remains mandatory. A cable must transfer data, and an
+enclosure must preserve connector, touch, ventilation, and boot access. The
+waiver is retained with the local release evidence and is not published.
 
 Do not freeze a supplier or SKU until a sample passes factory QC, the 24-hour
 soak test, 100 reconnect cycles, fit inspection, and cable data/charge testing.

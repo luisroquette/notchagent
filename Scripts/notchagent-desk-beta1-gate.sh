@@ -567,9 +567,30 @@ for waived_gate in abrupt-power-recovery dock-hub-mac-matrix; do
     fi
 done
 
+if [[ "$(gate_status bom-enclosure-cable-freeze)" == "waived" ]]; then
+    bom_waiver=$(require_evidence_file bom-enclosure-cable-freeze)
+    jq -e '
+      .schemaVersion == 1 and .gate == "bom-enclosure-cable-freeze" and
+      .result == "waived" and .authority == "product-owner" and
+      .directive == "commodity-components-no-fixed-sku" and
+      (.waivedAt | fromdateiso8601 | type) == "number" and
+      .requirementsRetained == [
+        "USB cable must support data transfer",
+        "enclosure must preserve connector, touch, ventilation, and boot access",
+        "functional compatibility remains part of unit QC"
+      ] and
+      (.limitation | type == "string" and
+        contains("risk was explicitly accepted by the product owner."))
+    ' "$bom_waiver" >/dev/null || {
+        echo "INVALID: BOM waiver is incomplete or lacks explicit authority and functional requirements." >&2
+        exit 1
+    }
+fi
+
 unsupported_waiver=$(jq -r '.gates[] | select(.status == "waived" and
   (.id != "soak-24-hours" and .id != "physical-touch-latency" and
-   .id != "abrupt-power-recovery" and .id != "dock-hub-mac-matrix")) | .id' "$status_file")
+   .id != "abrupt-power-recovery" and .id != "dock-hub-mac-matrix" and
+   .id != "bom-enclosure-cable-freeze")) | .id' "$status_file")
 [[ -z "$unsupported_waiver" ]] || {
     echo "INVALID: unsupported release-gate waiver: $unsupported_waiver" >&2
     exit 1
