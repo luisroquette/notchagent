@@ -14,8 +14,12 @@ Scripts/notchagent-desk-onboarding-qr-gate.swift \
   docs/img/notchagent-desk-onboarding-qr.svg \
   docs/NOTCHAGENT_DESK_ONBOARDING_URL.txt >/dev/null
 
-Scripts/notchagent-desk-ai-visual-review-gate.sh \
-  docs/evidence/notchagent-desk-beta1-ai-visual-review-20260814T185112Z.json >/dev/null
+ai_visual_evidence="${NOTCHAGENT_DESK_AI_VISUAL_EVIDENCE:-docs/evidence/notchagent-desk-beta1-ai-visual-review-20260814T185112Z.json}"
+if [[ -e "$ai_visual_evidence" ]]; then
+    Scripts/notchagent-desk-ai-visual-review-gate.sh "$ai_visual_evidence" >/dev/null
+else
+    echo "SKIP: local AI visual-review evidence is not part of the public source checkout."
+fi
 rg -q 'build_number=.*buildNumber' Scripts/notchagent-desk-publication-evidence.sh || {
     echo "FAIL: publication evidence must validate the release-contract build number." >&2
     exit 1
