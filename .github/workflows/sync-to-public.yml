@@ -48,7 +48,7 @@ jobs:
           arduino-cli lib install "ArduinoJson@7.2.0" "GFX Library for Arduino@1.6.5" "lvgl@9.2.2"
 
       - name: Install deterministic QR validator
-        run: brew install qrencode
+        run: brew install qrencode ripgrep
 
       - name: Audit for secrets and personal identifiers
         env:

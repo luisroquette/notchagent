@@ -65,7 +65,7 @@ jobs:
           arduino-cli core install esp32:esp32@3.3.8 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
           arduino-cli lib install "ArduinoJson@7.2.0" "GFX Library for Arduino@1.6.5" "lvgl@9.2.2"
       - name: Install deterministic QR validator
-        run: brew install qrencode
+        run: brew install qrencode ripgrep
       - name: Validate NotchAgent Desk
         env:
           NOTCHAGENT_DISABLE_PAID_PROBES: "1"
