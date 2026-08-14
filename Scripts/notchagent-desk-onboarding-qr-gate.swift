@@ -1,8 +1,6 @@
 #!/usr/bin/env swift
 
-import AppKit
 import Foundation
-import Vision
 
 guard CommandLine.arguments.count == 3 else {
     FileHandle.standardError.write(Data("Usage: notchagent-desk-onboarding-qr-gate.swift QR.svg expected-url.txt\n".utf8))
@@ -21,50 +19,34 @@ guard let expectedURL = URL(string: expected),
     exit(1)
 }
 
-guard let image = NSImage(contentsOf: imageURL),
-      let bitmap = NSBitmapImageRep(
-        bitmapDataPlanes: nil,
-        pixelsWide: 980,
-        pixelsHigh: 980,
-        bitsPerSample: 8,
-        samplesPerPixel: 4,
-        hasAlpha: true,
-        isPlanar: false,
-        colorSpaceName: .deviceRGB,
-        bytesPerRow: 0,
-        bitsPerPixel: 0
-      ),
-      let context = NSGraphicsContext(bitmapImageRep: bitmap) else {
-    FileHandle.standardError.write(Data("INVALID: onboarding QR cannot be rendered.\n".utf8))
+let temporaryDirectory = FileManager.default.temporaryDirectory
+    .appendingPathComponent("notchagent-qr-\(UUID().uuidString)", isDirectory: true)
+try FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: false)
+defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
+let generatedURL = temporaryDirectory.appendingPathComponent("expected.svg")
+
+let process = Process()
+process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+process.arguments = ["qrencode", "-l", "M", "-t", "SVG", "-o", generatedURL.path, expected]
+process.standardOutput = FileHandle.nullDevice
+process.standardError = FileHandle.nullDevice
+do {
+    try process.run()
+    process.waitUntilExit()
+} catch {
+    FileHandle.standardError.write(Data("NOT READY: qrencode is required for deterministic QR validation.\n".utf8))
+    exit(2)
+}
+guard process.terminationReason == .exit, process.terminationStatus == 0 else {
+    FileHandle.standardError.write(Data("INVALID: canonical onboarding QR could not be generated.\n".utf8))
     exit(1)
 }
 
-NSGraphicsContext.saveGraphicsState()
-NSGraphicsContext.current = context
-context.cgContext.setFillColor(NSColor.white.cgColor)
-context.cgContext.fill(CGRect(x: 0, y: 0, width: 980, height: 980))
-image.draw(
-    in: NSRect(x: 0, y: 0, width: 980, height: 980),
-    from: .zero,
-    operation: .copy,
-    fraction: 1,
-    respectFlipped: false,
-    hints: [.interpolation: NSImageInterpolation.none]
-)
-context.flushGraphics()
-NSGraphicsContext.restoreGraphicsState()
-
-guard let cgImage = bitmap.cgImage else {
-    FileHandle.standardError.write(Data("INVALID: onboarding QR raster is unavailable.\n".utf8))
-    exit(1)
-}
-
-let request = VNDetectBarcodesRequest()
-try VNImageRequestHandler(cgImage: cgImage).perform([request])
-let payloads = (request.results ?? []).compactMap(\.payloadStringValue)
-guard payloads == [expected] else {
+guard let actual = try? Data(contentsOf: imageURL),
+      let generated = try? Data(contentsOf: generatedURL),
+      actual == generated else {
     FileHandle.standardError.write(Data("INVALID: onboarding QR payload does not match its URL contract.\n".utf8))
     exit(1)
 }
 
-print("PASS: onboarding QR decodes to the canonical public guide.")
+print("PASS: onboarding QR deterministically matches the canonical public guide.")
