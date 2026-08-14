@@ -398,7 +398,12 @@ final class NotchAgentDeskTests: XCTestCase {
             sequence: 4,
             payload: try JSONEncoder().encode(mismatchedTelemetry)
         )), to: master)
-        try await Task.sleep(for: .milliseconds(150))
+        let mismatchDeadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while (stateRecorder.last?.phase != .searching ||
+               stateRecorder.last?.telemetry != nil),
+              ContinuousClock.now < mismatchDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
         XCTAssertEqual(stateRecorder.last?.phase, .searching)
         XCTAssertNil(stateRecorder.last?.telemetry)
         await transport.stop()
