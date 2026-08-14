@@ -22,8 +22,40 @@ guard let expectedURL = URL(string: expected),
 }
 
 guard let image = NSImage(contentsOf: imageURL),
-      let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+      let bitmap = NSBitmapImageRep(
+        bitmapDataPlanes: nil,
+        pixelsWide: 980,
+        pixelsHigh: 980,
+        bitsPerSample: 8,
+        samplesPerPixel: 4,
+        hasAlpha: true,
+        isPlanar: false,
+        colorSpaceName: .deviceRGB,
+        bytesPerRow: 0,
+        bitsPerPixel: 0
+      ),
+      let context = NSGraphicsContext(bitmapImageRep: bitmap) else {
     FileHandle.standardError.write(Data("INVALID: onboarding QR cannot be rendered.\n".utf8))
+    exit(1)
+}
+
+NSGraphicsContext.saveGraphicsState()
+NSGraphicsContext.current = context
+context.cgContext.setFillColor(NSColor.white.cgColor)
+context.cgContext.fill(CGRect(x: 0, y: 0, width: 980, height: 980))
+image.draw(
+    in: NSRect(x: 0, y: 0, width: 980, height: 980),
+    from: .zero,
+    operation: .copy,
+    fraction: 1,
+    respectFlipped: false,
+    hints: [.interpolation: NSImageInterpolation.none]
+)
+context.flushGraphics()
+NSGraphicsContext.restoreGraphicsState()
+
+guard let cgImage = bitmap.cgImage else {
+    FileHandle.standardError.write(Data("INVALID: onboarding QR raster is unavailable.\n".utf8))
     exit(1)
 }
 

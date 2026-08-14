@@ -1101,6 +1101,8 @@ recovery_status="$test_dir/recovery-status.json"
 jq --arg evidence "$valid_recovery" '
   (.gates[] | select(.id == "developer-id-notarization")) |=
     (.status = "pending" | .evidence = "isolated recovery fixture") |
+  (.gates[] | select(.id == "onboarding-qr")) |=
+    (.status = "pending" | .evidence = "isolated recovery fixture") |
   (.gates[] | select(.id == "local-signed-recovery")) |=
     (.status = "pass" | .evidence = $evidence)
 ' docs/evidence/notchagent-desk-beta1-status.json > "$recovery_status"
@@ -1116,6 +1118,8 @@ set -e
 jq '.signatureKind = "Apple Development"' "$valid_recovery" > "$test_dir/invalid-recovery.json"
 jq --arg evidence "$test_dir/invalid-recovery.json" '
   (.gates[] | select(.id == "developer-id-notarization")) |=
+    (.status = "pending" | .evidence = "isolated recovery fixture") |
+  (.gates[] | select(.id == "onboarding-qr")) |=
     (.status = "pending" | .evidence = "isolated recovery fixture") |
   (.gates[] | select(.id == "local-signed-recovery")) |=
     (.status = "pass" | .evidence = $evidence)
@@ -1208,6 +1212,8 @@ notarization_status="$test_dir/notarization-status.json"
 jq --arg evidence "$valid_notarization" '
   (.gates[] | select(.id == "local-signed-recovery")) |=
     (.status = "pending" | .evidence = "isolated notarization fixture") |
+  (.gates[] | select(.id == "onboarding-qr")) |=
+    (.status = "pending" | .evidence = "isolated notarization fixture") |
   (.gates[] | select(.id == "developer-id-notarization")) |=
     (.status = "pass" | .evidence = $evidence)
 ' docs/evidence/notchagent-desk-beta1-status.json > "$notarization_status"
@@ -1247,7 +1253,9 @@ jq --arg recovery "$valid_recovery" --arg notarization "$valid_notarization" '
   (.gates[] | select(.id == "local-signed-recovery")) |=
     (.status = "pass" | .evidence = $recovery) |
   (.gates[] | select(.id == "developer-id-notarization")) |=
-    (.status = "pass" | .evidence = $notarization)
+    (.status = "pass" | .evidence = $notarization) |
+  (.gates[] | select(.id == "onboarding-qr")) |=
+    (.status = "pending" | .evidence = "isolated recovery-notarization fixture")
 ' docs/evidence/notchagent-desk-beta1-status.json > "$recovery_notary_status"
 set +e
 recovery_notary_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$recovery_notary_status" \
@@ -1281,6 +1289,8 @@ jq '.executableSHA256 = "invalid"' "$valid_notarization" > "$test_dir/invalid-no
 jq --arg evidence "$test_dir/invalid-notarization.json" '
   (.gates[] | select(.id == "local-signed-recovery")) |=
     (.status = "pending" | .evidence = "isolated notarization fixture") |
+  (.gates[] | select(.id == "onboarding-qr")) |=
+    (.status = "pending" | .evidence = "isolated notarization fixture") |
   (.gates[] | select(.id == "developer-id-notarization")) |=
     (.status = "pass" | .evidence = $evidence)
 ' docs/evidence/notchagent-desk-beta1-status.json > "$notarization_status"
@@ -1296,6 +1306,8 @@ set -e
 jq '.appVersion = "3.0.0" | .executableSHA256 = ("a" * 64)' "$valid_notarization" > "$test_dir/old-version-notarization.json"
 jq --arg evidence "$test_dir/old-version-notarization.json" '
   (.gates[] | select(.id == "local-signed-recovery")) |=
+    (.status = "pending" | .evidence = "isolated notarization fixture") |
+  (.gates[] | select(.id == "onboarding-qr")) |=
     (.status = "pending" | .evidence = "isolated notarization fixture") |
   (.gates[] | select(.id == "developer-id-notarization")) |=
     (.status = "pass" | .evidence = $evidence)
