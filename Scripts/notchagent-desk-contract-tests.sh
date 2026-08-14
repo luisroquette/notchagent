@@ -861,14 +861,16 @@ if NOTCHAGENT_DESK_LOT_ALIAS=BETA1-LOT-A NOTCHAGENT_DESK_FACTORY_MIN_UNITS=2 \
 fi
 
 set +e
-beta_output=$(Scripts/notchagent-desk-beta1-gate.sh 2>&1)
+beta_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$status_fixture" \
+  Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 beta_result=$?
 set -e
 [[ $beta_result -eq 1 && "$beta_output" == "NOT READY:"* ]] || {
     echo "FAIL: current Beta 1 status should be structurally valid with open gates." >&2
     exit 1
 }
-beta_operational_status=$(Scripts/notchagent-desk-beta1-status.sh)
+beta_operational_status=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$status_fixture" \
+  Scripts/notchagent-desk-beta1-status.sh)
 jq -e '
   .schemaVersion == 1 and
   ([.counts.pass,.counts.waived,.counts.pending,.counts.fail] | add) == 16 and
