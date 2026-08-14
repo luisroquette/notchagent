@@ -523,7 +523,11 @@ final class NotchAgentDeskTests: XCTestCase {
             sequence: 2,
             payload: try JSONEncoder().encode(telemetry)
         )), to: master)
-        try await Task.sleep(for: .milliseconds(150))
+        let initialTelemetryDeadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while stateRecorder.last?.telemetry != telemetry,
+              ContinuousClock.now < initialTelemetryDeadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
         XCTAssertEqual(stateRecorder.last?.telemetry, telemetry)
         let refreshedHello = try await readFrame(from: master, timeout: .seconds(17))
         XCTAssertEqual(refreshedHello.type, .hello)
