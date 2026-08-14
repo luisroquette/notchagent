@@ -4,6 +4,8 @@ cd "$(dirname "$0")/.."
 
 test_dir=$(mktemp -d -t notchagent-desk-contracts)
 [[ -n "$test_dir" && "$test_dir" == /var/folders/*/T/* ]] || exit 1
+status_fixture="Tests/NotchAgentTests/Fixtures/notchagent-desk-beta1-status.json"
+[[ -f "$status_fixture" && ! -L "$status_fixture" ]] || exit 1
 cleanup() {
     [[ -n "$test_dir" && -d "$test_dir" && "$test_dir" == /var/folders/*/T/* ]] || return 0
     rm -r -- "$test_dir"
@@ -737,7 +739,7 @@ commercial_status="$test_dir/commercial-status.json"
 jq --arg evidence "$commercial_evidence_file" '
   (.gates[] | select(.id == "bom-enclosure-cable-freeze")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$commercial_status"
+' $status_fixture > "$commercial_status"
 set +e
 commercial_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$commercial_status" \
   Scripts/notchagent-desk-beta1-gate.sh 2>&1)
@@ -752,7 +754,7 @@ jq '.lotAlias = "BETA1-LOT-B"' "$commercial_evidence_file" > "$commercial_tamper
 jq --arg evidence "$commercial_tampered" '
   (.gates[] | select(.id == "bom-enclosure-cable-freeze")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$commercial_status"
+' $status_fixture > "$commercial_status"
 set +e
 commercial_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$commercial_status" \
   Scripts/notchagent-desk-beta1-gate.sh 2>&1)
@@ -885,7 +887,7 @@ jq -e '
 assert_beta_status_invalid() {
     local expression="$1"
     local fixture="$test_dir/invalid-beta-status.json"
-    jq "$expression" docs/evidence/notchagent-desk-beta1-status.json > "$fixture"
+    jq "$expression" $status_fixture > "$fixture"
     set +e
     local output
     output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$fixture" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
@@ -905,7 +907,7 @@ assert_beta_status_invalid '(.gates[] | select(.id == "physical-touch-latency"))
 assert_beta_status_invalid '(.gates[] | select(.id == "abrupt-power-recovery")) |= (.status = "waived" | .evidence = "/missing/power-waiver.json")'
 assert_beta_status_invalid '(.gates[] | select(.id == "five-user-seven-day-pilot")) |= (.status = "waived" | .evidence = "unsupported")'
 beta_status_link="$test_dir/beta-status-link.json"
-ln -s "$PWD/docs/evidence/notchagent-desk-beta1-status.json" "$beta_status_link"
+ln -s "$PWD/$status_fixture" "$beta_status_link"
 if NOTCHAGENT_DESK_BETA1_STATUS_FILE="$beta_status_link" \
     Scripts/notchagent-desk-beta1-gate.sh >/dev/null 2>&1; then
     echo "FAIL: Beta gate accepted a symbolic-link status contract." >&2
@@ -924,7 +926,7 @@ touch_status="$test_dir/touch-status.json"
 jq --arg evidence "$valid_touch" '
   (.gates[] | select(.id == "physical-touch-latency")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$touch_status"
+' $status_fixture > "$touch_status"
 set +e
 touch_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$touch_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 touch_result=$?
@@ -937,7 +939,7 @@ jq '.physicalChecks.swipeLeft = "pending"' "$valid_touch" > "$test_dir/incomplet
 jq --arg evidence "$test_dir/incomplete-touch.json" '
   (.gates[] | select(.id == "physical-touch-latency")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$touch_status"
+' $status_fixture > "$touch_status"
 set +e
 touch_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$touch_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 touch_result=$?
@@ -987,7 +989,7 @@ jq '.maximumSampleGapMilliseconds = 10001' "$current_smoke" > "$invalid_smoke"
 invalid_smoke_status="$test_dir/invalid-smoke-status.json"
 jq --arg evidence "$invalid_smoke" '
   (.gates[] | select(.id == "automatic-discovery")) |= (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$invalid_smoke_status"
+' $status_fixture > "$invalid_smoke_status"
 set +e
 invalid_smoke_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$invalid_smoke_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 invalid_smoke_result=$?
@@ -1002,7 +1004,7 @@ jq '.minimumFramesPerSecond = 6.9' "$current_smoke" > "$invalid_telemetry"
 invalid_telemetry_status="$test_dir/invalid-smoke-telemetry-status.json"
 jq --arg evidence "$invalid_telemetry" '
   (.gates[] | select(.id == "hardware-telemetry")) |= (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$invalid_telemetry_status"
+' $status_fixture > "$invalid_telemetry_status"
 set +e
 invalid_telemetry_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$invalid_telemetry_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 invalid_telemetry_result=$?
@@ -1017,7 +1019,7 @@ jq '.firmwareSourceSHA256 = ("f" * 64)' "$current_smoke" > "$invalid_smoke_firmw
 invalid_smoke_firmware_status="$test_dir/invalid-smoke-firmware-status.json"
 jq --arg evidence "$invalid_smoke_firmware" '
   (.gates[] | select(.id == "automatic-discovery")) |= (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$invalid_smoke_firmware_status"
+' $status_fixture > "$invalid_smoke_firmware_status"
 set +e
 invalid_smoke_firmware_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$invalid_smoke_firmware_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 invalid_smoke_firmware_result=$?
@@ -1032,7 +1034,7 @@ jq '.firmwareImageSHA256 = ("f" * 64)' "$current_reconnect" > "$invalid_reconnec
 invalid_reconnect_status="$test_dir/invalid-reconnect-status.json"
 jq --arg evidence "$invalid_reconnect" '
   (.gates[] | select(.id == "physical-reconnect-100")) |= (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$invalid_reconnect_status"
+' $status_fixture > "$invalid_reconnect_status"
 set +e
 invalid_reconnect_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$invalid_reconnect_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 invalid_reconnect_result=$?
@@ -1063,7 +1065,7 @@ jq --arg evidence "$valid_onboarding" '
   (.gates[] | select(.id == "local-signed-recovery")) |=
     (.status = "pending" | .evidence = "isolated onboarding fixture") |
   (.gates[] | select(.id == "onboarding-qr")) |= (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$onboarding_status"
+' $status_fixture > "$onboarding_status"
 set +e
 onboarding_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$onboarding_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 onboarding_result=$?
@@ -1079,7 +1081,7 @@ jq --arg evidence "$test_dir/invalid-onboarding.json" '
   (.gates[] | select(.id == "local-signed-recovery")) |=
     (.status = "pending" | .evidence = "isolated onboarding fixture") |
   (.gates[] | select(.id == "onboarding-qr")) |= (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$onboarding_status"
+' $status_fixture > "$onboarding_status"
 set +e
 onboarding_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$onboarding_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 onboarding_result=$?
@@ -1109,7 +1111,7 @@ jq --arg evidence "$valid_recovery" '
     (.status = "pending" | .evidence = "isolated recovery fixture") |
   (.gates[] | select(.id == "local-signed-recovery")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$recovery_status"
+' $status_fixture > "$recovery_status"
 set +e
 recovery_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$recovery_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 recovery_result=$?
@@ -1127,7 +1129,7 @@ jq --arg evidence "$test_dir/invalid-recovery.json" '
     (.status = "pending" | .evidence = "isolated recovery fixture") |
   (.gates[] | select(.id == "local-signed-recovery")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$recovery_status"
+' $status_fixture > "$recovery_status"
 set +e
 recovery_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$recovery_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 recovery_result=$?
@@ -1143,7 +1145,7 @@ jq --arg evidence "$test_dir/unhealthy-recovery.json" '
     (.status = "pending" | .evidence = "isolated recovery fixture") |
   (.gates[] | select(.id == "local-signed-recovery")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$recovery_status"
+' $status_fixture > "$recovery_status"
 set +e
 recovery_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$recovery_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 recovery_result=$?
@@ -1180,7 +1182,7 @@ power_status="$test_dir/power-status.json"
 jq --arg evidence "$valid_power" '
   (.gates[] | select(.id == "abrupt-power-recovery")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$power_status"
+' $status_fixture > "$power_status"
 set +e
 power_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$power_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 power_result=$?
@@ -1194,7 +1196,7 @@ jq '.reconnectSeconds = 121' "$valid_power" > "$test_dir/invalid-power.json"
 jq --arg evidence "$test_dir/invalid-power.json" '
   (.gates[] | select(.id == "abrupt-power-recovery")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$power_status"
+' $status_fixture > "$power_status"
 set +e
 power_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$power_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 power_result=$?
@@ -1220,7 +1222,7 @@ jq --arg evidence "$valid_notarization" '
     (.status = "pending" | .evidence = "isolated notarization fixture") |
   (.gates[] | select(.id == "developer-id-notarization")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$notarization_status"
+' $status_fixture > "$notarization_status"
 set +e
 notarization_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$notarization_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 notarization_result=$?
@@ -1242,7 +1244,7 @@ jq --arg notarization "$valid_notarization" --arg onboarding "$linked_onboarding
     (.status = "pass" | .evidence = $notarization) |
   (.gates[] | select(.id == "onboarding-qr")) |=
     (.status = "pass" | .evidence = $onboarding)
-' docs/evidence/notchagent-desk-beta1-status.json > "$linked_release_status"
+' $status_fixture > "$linked_release_status"
 set +e
 linked_release_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$linked_release_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 linked_release_result=$?
@@ -1260,7 +1262,7 @@ jq --arg recovery "$valid_recovery" --arg notarization "$valid_notarization" '
     (.status = "pass" | .evidence = $notarization) |
   (.gates[] | select(.id == "onboarding-qr")) |=
     (.status = "pending" | .evidence = "isolated recovery-notarization fixture")
-' docs/evidence/notchagent-desk-beta1-status.json > "$recovery_notary_status"
+' $status_fixture > "$recovery_notary_status"
 set +e
 recovery_notary_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$recovery_notary_status" \
   Scripts/notchagent-desk-beta1-gate.sh 2>&1)
@@ -1279,7 +1281,7 @@ jq --arg notarization "$valid_notarization" --arg onboarding "$test_dir/mismatch
     (.status = "pass" | .evidence = $notarization) |
   (.gates[] | select(.id == "onboarding-qr")) |=
     (.status = "pass" | .evidence = $onboarding)
-' docs/evidence/notchagent-desk-beta1-status.json > "$linked_release_status"
+' $status_fixture > "$linked_release_status"
 set +e
 linked_release_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$linked_release_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 linked_release_result=$?
@@ -1297,7 +1299,7 @@ jq --arg evidence "$test_dir/invalid-notarization.json" '
     (.status = "pending" | .evidence = "isolated notarization fixture") |
   (.gates[] | select(.id == "developer-id-notarization")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$notarization_status"
+' $status_fixture > "$notarization_status"
 set +e
 notarization_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$notarization_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 notarization_result=$?
@@ -1315,7 +1317,7 @@ jq --arg evidence "$test_dir/old-version-notarization.json" '
     (.status = "pending" | .evidence = "isolated notarization fixture") |
   (.gates[] | select(.id == "developer-id-notarization")) |=
     (.status = "pass" | .evidence = $evidence)
-' docs/evidence/notchagent-desk-beta1-status.json > "$notarization_status"
+' $status_fixture > "$notarization_status"
 set +e
 notarization_output=$(NOTCHAGENT_DESK_BETA1_STATUS_FILE="$notarization_status" Scripts/notchagent-desk-beta1-gate.sh 2>&1)
 notarization_result=$?

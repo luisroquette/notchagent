@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "product": "NotchAgent Desk Beta 1",
+  "updatedAt": "2026-08-14T00:00:00Z",
+  "gates": [
+    {"id":"automatic-discovery","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"firmware-protocol-visible","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"local-signed-recovery","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"sanitized-diagnostics","status":"pass","evidence":"source contract"},
+    {"id":"hardware-telemetry","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"physical-reconnect-100","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"soak-24-hours","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"physical-touch-latency","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"abrupt-power-recovery","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"dock-hub-mac-matrix","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"local-ambient-intelligence","status":"pass","evidence":"source contract"},
+    {"id":"factory-qc-flow","status":"pass","evidence":"source contract"},
+    {"id":"onboarding-qr","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"developer-id-notarization","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"bom-enclosure-cable-freeze","status":"pending","evidence":"isolated public test fixture"},
+    {"id":"five-user-seven-day-pilot","status":"pending","evidence":"isolated public test fixture"}
+  ]
+}
