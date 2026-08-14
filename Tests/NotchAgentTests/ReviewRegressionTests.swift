@@ -20,6 +20,7 @@ final class ThresholdLifecycleTests: XCTestCase {
 
     func testStickyAlertNotReplacedByMilderCrossing() {
         let store = makeStore()
+        store.apply(snapshot(.claudeCode, sessionUsed: 10))
         // Codex atinge 4% restantes (sticky 5%)…
         store.apply(snapshot(.codex, sessionUsed: 96))
         XCTAssertEqual(store.activeThresholdAlert?.threshold, 5)
@@ -31,20 +32,24 @@ final class ThresholdLifecycleTests: XCTestCase {
 
     func testDeeperCrossingReplacesMilderAlert() {
         let store = makeStore()
+        store.apply(snapshot(.claudeCode, sessionUsed: 10))
         store.apply(snapshot(.claudeCode, sessionUsed: 76))
         XCTAssertEqual(store.activeThresholdAlert?.threshold, 25)
-        store.apply(snapshot(.codex, sessionUsed: 92))
-        XCTAssertEqual(store.activeThresholdAlert?.threshold, 10)
+        store.apply(snapshot(.codex, sessionUsed: 10))
+        store.apply(snapshot(.codex, sessionUsed: 96))
+        XCTAssertEqual(store.activeThresholdAlert?.threshold, 5)
     }
 
     func testSessionAndWeeklyWindowsHaveIndependentFiredSets() {
         let store = makeStore()
         // Sessão dispara 25%…
+        store.apply(snapshot(.claudeCode, sessionUsed: 10))
         store.apply(snapshot(.claudeCode, sessionUsed: 80))
         let alertsAfterSession = store.events.filter { $0.kind == .alert && $0.message.contains("left") }.count
         XCTAssertEqual(alertsAfterSession, 1)
         // …sessão fica idle e o gauge flipa para o semanal a 12% restantes:
         // o disparo da sessão não pode suprimir o alerta semanal.
+        store.apply(snapshot(.claudeCode, sessionUsed: nil, weeklyUsed: 10))
         store.apply(snapshot(.claudeCode, sessionUsed: nil, weeklyUsed: 88))
         let alertsAfterWeekly = store.events.filter { $0.kind == .alert && $0.message.contains("left") }.count
         XCTAssertEqual(alertsAfterWeekly, 2, "weekly window must fire independently")
@@ -52,6 +57,7 @@ final class ThresholdLifecycleTests: XCTestCase {
 
     func testTransientSnapshotWithoutGaugeKeepsFiredState() {
         let store = makeStore()
+        store.apply(snapshot(.claudeCode, sessionUsed: 10))
         store.apply(snapshot(.claudeCode, sessionUsed: 80))
         XCTAssertEqual(store.events.filter { $0.kind == .alert && $0.message.contains("left") }.count, 1)
         // Snapshot transitório sem percentual algum (probe momentaneamente sem cache).
@@ -67,6 +73,7 @@ final class ThresholdLifecycleTests: XCTestCase {
     func testAutoDismissSurvivesViewLifecycle() async throws {
         // O auto-dismiss vive no store — nenhuma view precisa existir.
         let store = makeStore()
+        store.apply(snapshot(.claudeCode, sessionUsed: 10))
         store.apply(snapshot(.claudeCode, sessionUsed: 76))
         XCTAssertNotNil(store.activeThresholdAlert)
         try await Task.sleep(for: .seconds(5.2))
@@ -79,10 +86,38 @@ final class ThresholdLifecycleTests: XCTestCase {
         XCTAssertNotNil(store.activeThresholdAlert)
         // Janela reseta: 5% usado → 95% restantes.
         store.apply(snapshot(.claudeCode, sessionUsed: 5))
-        XCTAssertNil(store.activeThresholdAlert)
+        XCTAssertEqual(store.activeThresholdAlert?.threshold, 100, "reset announces the new full window")
         // E os thresholds rearmam: novo crossing dispara de novo.
         store.apply(snapshot(.claudeCode, sessionUsed: 80))
         XCTAssertEqual(store.activeThresholdAlert?.threshold, 25)
+    }
+
+    func testResetTimestampJitterDoesNotRefireThreshold() {
+        let store = makeStore()
+        let reset = Date().addingTimeInterval(3_600)
+        store.apply(UsageSnapshot(
+            provider: .claudeCode,
+            health: .ok,
+            session: SessionUsage(resetsAt: reset, usedPercent: 10),
+            lastActivityAt: Date()
+        ))
+        store.apply(UsageSnapshot(
+            provider: .claudeCode,
+            health: .ok,
+            session: SessionUsage(resetsAt: reset, usedPercent: 76),
+            lastActivityAt: Date()
+        ))
+        let count = store.events.filter { $0.kind == .alert && $0.message.contains("left") }.count
+        store.apply(UsageSnapshot(
+            provider: .claudeCode,
+            health: .ok,
+            session: SessionUsage(resetsAt: reset.addingTimeInterval(30), usedPercent: 77),
+            lastActivityAt: Date()
+        ))
+        XCTAssertEqual(
+            store.events.filter { $0.kind == .alert && $0.message.contains("left") }.count,
+            count
+        )
     }
 }
 

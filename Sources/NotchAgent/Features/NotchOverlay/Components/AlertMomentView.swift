@@ -9,9 +9,10 @@ struct AlertMomentView: View {
 
     private var severityColor: Color {
         switch alert.threshold {
-        case 5, 10: Theme.danger
-        case 15: Theme.warning
-        default: Theme.caution
+        case ...5: Theme.danger
+        case ...25: Theme.warning
+        case ...50: Theme.caution
+        default: Theme.coral
         }
     }
 
@@ -19,8 +20,8 @@ struct AlertMomentView: View {
     private var pulseSpeed: Double {
         switch alert.threshold {
         case 5: 5.0
-        case 10: 3.0
-        case 15: 1.8
+        case ...25: 3.0
+        case ...50: 1.8
         default: 1.1
         }
     }
@@ -28,9 +29,10 @@ struct AlertMomentView: View {
     private var headline: String {
         switch alert.threshold {
         case 5: "ALMOST EMPTY"
-        case 10: "CRITICAL"
-        case 15: "RUNNING LOW"
-        default: "HEADS UP"
+        case ...25: "RUNNING LOW"
+        case ...50: "HALFWAY"
+        case ...75: "ON TRACK"
+        default: "FULL TANK"
         }
     }
 
@@ -38,9 +40,10 @@ struct AlertMomentView: View {
         let window = alert.isWeekly ? "weekly limit" : "5h session"
         switch alert.threshold {
         case 5: return "Your \(window) is about to run out."
-        case 10: return "Plan the next prompts — \(window) nearly drained."
-        case 15: return "The \(window) is going fast."
-        default: return "A quarter of the \(window) left."
+        case ...25: return "Plan the next prompts — \(window) is running low."
+        case ...50: return "Half of the \(window) remains."
+        case ...75: return "A quarter of the \(window) has been used."
+        default: return "A new \(window) is ready."
         }
     }
 
@@ -86,7 +89,7 @@ struct AlertMomentView: View {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(
                         severityColor.opacity(0.30 + 0.65 * pulse),
-                        lineWidth: alert.threshold <= 10 ? 3 : 2
+                        lineWidth: alert.threshold <= 25 ? 3 : 2
                     )
             )
             .overlay(alignment: .bottomTrailing) {

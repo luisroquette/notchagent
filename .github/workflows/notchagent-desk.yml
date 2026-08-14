@@ -1,0 +1,70 @@
+name: NotchAgent Desk
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/notchagent-desk.yml"
+      - "Sources/NotchAgent/**"
+      - "Tests/NotchAgentTests/**"
+      - "firmware/notchagent_desk/**"
+      - "Scripts/check-notchagent-desk.sh"
+      - "Scripts/notchagent-desk-*.sh"
+      - "Scripts/notarize-app.sh"
+      - "Scripts/generate-update-appcast.sh"
+      - "Scripts/make-app.sh"
+      - "Scripts/make-notchagent-desk-beta1.sh"
+      - "Scripts/audit-public-release.sh"
+      - "Scripts/check-github-actions-pins.sh"
+      - "docs/NOTCHAGENT_DESK*"
+      - "docs/evidence/notchagent-desk-*"
+      - "docs/img/notchagent-desk-*"
+      - "Package.swift"
+      - "Package.resolved"
+      - "README.md"
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/notchagent-desk.yml"
+      - "Sources/NotchAgent/**"
+      - "Tests/NotchAgentTests/**"
+      - "firmware/notchagent_desk/**"
+      - "Scripts/check-notchagent-desk.sh"
+      - "Scripts/notchagent-desk-*.sh"
+      - "Scripts/notarize-app.sh"
+      - "Scripts/generate-update-appcast.sh"
+      - "Scripts/make-app.sh"
+      - "Scripts/make-notchagent-desk-beta1.sh"
+      - "Scripts/audit-public-release.sh"
+      - "Scripts/check-github-actions-pins.sh"
+      - "docs/NOTCHAGENT_DESK*"
+      - "docs/evidence/notchagent-desk-*"
+      - "docs/img/notchagent-desk-*"
+      - "Package.swift"
+      - "Package.resolved"
+      - "README.md"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: macos-14
+    timeout-minutes: 30
+    env:
+      ARDUINO_DIRECTORIES_USER: ${{ runner.temp }}/notchagent-arduino
+    steps:
+      # actions/checkout v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      # arduino/setup-arduino-cli v2.0.0
+      - uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02
+        with:
+          version: 1.5.1
+      - name: Install pinned ESP32 toolchain
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32@3.3.8 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli lib install "ArduinoJson@7.2.0" "GFX Library for Arduino@1.6.5" "lvgl@9.2.2"
+      - name: Validate NotchAgent Desk
+        env:
+          NOTCHAGENT_DISABLE_PAID_PROBES: "1"
+        run: Scripts/check-notchagent-desk.sh

@@ -12,11 +12,18 @@ jobs:
   audit:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      # actions/checkout v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
+      - name: Fetch immutable public-history baseline
+        run: git fetch --no-tags https://github.com/luisroquette/notchagent.git master:refs/remotes/public-audit/master
       - name: Audit public source and history
+        env:
+          NOTCHAGENT_PUBLIC_HISTORY_BASE: refs/remotes/public-audit/master
         run: zsh Scripts/audit-public-release.sh
+      - name: Validate GitHub Action pins
+        run: zsh Scripts/check-github-actions-pins.sh
       - name: Validate release version
         run: zsh Scripts/check-version.sh
       - name: Validate product site

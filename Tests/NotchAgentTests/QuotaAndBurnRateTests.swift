@@ -217,7 +217,26 @@ final class AppSettingsCompatibilityTests: XCTestCase {
         XCTAssertEqual(settings.refreshIntervalSeconds, 120)
         XCTAssertEqual(settings.warningThresholdPercent, 60)
         XCTAssertFalse(settings.notchOverlayEnabled)
-        XCTAssertTrue(settings.claudeQuotaProbeEnabled, "new fields default sanely")
+        XCTAssertFalse(settings.claudeQuotaProbeEnabled, "network quota probing must remain explicit opt-in")
+        XCTAssertFalse(settings.notchAgentDeskOnboardingCompleted)
         XCTAssertNil(settings.claudeSessionTokenBudget)
+    }
+
+    func testLegacyNetworkProbeIsDisabledUntilNewConsent() throws {
+        let legacy = """
+        {"claudeQuotaProbeEnabled":true,"notchAgentDeskEnabled":true}
+        """
+        let migrated = try JSONDecoder().decode(AppSettings.self, from: Data(legacy.utf8))
+        XCTAssertFalse(migrated.claudeQuotaProbeEnabled)
+        XCTAssertTrue(migrated.notchAgentDeskOnboardingCompleted)
+
+        var consented = AppSettings()
+        consented.claudeQuotaProbeConsentVersion = 1
+        consented.claudeQuotaProbeEnabled = true
+        let restored = try JSONDecoder().decode(
+            AppSettings.self,
+            from: JSONEncoder().encode(consented)
+        )
+        XCTAssertTrue(restored.claudeQuotaProbeEnabled)
     }
 }

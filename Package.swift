@@ -11,6 +11,9 @@ let package = Package(
     products: [
         .library(name: "AgentMeterCore", targets: ["AgentMeterCore"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.9.4"),
+    ],
     targets: [
         .target(
             name: "AgentMeterCore",
@@ -18,8 +21,17 @@ let package = Package(
         ),
         .executableTarget(
             name: "NotchAgent",
-            dependencies: ["AgentMeterCore"],
-            path: "Sources/NotchAgent"
+            dependencies: [
+                "AgentMeterCore",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ],
+            path: "Sources/NotchAgent",
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-rpath",
+                    "-Xlinker", "@executable_path/../Frameworks",
+                ]),
+            ]
         ),
         .testTarget(
             name: "AgentMeterCoreTests",

@@ -27,10 +27,21 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var fallbackPillEnabled: Bool = true
     /// Pixel Clawd running a dino-game track across the compact bar.
     public var runnerEnabled: Bool = true
+    /// Remaining-percent milestones that trigger quota alert takeovers.
+    public var quotaAlertThresholdPercents: [Int] = [100, 75, 50, 25, 5]
+    /// Opt-in mirroring of sanitized usage snapshots. Desk discovery, firmware
+    /// identity, and local hardware telemetry remain automatic.
+    public var notchAgentDeskEnabled: Bool = false
+    /// Set only after the user explicitly enables Desk usage mirroring. It is
+    /// used to avoid repeatedly presenting first-connection onboarding.
+    public var notchAgentDeskOnboardingCompleted: Bool = false
     /// Probe the Anthropic API (max_tokens: 1) using the local Claude Code OAuth
     /// token to read the authoritative 5h/7d quota percentages from response
     /// headers. Falls back to token budgets when disabled or no token is found.
-    public var claudeQuotaProbeEnabled: Bool = true
+    public var claudeQuotaProbeEnabled: Bool = false
+    /// Consent schema for the network probe. Legacy persisted `true` values
+    /// predate the explicit-cost disclosure and are deliberately not trusted.
+    public var claudeQuotaProbeConsentVersion: Int = 0
     /// Opt-in account monitors. No network request is made until this is true
     /// and at least one service is selected.
     public var apiAccountMonitoringEnabled: Bool = false
@@ -67,7 +78,11 @@ public struct AppSettings: Codable, Sendable, Equatable {
         case notchOverlayEnabled
         case fallbackPillEnabled
         case runnerEnabled
+        case quotaAlertThresholdPercents
+        case notchAgentDeskEnabled
+        case notchAgentDeskOnboardingCompleted
         case claudeQuotaProbeEnabled
+        case claudeQuotaProbeConsentVersion
         case apiAccountMonitoringEnabled
         case apiAccounts
         case monitoredAPIServices
@@ -90,7 +105,24 @@ public struct AppSettings: Codable, Sendable, Equatable {
         notchOverlayEnabled = try container.decodeIfPresent(Bool.self, forKey: .notchOverlayEnabled) ?? true
         fallbackPillEnabled = try container.decodeIfPresent(Bool.self, forKey: .fallbackPillEnabled) ?? true
         runnerEnabled = try container.decodeIfPresent(Bool.self, forKey: .runnerEnabled) ?? true
-        claudeQuotaProbeEnabled = try container.decodeIfPresent(Bool.self, forKey: .claudeQuotaProbeEnabled) ?? true
+        quotaAlertThresholdPercents = ThresholdAlerts.normalized(
+            try container.decodeIfPresent([Int].self, forKey: .quotaAlertThresholdPercents)
+                ?? ThresholdAlerts.defaultLevels
+        )
+        notchAgentDeskEnabled = try container.decodeIfPresent(Bool.self, forKey: .notchAgentDeskEnabled) ?? false
+        notchAgentDeskOnboardingCompleted = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .notchAgentDeskOnboardingCompleted
+        ) ?? notchAgentDeskEnabled
+        claudeQuotaProbeConsentVersion = try container.decodeIfPresent(
+            Int.self,
+            forKey: .claudeQuotaProbeConsentVersion
+        ) ?? 0
+        let persistedQuotaProbe = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .claudeQuotaProbeEnabled
+        ) ?? false
+        claudeQuotaProbeEnabled = persistedQuotaProbe && claudeQuotaProbeConsentVersion >= 1
         apiAccountMonitoringEnabled = try container.decodeIfPresent(Bool.self, forKey: .apiAccountMonitoringEnabled) ?? false
         monitoredAPIServices = try container.decodeIfPresent(Set<APIServiceID>.self, forKey: .monitoredAPIServices) ?? []
         apiAccountIdentifiers = try container.decodeIfPresent([APIServiceID: String].self, forKey: .apiAccountIdentifiers) ?? [:]

@@ -16,3 +16,6 @@ xcuserdata/
 *.credentials.json
 *private-config*
 graphify-out/
+docs/evidence/
+firmware/notchagent_desk/release/
+firmware/notchagent_desk/build/

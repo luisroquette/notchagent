@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "lotAlias": "BETA1-LOT-A",
+  "unitAlias": "DESK-B1-001",
+  "capturedAt": "2026-08-13T00:00:00Z",
+  "artifacts": {
+    "display": {"file": "/absolute/private/path/display.png", "sha256": "PENDING"},
+    "touch": {"file": "/absolute/private/path/touch.png", "sha256": "PENDING"},
+    "swipe": {"file": "/absolute/private/path/swipe.png", "sha256": "PENDING"},
+    "runner": {"file": "/absolute/private/path/runner.png", "sha256": "PENDING"}
+  },
+  "result": "pending"
+}

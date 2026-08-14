@@ -1,6 +1,28 @@
 import Foundation
 
 struct SanitizedDiagnosticReport: Codable, Sendable {
+    struct DeskRecord: Codable, Sendable {
+        var phase: NotchAgentDeskConnectionState.Phase
+        var firmwareVersion: String?
+        var protocolMajor: UInt8?
+        var protocolMinor: UInt8?
+        var uptimeSeconds: UInt64?
+        var freeHeapBytes: UInt32?
+        var minimumFreeHeapBytes: UInt32?
+        var framesPerSecond: Double?
+        var resetReason: String?
+        var invalidFrameCount: UInt32?
+        var handshakeCount: UInt32?
+        var touchCount: UInt32?
+        var touchInterruptCount: UInt32?
+        var touchReadErrorCount: UInt32?
+        var touchPollAttemptCount: UInt32?
+        var touchPollTouchCount: UInt32?
+        var touchControllerPresent: Bool?
+        var lastTouchLatencyMs: Double?
+        var maximumTouchLatencyMs: Double?
+    }
+
     struct ProviderRecord: Codable, Sendable {
         var provider: ProviderID
         var health: ProviderHealth?
@@ -29,6 +51,7 @@ struct SanitizedDiagnosticReport: Codable, Sendable {
     var configuredAPIAccountCount: Int
     var providers: [ProviderRecord]
     var accounts: [AccountRecord]
+    var desk: DeskRecord?
 }
 
 enum SanitizedDiagnosticExporter {
@@ -37,6 +60,7 @@ enum SanitizedDiagnosticExporter {
         settings: AppSettings,
         snapshots: [ProviderID: UsageSnapshot],
         refreshStates: [ProviderID: RefreshState],
+        deskConnection: NotchAgentDeskConnectionState? = nil,
         generatedAt: Date = Date(),
         bundle: Bundle = .main
     ) -> SanitizedDiagnosticReport {
@@ -74,12 +98,35 @@ enum SanitizedDiagnosticExporter {
         }
 
         return SanitizedDiagnosticReport(
-            schemaVersion: 1,
+            schemaVersion: 4,
             generatedAt: generatedAt,
             appVersion: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development",
             configuredAPIAccountCount: accounts.count,
             providers: providerRecords,
-            accounts: accountRecords
+            accounts: accountRecords,
+            desk: deskConnection.map {
+                SanitizedDiagnosticReport.DeskRecord(
+                    phase: $0.phase,
+                    firmwareVersion: $0.firmwareVersion,
+                    protocolMajor: $0.protocolMajor,
+                    protocolMinor: $0.protocolMinor,
+                    uptimeSeconds: $0.telemetry?.uptimeSeconds,
+                    freeHeapBytes: $0.telemetry?.freeHeapBytes,
+                    minimumFreeHeapBytes: $0.telemetry?.minimumFreeHeapBytes,
+                    framesPerSecond: $0.telemetry?.framesPerSecond,
+                    resetReason: $0.telemetry?.resetReason,
+                    invalidFrameCount: $0.telemetry?.invalidFrameCount,
+                    handshakeCount: $0.telemetry?.handshakeCount,
+                    touchCount: $0.telemetry?.touchCount,
+                    touchInterruptCount: $0.telemetry?.touchInterruptCount,
+                    touchReadErrorCount: $0.telemetry?.touchReadErrorCount,
+                    touchPollAttemptCount: $0.telemetry?.touchPollAttemptCount,
+                    touchPollTouchCount: $0.telemetry?.touchPollTouchCount,
+                    touchControllerPresent: $0.telemetry?.touchControllerPresent,
+                    lastTouchLatencyMs: $0.telemetry?.lastTouchLatencyMs,
+                    maximumTouchLatencyMs: $0.telemetry?.maximumTouchLatencyMs
+                )
+            }
         )
     }
 

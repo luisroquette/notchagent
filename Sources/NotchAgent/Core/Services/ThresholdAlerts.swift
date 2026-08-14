@@ -1,7 +1,7 @@
 import Foundation
 
 /// Escalating "space left" alert fired when a provider's gauge crosses below
-/// 25 / 15 / 10 / 5 percent remaining. Each threshold fires once per window;
+/// Configurable percent-remaining milestones. Each threshold fires once per window;
 /// everything re-arms when the window resets (remaining climbs back up).
 public struct ThresholdAlert: Sendable, Equatable {
     public var provider: ProviderID
@@ -21,30 +21,55 @@ public struct ThresholdAlert: Sendable, Equatable {
 }
 
 public enum ThresholdAlerts {
-    public static let levels = [25, 15, 10, 5]
-    /// Re-arm only after the gauge climbs clearly above the top threshold,
-    /// so jitter around a boundary can't re-fire the same alert.
-    static let resetAbove: Double = 27
+    public static let defaultLevels = [100, 75, 50, 25, 5]
+    public static let resetBoundaryTolerance: TimeInterval = 120
+
+    public static func normalized(_ levels: [Int]) -> [Int] {
+        Array(Set(levels.map { min(100, max(1, $0)) })).sorted(by: >)
+    }
 
     /// The deepest threshold newly crossed, or nil.
-    public static func newCrossing(remaining: Double, alreadyFired: Set<Int>) -> Int? {
-        levels
+    public static func newCrossing(
+        remaining: Double,
+        alreadyFired: Set<Int>,
+        levels: [Int] = defaultLevels
+    ) -> Int? {
+        normalized(levels)
             .filter { remaining <= Double($0) && !alreadyFired.contains($0) }
             .min()
     }
 
     /// All thresholds the current value sits at or below (mark them fired
     /// together so a steep drop produces one alert, not a cascade).
-    public static func crossed(remaining: Double) -> Set<Int> {
-        Set(levels.filter { remaining <= Double($0) })
+    public static func crossed(remaining: Double, levels: [Int] = defaultLevels) -> Set<Int> {
+        Set(normalized(levels).filter { remaining <= Double($0) })
     }
 
-    public static func shouldReset(remaining: Double) -> Bool {
-        remaining > resetAbove
+    /// Cold start is not a crossing. Only announce a genuinely full window or
+    /// an already-critical window; seed intermediate milestones silently.
+    public static func initialCrossing(
+        remaining: Double,
+        levels: [Int] = defaultLevels
+    ) -> Int? {
+        let levels = normalized(levels)
+        guard !levels.isEmpty else { return nil }
+        if remaining >= 99.5, levels.contains(100) { return 100 }
+        guard let deepest = levels.min(), remaining <= Double(deepest) else { return nil }
+        return deepest
+    }
+
+    public static func shouldReset(remaining: Double, previousLow: Double?) -> Bool {
+        guard let previousLow else { return remaining >= 99.5 }
+        return remaining >= 99.5 || remaining - previousLow >= 20
+    }
+
+    public static func resetBoundaryChanged(previous: Date?, current: Date?) -> Bool {
+        guard let previous, let current else { return false }
+        return abs(current.timeIntervalSince(previous)) > resetBoundaryTolerance
     }
 
     public static func attentionLevel(for threshold: Int) -> AttentionLevel {
-        threshold <= 10 ? .critical : .warning
+        threshold <= 5 ? .critical : threshold <= 25 ? .warning : .normal
     }
 
     public static func message(for alert: ThresholdAlert) -> String {

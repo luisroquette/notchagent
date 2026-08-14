@@ -4,34 +4,49 @@ import XCTest
 final class ThresholdAlertsTests: XCTestCase {
     func testCrossingFiresDeepestNewThreshold() {
         XCTAssertEqual(ThresholdAlerts.newCrossing(remaining: 24, alreadyFired: []), 25)
-        // Steep drop straight to 9%: one alert at the deepest level.
-        XCTAssertEqual(ThresholdAlerts.newCrossing(remaining: 9, alreadyFired: []), 10)
-        XCTAssertEqual(ThresholdAlerts.crossed(remaining: 9), [25, 15, 10])
+        XCTAssertEqual(ThresholdAlerts.newCrossing(remaining: 74, alreadyFired: []), 75)
+        XCTAssertEqual(ThresholdAlerts.crossed(remaining: 74), [100, 75])
     }
 
     func testEachThresholdFiresOncePerWindow() {
         var fired: Set<Int> = []
-        // 24% → fire 25, mark.
-        XCTAssertEqual(ThresholdAlerts.newCrossing(remaining: 24, alreadyFired: fired), 25)
-        fired.formUnion(ThresholdAlerts.crossed(remaining: 24))
-        // Still 22% → nothing new.
-        XCTAssertNil(ThresholdAlerts.newCrossing(remaining: 22, alreadyFired: fired))
-        // 14% → fire 15.
-        XCTAssertEqual(ThresholdAlerts.newCrossing(remaining: 14, alreadyFired: fired), 15)
-        fired.formUnion(ThresholdAlerts.crossed(remaining: 14))
-        // 4% → fire 5 (10 also newly crossed, 5 is deeper... deepest is 5).
+        XCTAssertEqual(ThresholdAlerts.newCrossing(remaining: 74, alreadyFired: fired), 75)
+        fired.formUnion(ThresholdAlerts.crossed(remaining: 74))
+        XCTAssertNil(ThresholdAlerts.newCrossing(remaining: 70, alreadyFired: fired))
+        XCTAssertEqual(ThresholdAlerts.newCrossing(remaining: 49, alreadyFired: fired), 50)
+        fired.formUnion(ThresholdAlerts.crossed(remaining: 49))
         XCTAssertEqual(ThresholdAlerts.newCrossing(remaining: 4, alreadyFired: fired), 5)
     }
 
     func testWindowResetRearmsAlerts() {
-        XCTAssertFalse(ThresholdAlerts.shouldReset(remaining: 26), "hysteresis: jitter at the boundary must not re-arm")
-        XCTAssertTrue(ThresholdAlerts.shouldReset(remaining: 80))
+        XCTAssertFalse(ThresholdAlerts.shouldReset(remaining: 26, previousLow: 24), "jitter must not re-arm")
+        XCTAssertTrue(ThresholdAlerts.shouldReset(remaining: 80, previousLow: 24))
+    }
+
+    func testResetBoundaryIgnoresParserJitter() {
+        let reset = Date(timeIntervalSince1970: 2_000_000_000)
+        XCTAssertFalse(ThresholdAlerts.resetBoundaryChanged(
+            previous: reset,
+            current: reset.addingTimeInterval(119)
+        ))
+        XCTAssertTrue(ThresholdAlerts.resetBoundaryChanged(
+            previous: reset,
+            current: reset.addingTimeInterval(121)
+        ))
+    }
+
+    func testColdStartOnlyAnnouncesFullOrCriticalState() {
+        XCTAssertEqual(ThresholdAlerts.initialCrossing(remaining: 100), 100)
+        XCTAssertNil(ThresholdAlerts.initialCrossing(remaining: 87))
+        XCTAssertNil(ThresholdAlerts.initialCrossing(remaining: 24))
+        XCTAssertEqual(ThresholdAlerts.initialCrossing(remaining: 4), 5)
+        XCTAssertNil(ThresholdAlerts.initialCrossing(remaining: 4, levels: []))
     }
 
     func testSeverityMapping() {
+        XCTAssertEqual(ThresholdAlerts.attentionLevel(for: 100), .normal)
+        XCTAssertEqual(ThresholdAlerts.attentionLevel(for: 50), .normal)
         XCTAssertEqual(ThresholdAlerts.attentionLevel(for: 25), .warning)
-        XCTAssertEqual(ThresholdAlerts.attentionLevel(for: 15), .warning)
-        XCTAssertEqual(ThresholdAlerts.attentionLevel(for: 10), .critical)
         XCTAssertEqual(ThresholdAlerts.attentionLevel(for: 5), .critical)
     }
 

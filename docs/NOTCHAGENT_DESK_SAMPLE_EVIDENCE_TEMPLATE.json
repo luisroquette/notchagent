@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "itemId": "display",
+  "supplierAlias": "SUPPLIER-A",
+  "sku": "PENDING",
+  "inspectedAt": "2026-08-13T00:00:00Z",
+  "inspectorAlias": "OPERATOR-A",
+  "photoFiles": [
+    "/absolute/private/path/front.png",
+    "/absolute/private/path/back.png"
+  ],
+  "photoSHA256s": [
+    "PENDING",
+    "PENDING"
+  ],
+  "checks": {
+    "display": false,
+    "noDeadPixels": false,
+    "touch": false
+  },
+  "result": "pending"
+}

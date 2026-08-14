@@ -5,11 +5,11 @@
 <p align="center">
   <a href="https://luisroquette.github.io/notchagent/"><img src="https://img.shields.io/badge/website-live-FF654F?style=flat-square" alt="NotchAgent website" /></a>
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.0.0-38D6C7?style=flat-square" alt="Version v3.0.0" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.1.1--beta.1-38D6C7?style=flat-square" alt="Version v3.1.1 Beta 1" /></a>
   <a href="#install"><img src="https://img.shields.io/badge/install-Homebrew-F3B85A?style=flat-square" alt="Install with Homebrew" /></a>
 </p>
 
-**Current version: 3.0.0** · released 2026-07-30 · [version history](CHANGELOG.md)
+**Current version: 3.1.1** · Desk Beta 1 · released 2026-08-14 · [version history](CHANGELOG.md)
 
 A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
 financial monitoring of external API accounts. It shows provider-reported
@@ -17,6 +17,19 @@ spend, balance, plans and quotas with explicit sources and time windows —
 local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
 
 **Also available for Windows** — a system-tray companion (.NET 8 + Avalonia, same parsers, same quota probe) since Windows has no notch. See [`windows/README.md`](windows/README.md) for the current (v1) feature set and build instructions.
+
+**NotchAgent Desk Beta 1** extends the same local-first state to a
+Guition JC4832W535 ESP32-S3 touch display over USB. The device has no provider
+credentials, network access, or independent polling. See
+[`docs/NOTCHAGENT_DESK.md`](docs/NOTCHAGENT_DESK.md) and
+[`firmware/notchagent_desk`](firmware/notchagent_desk).
+
+Beta 1 adds automatic device identity, visible firmware/protocol/health,
+sanitized diagnostics, a hash-verified local recovery updater, and repeatable
+reconnect/soak-test gates. No device telemetry leaves the Mac.
+See the [onboarding guide](docs/NOTCHAGENT_DESK_ONBOARDING.md),
+[verified BOM](docs/NOTCHAGENT_DESK_BOM.md), and
+[five-person pilot protocol](docs/NOTCHAGENT_DESK_PILOT.md).
 
 ![The compact notch bar: Claude on the left wing, Codex on the right](docs/img/notch-compact.png)
 
@@ -188,6 +201,7 @@ what's new, fixes, security, and validation.
 Providers (plugin) ─▶ UsageSnapshot ─▶ UsageStore (@Observable) ─▶ Notch · MenuBar · Dashboard
       ▲ FileScanCache/actors    ▲ StatusAggregator + ThresholdAlerts + BurnRate (pure, tested)
 RefreshScheduler ───────────────┴─▶ SnapshotStore/HistoryStore (JSON, 30d)
+                                       └─▶ sanitized DeskSnapshot ─USB─▶ NotchAgent Desk
 ```
 
 - **Overlay**: a borderless, non-activating `NSPanel` (`.statusBar` level, all Spaces, above fullscreen) with a custom `hitTest` — only the visible shape captures clicks; the rest of the transparent window is click-through.
@@ -220,13 +234,19 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 
 ## Distribution status
 
-- [x] NotchAgent 3.0 · API financial monitoring · automated test suite
-- [x] Public release [v3.0.0](https://github.com/luisroquette/notchagent/releases/tag/v3.0.0)
+- [x] NotchAgent 3.1.1 · Desk Beta 1 · automated test suite
+- [x] Public release [v3.1.1](https://github.com/luisroquette/notchagent/releases/tag/v3.1.1)
 - [x] Homebrew Cask install
 - [x] Packaged `.app` with icon + launch-at-login + notifications
-- [ ] Apple Developer account → sign with Developer ID + `notarytool` + staple *(requires the owner's credentials)*
+- [x] Developer ID signature + notarization + stapled ticket
 - [ ] DMG (`create-dmg`)
-- [ ] Auto-update (Sparkle) — post-launch
+- [x] Auto-update (Sparkle 2) — embedded; commercial builds require an HTTPS appcast and EdDSA public key
+
+Commercial release builds use `NOTCHAGENT_UPDATE_FEED_URL` and
+`NOTCHAGENT_UPDATE_PUBLIC_ED_KEY`. After notarization,
+`Scripts/generate-update-appcast.sh` creates the signed appcast locally; it does
+not upload or publish files. Keep Sparkle's private EdDSA key in the macOS
+Keychain.
 - [x] Product site on [GitHub Pages](https://luisroquette.github.io/notchagent/)
 - [ ] Licensing (Paddle/Lemon Squeezy) — business decision
 

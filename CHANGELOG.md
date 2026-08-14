@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.1.1 — 2026-08-14 (Desk Beta 1)
+
+- Adds NotchAgent Desk automatic USB discovery, local usage mirroring, hardware
+  telemetry, safe diagnostics, signed recovery packaging, and reliability gates.
+- Desk mirroring and the optional Anthropic quota probe are off by default and
+  require separate explicit consent.
+- Setup now requires a successful Claude Code or Codex read from the current app
+  launch; stale persisted snapshots and local read failures cannot enable Desk.
+- Incompatible firmware and provider read failures open recovery controls
+  automatically, with improved VoiceOver grouping.
+- Adds explicit Codex install, authentication, first-session, and ready states
+  with official sign-in, PT/EN guidance, automatic refresh, and no credential access.
+- Fixes Developer ID recovery by isolating the bundled PyInstaller flasher's
+  library-validation entitlement while keeping Hardened Runtime on the app.
+
 ## 3.0.0 — 2026-07-30
 
 NotchAgent's second generation, now also focused on financial monitoring of

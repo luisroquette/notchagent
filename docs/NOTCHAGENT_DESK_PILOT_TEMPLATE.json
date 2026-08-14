@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 6,
+  "pilotAlias": "BETA1-A",
+  "severity1Defects": 0,
+  "participants": [
+    {
+      "participantAlias": "P01",
+      "unitAlias": "DESK-B1-001",
+      "macClass": "macbook-air-apple-silicon",
+      "macOSMajor": 14,
+      "consentEvidenceFile": null,
+      "consentEvidenceSHA256": null,
+      "days": [
+        {
+          "date": "2026-09-01",
+          "connectionSuccess": true,
+          "connectionSeconds": 4.2,
+          "dockClass": "direct",
+          "dockAlias": "DIRECT",
+          "firmwareVersion": "0.6.16",
+          "healthPass": true,
+          "resetAnomalyCount": 0,
+          "minimumFreeHeapBytes": 156596,
+          "minimumFramesPerSecond": 7.4,
+          "maximumTouchLatencyMs": 25.343,
+          "touchObserved": true,
+          "sourceReport": null,
+          "sourceReportSHA256": null,
+          "updateResult": "not_attempted"
+        }
+      ],
+      "usable": {
+        "touch": true,
+        "swipe": true,
+        "runner": true,
+        "alerts": true,
+        "recovery": true
+      }
+    }
+  ]
+}

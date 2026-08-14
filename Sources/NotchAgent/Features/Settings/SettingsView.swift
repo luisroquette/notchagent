@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     private enum SettingsSection: String, CaseIterable, Identifiable {
+        case desk
         case general
         case apiAccounts
 
@@ -16,18 +17,39 @@ struct SettingsView: View {
     @Environment(PreferencesStore.self) private var preferences
     @EnvironmentObject private var spending: SubscriptionStore
     @State private var selectedSection: SettingsSection = .general
+    @State private var deskDiagnosticStatus: String?
+    @State private var showsDeskFirmwareConfirmation = false
+    @State private var showsDeskDetails = false
+    @State private var codexOnboarding: CodexOnboardingStatus?
+    @State private var codexOnboardingMessage: String?
+    @State private var codexOnboardingBusy = false
 
     var body: some View {
         @Bindable var preferences = preferences
+        @Bindable var desk = AppEnvironment.shared.desk
+        let store = AppEnvironment.shared.store
         let pt = preferences.settings.interfaceLanguage == .ptBR
+        let ambient = NotchAgentDeskAmbientIntelligence.recommend(store: store)
+        let deskSetup = NotchAgentDeskSetupStatus(
+            connectionPhase: desk.connectionState.phase,
+            mirroringEnabled: preferences.settings.notchAgentDeskEnabled,
+            claudeInstallation: ClaudeProvider().detectInstallation(),
+            codexInstallation: CodexProvider().detectInstallation(),
+            claudeHealth: store.snapshots[.claudeCode]?.health,
+            codexHealth: store.snapshots[.codex]?.health,
+            claudeRefreshState: store.refreshStates[.claudeCode] ?? .idle,
+            codexRefreshState: store.refreshStates[.codex] ?? .idle
+        )
 
         Form {
             Picker(pt ? "Seção" : "Section", selection: $selectedSection) {
+                Text("Desk").tag(SettingsSection.desk)
                 Text(pt ? "Geral" : "General").tag(SettingsSection.general)
                 Text(pt ? "Contas de API" : "API accounts").tag(SettingsSection.apiAccounts)
             }
             .pickerStyle(.segmented)
 
+            if selectedSection != .apiAccounts {
             if selectedSection == .general {
             Section {
                 Picker(pt ? "Idioma" : "Language", selection: $preferences.settings.interfaceLanguage) {
@@ -48,10 +70,18 @@ struct SettingsView: View {
                 .disabled(!LoginItem.isAvailable)
                 Toggle(pt ? "Alertas de quota como notificações" : "Quota alerts as system notifications", isOn: $preferences.settings.notificationsEnabled)
                     .disabled(!NotificationService.isAvailable)
+                Button(pt ? "Buscar atualização…" : "Check for updates…") {
+                    AppEnvironment.shared.appUpdates.checkForUpdates()
+                }
+                .disabled(!AppEnvironment.shared.appUpdates.isConfigured)
             } header: {
                 Text(pt ? "Geral" : "General")
             } footer: {
-                if !BundleContext.isBundledApp {
+                if BundleContext.isBundledApp && !AppEnvironment.shared.appUpdates.isConfigured {
+                    Text(pt ? "Atualizações automáticas serão ativadas no build comercial assinado." : "Automatic updates will be enabled in the signed commercial build.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if !BundleContext.isBundledApp {
                     Text(pt ? "Início automático e notificações exigem o app empacotado." : "Launch at login and notifications require the packaged app — build it with Scripts/make-app.sh.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -76,6 +106,10 @@ struct SettingsView: View {
                     Slider(value: $preferences.settings.criticalThresholdPercent, in: 60...100, step: 5)
                         .frame(width: 180)
                 }
+                QuotaThresholdEditor(
+                    title: pt ? "Marcos de quota" : "Quota milestones",
+                    values: $preferences.settings.quotaAlertThresholdPercents
+                )
             }
 
             Section(pt ? "Notch" : "Notch overlay") {
@@ -89,7 +123,150 @@ struct SettingsView: View {
                     }
                 }
             }
+            }
 
+            if selectedSection == .desk {
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: deskSetup.isReady ? "checkmark.circle.fill" : "display.and.arrow.down")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundStyle(deskSetup.isReady ? .green : .orange)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(deskSetup.isReady
+                             ? (pt ? "Seu Desk está pronto" : "Your Desk is ready")
+                             : (pt ? "Concluir configuração" : "Finish setup"))
+                            .font(.headline)
+                        Text(deskSetup.isReady
+                             ? (pt ? "Dados locais ativos na tela." : "Local usage is active on the display.")
+                             : deskNextAction(deskSetup, portuguese: pt))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+
+                deskSetupRow(
+                    pt ? "Tela" : "Display",
+                    state: deskSetup.desk,
+                    ready: deskStatus(desk.connectionState.phase, portuguese: pt),
+                    waiting: pt ? "Conecte o cabo USB de dados" : "Connect the USB data cable",
+                    portuguese: pt
+                )
+                deskSetupRow(
+                    "Claude Code",
+                    state: deskSetup.claude,
+                    ready: pt ? "Detectado neste Mac" : "Detected on this Mac",
+                    waiting: pt ? "Abra uma sessão uma vez" : "Open a session once",
+                    portuguese: pt
+                )
+                deskSetupRow(
+                    "Codex",
+                    state: codexOnboarding == .ready ? .ready : .waiting,
+                    ready: pt ? "Autenticado e com sessão local" : "Authenticated with a local session",
+                    waiting: codexStatusDetail(codexOnboarding, portuguese: pt),
+                    portuguese: pt
+                )
+                if let codexOnboarding, codexOnboarding != .ready {
+                    HStack {
+                        Button(codexActionTitle(codexOnboarding, portuguese: pt)) {
+                            handleCodexOnboarding(codexOnboarding, portuguese: pt)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(codexOnboardingBusy)
+                        if codexOnboardingBusy {
+                            ProgressView().controlSize(.small)
+                        }
+                    }
+                }
+                if let codexOnboardingMessage {
+                    Text(codexOnboardingMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if !preferences.settings.notchAgentDeskEnabled {
+                    Button {
+                        preferences.settings.notchAgentDeskEnabled = true
+                        preferences.settings.notchAgentDeskOnboardingCompleted = true
+                    } label: {
+                        Label(
+                            pt ? "Ativar meu Desk" : "Enable my Desk",
+                            systemImage: "checkmark.shield"
+                        )
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!deskSetup.canEnableMirroring)
+                } else {
+                    Toggle(
+                        pt ? "Espelhar uso local" : "Mirror local usage",
+                        isOn: $preferences.settings.notchAgentDeskEnabled
+                    )
+                }
+
+                DisclosureGroup(
+                    pt ? "Diagnóstico e recuperação" : "Diagnostics and recovery",
+                    isExpanded: $showsDeskDetails
+                ) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let firmware = desk.connectionState.firmwareVersion {
+                            LabeledContent("Firmware") { Text(firmware).monospacedDigit() }
+                        }
+                        if let major = desk.connectionState.protocolMajor,
+                           let minor = desk.connectionState.protocolMinor {
+                            LabeledContent(pt ? "Protocolo" : "Protocol") {
+                                Text("v\(major).\(minor)").monospacedDigit()
+                            }
+                        }
+                        if let health = desk.connectionState.telemetry {
+                            LabeledContent(pt ? "Saúde" : "Health") {
+                                Text("\(Int(health.framesPerSecond.rounded())) FPS · \(health.freeHeapBytes / 1_024) KB")
+                                    .monospacedDigit()
+                            }
+                            LabeledContent(pt ? "Toque" : "Touch") {
+                                Text("\(String(format: "%.1f", health.lastTouchLatencyMs)) ms · \(health.touchReadErrorCount ?? 0) err")
+                                    .monospacedDigit()
+                            }
+                        }
+                        LabeledContent(pt ? "Decisão local" : "Local decision") {
+                            Text("\(ambient.page.rawValue.uppercased()) · \(ambient.reason)")
+                                .font(.caption.monospaced())
+                                .multilineTextAlignment(.trailing)
+                        }
+                        HStack {
+                            Button(pt ? "Atualizar firmware…" : "Update firmware…") {
+                                showsDeskFirmwareConfirmation = true
+                            }
+                            .disabled(!canUpdateDesk(desk))
+                            Button {
+                                exportDeskDiagnostic(portuguese: pt)
+                            } label: {
+                                Label(
+                                    pt ? "Exportar diagnóstico" : "Export diagnostic",
+                                    systemImage: "square.and.arrow.up"
+                                )
+                            }
+                            if case .updating = desk.updateState {
+                                ProgressView().controlSize(.small)
+                            }
+                        }
+                        Text(deskDiagnosticStatus ?? deskUpdateStatus(desk.updateState, portuguese: pt))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 6)
+                }
+            } header: {
+                Text("NotchAgent Desk")
+            } footer: {
+                Text(pt
+                     ? "O Desk usa somente dados locais sanitizados. Nenhuma credencial, prompt, valor financeiro ou caminho de arquivo é enviado à tela."
+                     : "Desk uses sanitized local data only. Credentials, prompts, financial amounts, and file paths are never sent to the display.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            }
+
+            if selectedSection == .general {
             Section(pt ? "Custos" : "Costs") {
                 Picker(pt ? "Moeda exibida" : "Display currency", selection: Binding(
                     get: { spending.displayCurrency },
@@ -127,6 +304,7 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            }
 
             } else {
                 APIAccountsSettingsSection()
@@ -134,6 +312,18 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 460)
+        .onAppear {
+            selectDeskForOnboardingIfNeeded(desk.connectionState.phase)
+            revealDeskRecoveryIfNeeded(deskSetup)
+            refreshCodexOnboarding()
+        }
+        .onChange(of: desk.connectionState.phase) { _, phase in
+            selectDeskForOnboardingIfNeeded(phase)
+            revealDeskRecoveryIfNeeded(deskSetup)
+        }
+        .onChange(of: deskSetup.hasProviderError) { _, _ in
+            revealDeskRecoveryIfNeeded(deskSetup)
+        }
         .onChange(of: preferences.settings.notchOverlayEnabled) {
             AppEnvironment.shared.notchController?.rebuild()
         }
@@ -147,6 +337,23 @@ struct SettingsView: View {
             // Restart so the new cadence applies now, not after the old sleep.
             AppEnvironment.shared.scheduler.restart()
         }
+        .onChange(of: preferences.settings.notchAgentDeskEnabled) {
+            if preferences.settings.notchAgentDeskEnabled {
+                preferences.settings.notchAgentDeskOnboardingCompleted = true
+            }
+            AppEnvironment.shared.applyNotchAgentDeskEnabled()
+        }
+        .onChange(of: preferences.settings.claudeQuotaProbeEnabled) {
+            if preferences.settings.claudeQuotaProbeEnabled {
+                preferences.settings.claudeQuotaProbeConsentVersion = 1
+            }
+        }
+        .onChange(of: preferences.settings.quotaAlertThresholdPercents) {
+            AppEnvironment.shared.desk.settingsDidChange()
+        }
+        .onChange(of: preferences.settings.runnerEnabled) {
+            AppEnvironment.shared.desk.settingsDidChange()
+        }
         .onChange(of: preferences.settings.warningThresholdPercent) { _, warning in
             if preferences.settings.criticalThresholdPercent < warning + 5 {
                 preferences.settings.criticalThresholdPercent = min(100, warning + 5)
@@ -156,6 +363,19 @@ struct SettingsView: View {
             if preferences.settings.warningThresholdPercent > critical - 5 {
                 preferences.settings.warningThresholdPercent = max(40, critical - 5)
             }
+        }
+        .confirmationDialog(
+            pt ? "Atualizar o NotchAgent Desk?" : "Update NotchAgent Desk?",
+            isPresented: $showsDeskFirmwareConfirmation
+        ) {
+            Button(pt ? "Atualizar agora" : "Update now") {
+                desk.installBundledFirmware()
+            }
+            Button(pt ? "Cancelar" : "Cancel", role: .cancel) {}
+        } message: {
+            Text(pt
+                ? "Mantenha o cabo conectado. Se a atualização falhar, reconecte o Desk e tente novamente."
+                : "Keep the cable connected. If the update fails, reconnect Desk and retry.")
         }
     }
 
@@ -168,6 +388,210 @@ struct SettingsView: View {
         formatter.minimumFractionDigits = 4
         formatter.maximumFractionDigits = 4
         return formatter.string(from: rate as NSDecimalNumber) ?? rate.description
+    }
+
+    private func selectDeskForOnboardingIfNeeded(_ phase: NotchAgentDeskConnectionState.Phase) {
+        guard !preferences.settings.notchAgentDeskOnboardingCompleted,
+              phase == .connected || phase == .incompatible
+        else { return }
+        selectedSection = .desk
+    }
+
+    private func revealDeskRecoveryIfNeeded(_ status: NotchAgentDeskSetupStatus) {
+        if status.desk == .actionRequired || status.hasProviderError {
+            showsDeskDetails = true
+        }
+    }
+
+    private func deskStatus(_ phase: NotchAgentDeskConnectionState.Phase, portuguese: Bool) -> String {
+        switch phase {
+        case .disabled: portuguese ? "Desativado" : "Disabled"
+        case .searching: portuguese ? "Procurando…" : "Searching…"
+        case .handshaking: portuguese ? "Reconhecendo…" : "Recognizing…"
+        case .connected: portuguese ? "Conectado" : "Connected"
+        case .incompatible: portuguese ? "Firmware incompatível" : "Incompatible firmware"
+        }
+    }
+
+    private func codexActionTitle(_ status: CodexOnboardingStatus, portuguese: Bool) -> String {
+        switch status {
+        case .notInstalled: portuguese ? "Instalar Codex" : "Install Codex"
+        case .notAuthenticated: portuguese ? "Autenticar Codex" : "Authenticate Codex"
+        case .noSession: portuguese ? "Criar primeira sessão" : "Create first session"
+        case .ready: portuguese ? "Codex pronto" : "Codex ready"
+        }
+    }
+
+    private func codexStatusDetail(_ status: CodexOnboardingStatus?, portuguese: Bool) -> String {
+        switch status {
+        case nil: portuguese ? "Verificando…" : "Checking…"
+        case .notInstalled: portuguese ? "Codex não instalado" : "Codex is not installed"
+        case .notAuthenticated: portuguese ? "Autenticação necessária" : "Authentication required"
+        case .noSession: portuguese ? "Crie a primeira sessão" : "Create the first session"
+        case .ready: portuguese ? "Pronto" : "Ready"
+        }
+    }
+
+    private func handleCodexOnboarding(_ status: CodexOnboardingStatus, portuguese: Bool) {
+        guard !codexOnboardingBusy, let action = status.action else { return }
+        codexOnboardingMessage = nil
+
+        if action == .openInstallGuide {
+            guard let url = URL(string: "https://developers.openai.com/codex/cli"),
+                  NSWorkspace.shared.open(url)
+            else {
+                codexOnboardingMessage = portuguese
+                    ? "Não foi possível abrir o guia de instalação."
+                    : "Could not open the installation guide."
+                return
+            }
+            codexOnboardingMessage = portuguese
+                ? "Instale o Codex e volte para esta tela."
+                : "Install Codex, then return to this screen."
+            return
+        }
+
+        codexOnboardingBusy = true
+        codexOnboardingMessage = action == .authenticate
+            ? (portuguese ? "Conclua o login oficial no navegador." : "Complete the official login in your browser.")
+            : (portuguese ? "Terminal aberto para criar a primeira sessão." : "Terminal opened to create the first session.")
+
+        Task {
+            do {
+                switch action {
+                case .authenticate:
+                    try await CodexOnboardingInspector.beginLogin()
+                case .createFirstSession:
+                    try await CodexOnboardingInspector.beginFirstSession()
+                case .openInstallGuide:
+                    break
+                }
+                let updated = await CodexOnboardingInspector.waitForStateChange(from: status)
+                codexOnboarding = updated
+                if updated == .ready {
+                    AppEnvironment.shared.scheduler.refreshNow()
+                }
+                codexOnboardingMessage = updated == .ready
+                    ? (portuguese ? "Codex pronto." : "Codex ready.")
+                    : codexStatusDetail(updated, portuguese: portuguese)
+            } catch {
+                codexOnboardingMessage = portuguese
+                    ? "Não foi possível iniciar o Codex. Tente novamente."
+                    : "Could not start Codex. Try again."
+            }
+            codexOnboardingBusy = false
+        }
+    }
+
+    private func refreshCodexOnboarding() {
+        Task {
+            codexOnboarding = await CodexOnboardingInspector.inspect()
+            if codexOnboarding == .ready {
+                AppEnvironment.shared.scheduler.refreshNow()
+            }
+            codexOnboardingMessage = nil
+        }
+    }
+
+    private func deskNextAction(_ status: NotchAgentDeskSetupStatus, portuguese: Bool) -> String {
+        if status.desk == .actionRequired {
+            return portuguese ? "Atualize o firmware em Diagnóstico e recuperação." : "Update firmware under Diagnostics and recovery."
+        }
+        if status.desk != .ready {
+            return portuguese ? "Conecte a tela com o cabo USB de dados." : "Connect the display with its USB data cable."
+        }
+        if !status.hasLocalProvider {
+            if status.hasProviderError {
+                return portuguese
+                    ? "Falha na leitura local. Atualize ou exporte o diagnóstico."
+                    : "Local read failed. Refresh or export the diagnostic."
+            }
+            return portuguese ? "Abra Claude Code ou Codex uma vez neste Mac." : "Open Claude Code or Codex once on this Mac."
+        }
+        return portuguese ? "Ative o espelhamento local para finalizar." : "Enable local mirroring to finish."
+    }
+
+    private func deskSetupRow(
+        _ title: String,
+        state: NotchAgentDeskSetupStatus.StepState,
+        ready: String,
+        waiting: String,
+        portuguese: Bool
+    ) -> some View {
+        let icon: String
+        let color: Color
+        let detail: String
+        switch state {
+        case .ready:
+            icon = "checkmark.circle.fill"
+            color = .green
+            detail = ready
+        case .waiting:
+            icon = "circle.dotted"
+            color = .secondary
+            detail = waiting
+        case .actionRequired:
+            icon = "exclamationmark.circle.fill"
+            color = .orange
+            detail = portuguese ? "Ação necessária" : "Action required"
+        }
+        return HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(color)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+            Text(title)
+            Spacer()
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func exportDeskDiagnostic(portuguese: Bool) {
+        let environment = AppEnvironment.shared
+        let report = SanitizedDiagnosticExporter.report(
+            settings: environment.preferences.settings,
+            snapshots: environment.store.snapshots,
+            refreshStates: environment.store.refreshStates,
+            deskConnection: environment.desk.connectionState
+        )
+        do {
+            let data = try SanitizedDiagnosticExporter.data(report)
+            let panel = NSSavePanel()
+            panel.allowedContentTypes = [.json]
+            panel.nameFieldStringValue = "NotchAgent-Desk-diagnostic.json"
+            guard panel.runModal() == .OK, let url = panel.url else { return }
+            try data.write(to: url, options: .atomic)
+            deskDiagnosticStatus = portuguese ? "Diagnóstico exportado." : "Diagnostic exported."
+        } catch {
+            deskDiagnosticStatus = portuguese
+                ? "Falha ao exportar o diagnóstico."
+                : "Failed to export diagnostic."
+        }
+    }
+
+    private func canUpdateDesk(_ desk: NotchAgentDeskCoordinator) -> Bool {
+        DeskFirmwareRecoveryEligibility.canInstall(
+            connection: desk.connectionState,
+            updateState: desk.updateState
+        )
+    }
+
+    private func deskUpdateStatus(_ state: NotchAgentDeskUpdateState, portuguese: Bool) -> String {
+        switch state {
+        case .unavailable:
+            portuguese ? "Firmware de recuperação não incluído neste build." : "Recovery firmware is not included in this build."
+        case .ready(let version):
+            portuguese ? "Firmware v\(version) pronto para instalar." : "Firmware v\(version) is ready to install."
+        case .updating:
+            portuguese ? "Atualizando; não desconecte o cabo." : "Updating; do not disconnect the cable."
+        case .succeeded(let version):
+            portuguese ? "Firmware v\(version) instalado." : "Firmware v\(version) installed."
+        case .failed(let message):
+            portuguese ? "Falha: \(message)" : "Failed: \(message)"
+        }
     }
 
     private func budgetField(_ label: String, value: Binding<Int?>) -> some View {
@@ -184,6 +608,46 @@ struct SettingsView: View {
             .textFieldStyle(.roundedBorder)
             .frame(width: 140)
             .multilineTextAlignment(.trailing)
+        }
+    }
+}
+
+private struct QuotaThresholdEditor: View {
+    let title: String
+    @Binding var values: [Int]
+
+    var body: some View {
+        LabeledContent(title) {
+            VStack(alignment: .trailing, spacing: 4) {
+                ForEach(Array(values.indices), id: \.self) { index in
+                    HStack(spacing: 6) {
+                        Text("\(values[index])%")
+                            .monospacedDigit()
+                            .frame(width: 36)
+                        Stepper(
+                            "\(values[index])%",
+                            value: Binding(
+                                get: { values[index] },
+                                set: { newValue in
+                                    guard values.indices.contains(index) else { return }
+                                    var updated = values
+                                    let clamped = min(100, max(1, newValue))
+                                    guard !updated.enumerated().contains(where: {
+                                        $0.offset != index && $0.element == clamped
+                                    }) else { return }
+                                    updated[index] = clamped
+                                    values = ThresholdAlerts.normalized(updated)
+                                }
+                            ),
+                            in: 1...100,
+                            step: 5
+                        )
+                        .labelsHidden()
+                        .accessibilityLabel("\(title) \(index + 1)")
+                        .accessibilityValue("\(values[index]) percent")
+                    }
+                }
+            }
         }
     }
 }
@@ -578,7 +1042,8 @@ private struct APIAccountsSettingsSection: View {
         let report = SanitizedDiagnosticExporter.report(
             settings: preferences.settings,
             snapshots: usageStore.snapshots,
-            refreshStates: usageStore.refreshStates
+            refreshStates: usageStore.refreshStates,
+            deskConnection: AppEnvironment.shared.desk.connectionState
         )
         do {
             let data = try SanitizedDiagnosticExporter.data(report)

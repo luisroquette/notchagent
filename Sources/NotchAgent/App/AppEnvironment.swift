@@ -15,6 +15,8 @@ final class AppEnvironment {
     let notchViewModel: NotchViewModel
     let router: WindowRouter
     let spending: SubscriptionStore
+    let desk: NotchAgentDeskCoordinator
+    let appUpdates: AppUpdateController
     let notifications = NotificationService()
     private(set) var notchController: NotchWindowController?
     private var exchangeRateTask: Task<Void, Never>?
@@ -34,7 +36,16 @@ final class AppEnvironment {
         notchViewModel = NotchViewModel()
         router = WindowRouter()
         spending = SubscriptionStore()
+        desk = NotchAgentDeskCoordinator(store: store)
+        appUpdates = AppUpdateController()
         router.environment = self
+        desk.onConnectionPhaseChange = { [weak self] phase in
+            guard let self,
+                  phase == .connected || phase == .incompatible,
+                  !self.preferences.settings.notchAgentDeskOnboardingCompleted
+            else { return }
+            self.router.openSettings()
+        }
         spending.onMonthlyBudgetAlert = { [notifications, preferences] alert in
             notifications.postBudget(alert, settings: preferences.settings)
         }
@@ -46,7 +57,7 @@ final class AppEnvironment {
         }
     }
 
-    func bootstrap(startScheduler: Bool = true) {
+    func bootstrap(startScheduler: Bool = true, deskMirroringOverride: Bool? = nil) {
         Log.app.info("bootstrap: \(self.providers.count) providers")
         for provider in providers {
             let installation = provider.detectInstallation()
@@ -65,6 +76,9 @@ final class AppEnvironment {
             }
         }
         startExchangeRateRefresh()
+        // Discovery and hardware telemetry are automatic. The preference only
+        // controls whether sanitized usage snapshots are mirrored to the Desk.
+        desk.start(mirroringEnabled: deskMirroringOverride ?? preferences.settings.notchAgentDeskEnabled)
         store.record(UsageEvent(kind: .info, message: "NotchAgent started"))
     }
 
@@ -85,5 +99,9 @@ final class AppEnvironment {
         let appearance = preferences.settings.themeMode.nsAppearance
         notchController?.applyAppearance(appearance)
         router.applyAppearance(appearance)
+    }
+
+    func applyNotchAgentDeskEnabled() {
+        desk.setMirroringEnabled(preferences.settings.notchAgentDeskEnabled)
     }
 }

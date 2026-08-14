@@ -26,14 +26,21 @@ final class UsageStore {
     /// Deepest point reached while `firedThresholds[key]` is non-empty — the
     /// animation's starting point once the window resets and we celebrate.
     @ObservationIgnored private var lowestRemainingSinceFired: [String: Double] = [:]
+    /// Authoritative window boundary when providers expose one. This avoids
+    /// treating ordinary quota-estimate corrections as a new window.
+    @ObservationIgnored private var alertWindowResetAt: [String: Date] = [:]
     @ObservationIgnored private var alertDismissTask: Task<Void, Never>?
     @ObservationIgnored private var restoreDismissTask: Task<Void, Never>?
-    var isPaused = false
+    var isPaused = false {
+        didSet { if oldValue != isPaused { onDeskStateChange?() } }
+    }
 
     let preferences: PreferencesStore
     /// Side-channel for system notifications; set once by AppEnvironment.
     @ObservationIgnored var onAlert: ((ProviderAlert) -> Void)?
     @ObservationIgnored var onRestore: ((RestoreMoment) -> Void)?
+    /// Coalesced by NotchAgentDeskCoordinator; contains no transport logic.
+    @ObservationIgnored var onDeskStateChange: (() -> Void)?
     private static let maxEvents = 200
 
     init(preferences: PreferencesStore) {
@@ -62,6 +69,7 @@ final class UsageStore {
         for (provider, snapshot) in persisted where snapshots[provider] == nil {
             snapshots[provider] = snapshot
         }
+        onDeskStateChange?()
     }
 
     func markRefreshing(_ provider: ProviderID) {
@@ -71,10 +79,12 @@ final class UsageStore {
                 accountRefreshStates[account.id] = .refreshing
             }
         }
+        onDeskStateChange?()
     }
 
     func markAccountRefreshing(_ accountID: UUID) {
         accountRefreshStates[accountID] = .refreshing
+        onDeskStateChange?()
     }
 
     func apply(_ snapshot: UsageSnapshot, updatingAccountIDs: Set<UUID>? = nil) {
@@ -115,6 +125,7 @@ final class UsageStore {
             ))
             onAlert?(alert)
         }
+        onDeskStateChange?()
     }
 
     func applyFailure(
@@ -130,6 +141,7 @@ final class UsageStore {
             }
         }
         record(UsageEvent(provider: provider, kind: .error, level: .warning, message: error))
+        onDeskStateChange?()
     }
 
     func accountRefreshState(
@@ -152,6 +164,7 @@ final class UsageStore {
 
     func updateSparkline(_ provider: ProviderID, values: [Double]) {
         sparklines[provider] = values
+        onDeskStateChange?()
     }
 
     var recentErrors: [UsageEvent] {
@@ -171,9 +184,24 @@ final class UsageStore {
         guard let metric = GaugeMetric.from(snapshot) else { return }
         let remaining = metric.remaining
         let key = "\(snapshot.provider.rawValue)·\(metric.isWeekly ? "wk" : "5h")"
+        let configuredThresholds = ThresholdAlerts.normalized(settings.quotaAlertThresholdPercents)
+        guard !configuredThresholds.isEmpty else {
+            firedThresholds[key] = []
+            lowestRemainingSinceFired[key] = nil
+            return
+        }
+        let resetAt = metric.isWeekly ? snapshot.weekly?.resetsAt : snapshot.session?.resetsAt
+        let isFirstObservation = firedThresholds[key] == nil
         var fired = firedThresholds[key] ?? []
-
-        if ThresholdAlerts.shouldReset(remaining: remaining) {
+        let resetBoundaryChanged = ThresholdAlerts.resetBoundaryChanged(
+            previous: alertWindowResetAt[key],
+            current: resetAt
+        )
+        let inferredReset = resetAt == nil && ThresholdAlerts.shouldReset(
+            remaining: remaining,
+            previousLow: lowestRemainingSinceFired[key]
+        )
+        if !isFirstObservation && (resetBoundaryChanged || inferredReset) {
             // Had crossed into low-fuel territory and just climbed back out —
             // celebrate it, using the deepest point reached as the animation's
             // starting fuel level. Covers a window resetting on schedule, an
@@ -193,8 +221,15 @@ final class UsageStore {
                 dismissThresholdAlert()
             }
         }
-        if let threshold = ThresholdAlerts.newCrossing(remaining: remaining, alreadyFired: fired) {
-            fired.formUnion(ThresholdAlerts.crossed(remaining: remaining))
+        if let resetAt { alertWindowResetAt[key] = resetAt }
+        let threshold = isFirstObservation
+            ? ThresholdAlerts.initialCrossing(remaining: remaining, levels: configuredThresholds)
+            : ThresholdAlerts.newCrossing(remaining: remaining, alreadyFired: fired, levels: configuredThresholds)
+        if let threshold {
+            fired.formUnion(ThresholdAlerts.crossed(
+                remaining: remaining,
+                levels: configuredThresholds
+            ))
             let alert = ThresholdAlert(
                 provider: snapshot.provider,
                 threshold: threshold,
@@ -206,6 +241,9 @@ final class UsageStore {
             let message = ThresholdAlerts.message(for: alert)
             record(UsageEvent(provider: snapshot.provider, kind: .alert, level: level, message: message))
             onAlert?(ProviderAlert(provider: snapshot.provider, level: level, message: message))
+        }
+        if isFirstObservation {
+            fired.formUnion(ThresholdAlerts.crossed(remaining: remaining, levels: configuredThresholds))
         }
         if !fired.isEmpty {
             lowestRemainingSinceFired[key] = min(lowestRemainingSinceFired[key] ?? remaining, remaining)
@@ -275,5 +313,6 @@ final class UsageStore {
         } else {
             record(UsageEvent(kind: .info, message: "Anthropic incident resolved"))
         }
+        onDeskStateChange?()
     }
 }

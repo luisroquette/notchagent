@@ -3,8 +3,8 @@ name: Sync to public repo
 # One-way mirror: notchagent-personal (private, source of truth) -> notchagent
 # (public). Every push to master here re-runs the same audit the public repo
 # already requires (Scripts/audit-public-release.sh: secret patterns + the
-# hardcoded personal-identifier blocklist, scanned in current files AND full
-# git history) before anything reaches the public repo. If the audit, version
+# hardcoded personal-identifier blocklist, scanned in current files and every
+# commit added after the existing public baseline) before anything reaches the public repo. If the audit, version
 # check or tests fail, this job fails and NOTHING is pushed — no partial or
 # redacted sync, the whole push is blocked until fixed here.
 #
@@ -24,31 +24,55 @@ jobs:
   sync:
     if: github.repository == 'luisroquette/notchagent-personal'
     runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      ARDUINO_DIRECTORIES_USER: ${{ runner.temp }}/notchagent-arduino
     steps:
-      - uses: actions/checkout@v4
+      # actions/checkout v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
+      - name: Fetch immutable public-history baseline
+        run: git fetch --no-tags https://github.com/luisroquette/notchagent.git master:refs/remotes/public-audit/master
+
+      # arduino/setup-arduino-cli v2.0.0
+      - uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02
+        with:
+          version: 1.5.1
+
+      - name: Install pinned ESP32 toolchain
+        run: |
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32@3.3.8 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli lib install "ArduinoJson@7.2.0" "GFX Library for Arduino@1.6.5" "lvgl@9.2.2"
+
       - name: Audit for secrets and personal identifiers
+        env:
+          NOTCHAGENT_PUBLIC_HISTORY_BASE: refs/remotes/public-audit/master
         run: zsh Scripts/audit-public-release.sh
+
+      - name: Validate GitHub Action pins
+        run: zsh Scripts/check-github-actions-pins.sh
 
       - name: Validate release version
         run: zsh Scripts/check-version.sh
 
-      - name: Test without paid probes
+      - name: Validate app, Desk contracts, firmware, and privacy without paid probes
         env:
           NOTCHAGENT_DISABLE_PAID_PROBES: "1"
-        run: swift test
+        run: Scripts/check-notchagent-desk.sh
 
       - name: Push to public repo
         env:
           DEPLOY_KEY: ${{ secrets.PUBLIC_REPO_DEPLOY_KEY }}
         run: |
           set -euo pipefail
+          umask 077
           mkdir -p ~/.ssh
-          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          trap 'rm -f -- ~/.ssh/deploy_key' EXIT
+          printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > ~/.ssh/known_hosts
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes"
           git remote add public git@github.com:luisroquette/notchagent.git
           git push public HEAD:master

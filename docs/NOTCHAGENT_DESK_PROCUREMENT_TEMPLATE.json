@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 4,
+  "lotAlias": "BETA1-LOT-A",
+  "currency": "BRL",
+  "plannedUnits": 5,
+  "items": [
+    {
+      "id": "display",
+      "supplierAlias": "SUPPLIER-A",
+      "sku": "PENDING",
+      "unitCost": 0,
+      "minimumOrder": 1,
+      "orderQuantity": 5,
+      "leadTimeDays": 0,
+      "samplePassed": false,
+      "sampleEvidenceFile": "PENDING",
+      "sampleEvidenceSHA256": "PENDING"
+    },
+    {
+      "id": "data-cable",
+      "supplierAlias": "SUPPLIER-B",
+      "sku": "PENDING",
+      "unitCost": 0,
+      "minimumOrder": 1,
+      "orderQuantity": 5,
+      "leadTimeDays": 0,
+      "samplePassed": false,
+      "sampleEvidenceFile": "PENDING",
+      "sampleEvidenceSHA256": "PENDING",
+      "dataTransferPassed": false,
+      "directMacPassed": false,
+      "dockPassed": false
+    },
+    {
+      "id": "enclosure",
+      "supplierAlias": "SUPPLIER-C",
+      "sku": "PENDING",
+      "unitCost": 0,
+      "minimumOrder": 1,
+      "orderQuantity": 5,
+      "leadTimeDays": 0,
+      "samplePassed": false,
+      "sampleEvidenceFile": "PENDING",
+      "sampleEvidenceSHA256": "PENDING",
+      "connectorFitPassed": false,
+      "touchAccessPassed": false,
+      "ventilationPassed": false,
+      "bootAccessPassed": false
+    },
+    {
+      "id": "packaging",
+      "supplierAlias": "SUPPLIER-D",
+      "sku": "PENDING",
+      "unitCost": 0,
+      "minimumOrder": 1,
+      "orderQuantity": 5,
+      "leadTimeDays": 0,
+      "samplePassed": false,
+      "sampleEvidenceFile": "PENDING",
+      "sampleEvidenceSHA256": "PENDING",
+      "onboardingQRIncluded": true,
+      "recoveryCardIncluded": true
+    }
+  ]
+}
