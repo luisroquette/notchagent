@@ -50,9 +50,9 @@ jobs:
   validate:
     runs-on: macos-14
     timeout-minutes: 30
-    env:
-      ARDUINO_DIRECTORIES_USER: ${{ runner.temp }}/notchagent-arduino
     steps:
+      - name: Configure isolated Arduino directory
+        run: echo "ARDUINO_DIRECTORIES_USER=$RUNNER_TEMP/notchagent-arduino" >> "$GITHUB_ENV"
       # actions/checkout v4
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       # arduino/setup-arduino-cli v2.0.0
