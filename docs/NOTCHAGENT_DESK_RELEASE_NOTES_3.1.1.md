@@ -15,7 +15,7 @@ into a local, plug-and-play Codex status surface.
 
 1. Download `NotchAgent-Desk-Beta1-3.1.1.zip` from this release.
 2. Move NotchAgent to Applications and open it.
-3. Connect the pre-flashed Desk using the included USB data cable.
+3. Connect the pre-flashed Desk using any compatible USB data cable.
 4. Follow **Settings → Desk** until the app shows **Your Desk is ready**.
 
 Requires macOS 14 or later. The application is Developer ID signed, notarized,

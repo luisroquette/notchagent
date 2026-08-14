@@ -1,7 +1,7 @@
 # NotchAgent Desk Beta 1 onboarding
 
 1. Install the signed NotchAgent release on a Mac running macOS 14 or later.
-2. Connect NotchAgent Desk with the included USB **data** cable. A charge-only
+2. Connect NotchAgent Desk with any compatible USB **data** cable. A charge-only
    cable powers the screen but cannot connect the app.
 3. NotchAgent opens **Settings → Desk** automatically on the first connection.
    It shows the exact Codex state: not installed, authentication required,
