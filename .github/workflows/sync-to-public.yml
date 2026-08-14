@@ -22,6 +22,7 @@ permissions:
 
 jobs:
   sync:
+    if: github.repository == 'luisroquette/notchagent-personal'
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
