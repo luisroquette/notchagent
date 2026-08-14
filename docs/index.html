@@ -87,6 +87,45 @@
       </div>
     </section>
 
+    <section class="flight-recorder section" id="flight-recorder">
+      <div class="shell recorder-intro reveal">
+        <p class="section-index light">00 / QUOTA FLIGHT RECORDER</p>
+        <div>
+          <h2>See the limit<br>before you feel it.</h2>
+          <p>Move through one sample Claude window. NotchAgent keeps reported quota, local pace and its verdict separate — so an estimate never dresses up as a fact.</p>
+        </div>
+      </div>
+
+      <div class="shell recorder-shell reveal delay-1">
+        <div class="recorder-topline">
+          <span><i></i> LOCAL SNAPSHOT</span>
+          <span>INTERACTIVE ILLUSTRATION · SAMPLE DATA</span>
+        </div>
+        <div class="recorder-tabs" role="tablist" aria-label="Sample quota window moments">
+          <button id="recorder-tab-steady" type="button" role="tab" aria-selected="true" aria-controls="recorder-panel" tabindex="0" data-recorder-state="steady"><span>01</span> On track</button>
+          <button id="recorder-tab-hot" type="button" role="tab" aria-selected="false" aria-controls="recorder-panel" tabindex="-1" data-recorder-state="hot"><span>02</span> Running hot</button>
+          <button id="recorder-tab-reset" type="button" role="tab" aria-selected="false" aria-controls="recorder-panel" tabindex="-1" data-recorder-state="reset"><span>03</span> Window reset</button>
+        </div>
+
+        <div class="recorder-panel" id="recorder-panel" role="tabpanel" aria-labelledby="recorder-tab-steady" aria-live="polite">
+          <div class="quota-dial" data-quota-dial>
+            <div><strong data-quota-value>58%</strong><span>5H LEFT</span></div>
+          </div>
+          <div class="recorder-signal">
+            <div class="signal-heading"><span>CLAUDE · 5H WINDOW</span><b data-signal-status>HEALTHY</b></div>
+            <div class="signal-rail" aria-hidden="true"><i data-signal-rail></i><em data-signal-marker></em></div>
+            <p data-signal-verdict>Current pace fits inside this window.</p>
+            <div class="signal-metrics">
+              <div><span>RESETS IN</span><strong data-reset-time>02:14</strong><small>OFFICIAL HEADER</small></div>
+              <div><span>PROJECTED LEFT</span><strong data-projected-value>16%</strong><small>LOCAL ESTIMATE</small></div>
+              <div><span>DECISION</span><strong data-decision-value>KEEP BUILDING</strong><small>DERIVED VERDICT</small></div>
+            </div>
+          </div>
+        </div>
+        <p class="recorder-note">A visual model of NotchAgent's published source labels. It reads sample data here and controls nothing on your Mac.</p>
+      </div>
+    </section>
+
     <section class="problem-section section" id="product">
       <div class="shell split-heading reveal">
         <p class="section-index">01 / THE SIGNAL</p>

@@ -19,6 +19,8 @@ jobs:
         run: zsh Scripts/audit-public-release.sh
       - name: Validate release version
         run: zsh Scripts/check-version.sh
+      - name: Validate product site
+        run: python3 Scripts/validate-site.py
       - name: Test without paid probes
         env:
           NOTCHAGENT_DISABLE_PAID_PROBES: "1"
