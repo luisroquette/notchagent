@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NotchAgent — Your AI fuel gauge</title>
+  <meta name="description" content="A native, local-first macOS quota and API-spend monitor for Claude Code, Codex and your AI accounts — living in your MacBook notch.">
+  <meta name="theme-color" content="#080908">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://luisroquette.github.io/notchagent/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NotchAgent">
+  <meta property="og:title" content="NotchAgent — Your AI fuel gauge">
+  <meta property="og:description" content="Claude Code, Codex and API-account limits in one native, local-first Mac app.">
+  <meta property="og:url" content="https://luisroquette.github.io/notchagent/">
+  <meta property="og:image" content="https://raw.githubusercontent.com/luisroquette/notchagent/master/docs/img/desktop-now.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="NotchAgent — Your AI fuel gauge">
+  <meta name="twitter:description" content="See what is left before your agents run out of fuel.">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/luisroquette/notchagent/master/docs/img/desktop-now.png">
+  <link rel="icon" href="assets/notchagent-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "NotchAgent",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "macOS",
+      "softwareVersion": "3.0.0",
+      "description": "Native, local-first quota and API-spend monitoring for AI coding agents.",
+      "url": "https://luisroquette.github.io/notchagent/",
+      "downloadUrl": "https://github.com/luisroquette/notchagent/releases/latest",
+      "codeRepository": "https://github.com/luisroquette/notchagent",
+      "author": { "@type": "Person", "name": "Luis Roquette", "url": "https://github.com/luisroquette" },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header" data-header>
+    <div class="shell nav-shell">
+      <a class="brand" href="#top" aria-label="NotchAgent home">
+        <span class="brand-mark" aria-hidden="true"><i></i></span>
+        <span>NotchAgent</span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="#product">Product</a>
+        <a href="#intelligence">Intelligence</a>
+        <a href="#privacy">Privacy</a>
+        <a class="nav-install" href="https://github.com/luisroquette/notchagent/releases/latest">Download <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="shell hero-copy">
+        <p class="eyebrow reveal"><span></span> Native Swift · Local-first · v3.0</p>
+        <h1 class="reveal delay-1">Your AI fuel gauge.<br><em>Exactly where you look.</em></h1>
+        <p class="hero-lede reveal delay-2">Claude Code, Codex and API-account limits in one native Mac app — living in your notch, not another browser tab.</p>
+        <div class="hero-actions reveal delay-3">
+          <a class="button primary" href="#install">Install free <span aria-hidden="true">↓</span></a>
+          <a class="button ghost" href="https://github.com/luisroquette/notchagent">View source <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+
+      <div class="shell product-stage reveal delay-3" aria-label="NotchAgent compact quota gauge">
+        <div class="screen-lip" aria-hidden="true"><span></span></div>
+        <div class="compact-shot">
+          <img src="img/notch-compact.png" width="1038" height="78" alt="NotchAgent compact bar showing 58 percent Claude quota and 100 percent Codex quota remaining">
+        </div>
+        <div class="stage-meta" aria-hidden="true">
+          <span>SESSION LEFT</span><i></i><span>WEEK LEFT</span><i></i><span>LIVE</span>
+        </div>
+      </div>
+
+      <div class="shell truth-row">
+        <div><strong>01</strong><span>No Electron.<br>Swift 6 + SwiftUI.</span></div>
+        <div><strong>02</strong><span>No backend.<br>Your data stays local.</span></div>
+        <div><strong>03</strong><span>No mystery numbers.<br>Every source is labeled.</span></div>
+      </div>
+    </section>
+
+    <section class="problem-section section" id="product">
+      <div class="shell split-heading reveal">
+        <p class="section-index">01 / THE SIGNAL</p>
+        <div>
+          <h2>Know before<br>you run dry.</h2>
+          <p>Stop discovering a rate limit in the middle of a build. NotchAgent keeps the remaining window, reset time, pace and health within peripheral vision.</p>
+        </div>
+      </div>
+      <div class="shell mac-scene reveal">
+        <div class="window-bar"><span></span><span></span><span></span><small>NOTCHAGENT / NOW</small></div>
+        <img src="img/desktop-now.png" width="1800" height="1125" loading="lazy" alt="NotchAgent expanded NOW panel over the macOS desktop">
+      </div>
+    </section>
+
+    <section class="modes-section section">
+      <div class="shell section-head reveal">
+        <p class="section-index light">02 / FOUR READINGS</p>
+        <h2>One glance.<br>Four questions answered.</h2>
+      </div>
+      <div class="shell mode-grid">
+        <article class="mode-card reveal">
+          <div><span>NOW</span><small>01</small></div>
+          <h3>What is left?</h3>
+          <p>Provider-reported percentage, reset countdown, tokens, cost context and status.</p>
+          <img src="img/panel-now.png" loading="lazy" alt="NOW panel with quota left per provider">
+        </article>
+        <article class="mode-card reveal delay-1">
+          <div><span>BURN</span><small>02</small></div>
+          <h3>Will it last?</h3>
+          <p>Actual use, projected pace and an explicit verdict before the current window ends.</p>
+          <img src="img/panel-burn.png" loading="lazy" alt="BURN panel with actual and projected quota usage">
+        </article>
+        <article class="mode-card reveal">
+          <div><span>RHYTHM</span><small>03</small></div>
+          <h3>When do you burn?</h3>
+          <p>A local hourly pattern for today or seven days, with the current hour highlighted.</p>
+          <img src="img/panel-rhythm.png" loading="lazy" alt="RHYTHM panel showing hourly usage bars">
+        </article>
+        <article class="mode-card reveal delay-1">
+          <div><span>MODELS</span><small>04</small></div>
+          <h3>Which model is healthy?</h3>
+          <p>Model status, response time and transcript-derived usage without pretending estimates are facts.</p>
+          <img src="img/panel-models.png" loading="lazy" alt="MODELS panel showing model health and cost">
+        </article>
+      </div>
+    </section>
+
+    <section class="intelligence-section section" id="intelligence">
+      <div class="shell intelligence-grid">
+        <div class="intelligence-copy reveal">
+          <p class="section-index">03 / FINANCIAL INTELLIGENCE</p>
+          <h2>Your keys have a cost.<br>Now they have a dashboard.</h2>
+          <p>Monitor several accounts — even two from the same provider — while keeping fundamentally different values separate.</p>
+          <ul>
+            <li><span>Spend</span> What the current window consumed.</li>
+            <li><span>Balance</span> What remains in a prepaid account.</li>
+            <li><span>Plan</span> What a recurring subscription costs.</li>
+          </ul>
+        </div>
+        <div class="dashboard-stack reveal delay-1">
+          <img class="dashboard-main" src="img/dashboard-1.png" loading="lazy" alt="NotchAgent dashboard with token history and hourly rhythm">
+          <div class="source-stamp"><i></i><span>OFFICIAL API</span><b>≠</b><span>ESTIMATE</span></div>
+        </div>
+      </div>
+      <div class="shell provider-marquee" aria-label="Supported account providers">
+        <div>
+          <span>ANTHROPIC</span><span>OPENAI</span><span>DEEPSEEK</span><span>OPENROUTER</span><span>GOOGLE</span><span>xAI</span><span>ELEVENLABS</span><span>FIRECRAWL</span><span>TWITTERAPI.IO</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="privacy-section section" id="privacy">
+      <div class="shell privacy-grid">
+        <div class="privacy-orbit reveal" aria-hidden="true">
+          <div class="orbit one"><i></i></div>
+          <div class="orbit two"><i></i></div>
+          <div class="local-core"><span>LOCAL</span><strong>ONLY</strong></div>
+        </div>
+        <div class="reveal delay-1">
+          <p class="section-index light">04 / TRUST MODEL</p>
+          <h2>Your credentials<br>do not become our data.</h2>
+          <p>NotchAgent has no hosted backend and no telemetry. Credentials stay in the macOS Keychain, account sessions use isolated WebKit profiles, and exported diagnostics remove credentials, identities and financial amounts.</p>
+          <div class="privacy-pills">
+            <span>Keychain storage</span><span>Opt-in accounts</span><span>Sanitized diagnostics</span><span>Open source</span>
+          </div>
+          <small>The optional Claude quota probe can make a paid one-token request and can be disabled in Settings.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="install-section section" id="install">
+      <div class="shell install-grid">
+        <div class="reveal">
+          <p class="section-index">05 / INSTALL</p>
+          <h2>From zero to visible<br>in three commands.</h2>
+          <p>NotchAgent is free and open source. Install the latest macOS build with Homebrew or inspect every line before building it yourself.</p>
+          <div class="install-links">
+            <a href="https://github.com/luisroquette/notchagent/releases/latest">Download latest release <span aria-hidden="true">↗</span></a>
+            <a href="https://github.com/luisroquette/notchagent/tree/master/windows">Windows companion <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+        <div class="terminal reveal delay-1">
+          <div class="terminal-head"><span></span><span></span><span></span><small>TERMINAL</small></div>
+          <pre><code data-install-command>brew install --cask luisroquette/tap/notchagent
+xattr -dr com.apple.quarantine /Applications/NotchAgent.app
+open /Applications/NotchAgent.app</code></pre>
+          <button type="button" data-copy-install><span>Copy commands</span><b aria-hidden="true">⌘C</b></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="final-cta">
+      <div class="shell reveal">
+        <span class="mascot" aria-hidden="true">▦</span>
+        <p>CLAUDE · CODEX · API ACCOUNTS</p>
+        <h2>Keep building.<br><em>Watch the fuel.</em></h2>
+        <a class="button primary" href="https://github.com/luisroquette/notchagent/releases/latest">Get NotchAgent 3.0 <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-grid">
+      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"><i></i></span><span>NotchAgent</span></a>
+      <p>Native quota and API-spend intelligence for people who build with agents.</p>
+      <nav aria-label="Footer navigation">
+        <a href="https://github.com/luisroquette/notchagent">Source</a>
+        <a href="https://github.com/luisroquette/notchagent/blob/master/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/luisroquette/notchagent/releases">Releases</a>
+      </nav>
+    </div>
+    <div class="shell footer-legal"><span>© <span data-year></span> Luis Roquette</span><span>Open source · No affiliation with Anthropic or OpenAI</span></div>
+  </footer>
+</body>
+</html>

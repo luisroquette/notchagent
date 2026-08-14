@@ -3,6 +3,7 @@
 **The fuel gauge for your AI agents, living in your MacBook's notch.**
 
 <p align="center">
+  <a href="https://luisroquette.github.io/notchagent/"><img src="https://img.shields.io/badge/website-live-FF654F?style=flat-square" alt="NotchAgent website" /></a>
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.0.0-38D6C7?style=flat-square" alt="Version v3.0.0" /></a>
   <a href="#install"><img src="https://img.shields.io/badge/install-Homebrew-F3B85A?style=flat-square" alt="Install with Homebrew" /></a>
@@ -226,7 +227,8 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 - [ ] Apple Developer account → sign with Developer ID + `notarytool` + staple *(requires the owner's credentials)*
 - [ ] DMG (`create-dmg`)
 - [ ] Auto-update (Sparkle) — post-launch
-- [ ] Site/landing page + licensing (Paddle/Lemon Squeezy) — business decision
+- [x] Product site on [GitHub Pages](https://luisroquette.github.io/notchagent/)
+- [ ] Licensing (Paddle/Lemon Squeezy) — business decision
 
 ## Observability
 
