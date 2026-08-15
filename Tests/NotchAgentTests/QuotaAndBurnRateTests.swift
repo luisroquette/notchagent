@@ -276,7 +276,7 @@ final class ClaudeFableQuotaRoutingTests: XCTestCase {
     func testFableModelRoutesToItsOwnCache() {
         XCTAssertTrue(ClaudeQuotaProbe.isFableModel("claude-fable-5"))
         XCTAssertFalse(ClaudeQuotaProbe.isFableModel("claude-sonnet-5"))
-        XCTAssertFalse(ClaudeQuotaProbe.isFableModel("claude-opus-4-8"))
+        XCTAssertFalse(ClaudeQuotaProbe.isFableModel("claude-opus-5"))
         XCTAssertFalse(ClaudeQuotaProbe.isFableModel("claude-haiku-4-5-20251001"))
     }
 }
