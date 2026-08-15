@@ -30,7 +30,7 @@ jq -e --argjson expected "$expected_gates" '
 jq -e '
   .schemaVersion == 1 and .product == "NotchAgent Desk Beta 1" and
   (keys | sort) == ["appVersion","buildNumber","channel","firmwareVersion","product","protocolVersion","schemaVersion"] and
-  .channel == "beta" and .appVersion == "3.1.1" and .buildNumber == "4" and
+  .channel == "beta" and .appVersion == "3.1.2" and .buildNumber == "5" and
   .firmwareVersion == "0.6.16" and .protocolVersion == "1.1"
 ' "$release_contract" >/dev/null || {
     echo "INVALID: Beta 1 release version contract is incomplete." >&2
@@ -131,7 +131,7 @@ if [[ "$(gate_status automatic-discovery)" == "pass" ]]; then
     discovery_evidence=$(require_evidence_file automatic-discovery)
     jq -e --slurpfile package "$firmware_package_manifest" '
       .schemaVersion == 2 and .gate == "final-app-physical-smoke" and .result == "pass" and
-      .appVersion == "3.1.1" and .buildNumber == "4" and
+      .appVersion == "3.1.2" and .buildNumber == "5" and
       .firmwareVersion == "0.6.16" and .protocolVersion == "1.1" and
       .firmwareVersion == $package[0].firmwareVersion and
       .firmwareImageSHA256 == $package[0].imageSHA256 and
@@ -333,7 +333,7 @@ if [[ "$(gate_status local-signed-recovery)" == "pass" ]]; then
         "appVersion","buildNumber","firmwareVersion","protocolVersion","signatureKind","hardenedRuntime",
         "usbReenumerated","telemetryHealthy","telemetryReport","telemetrySHA256","packageManifestSHA256",
         "executableSHA256","telemetry"] | sort) and
-      .appVersion == "3.1.1" and .buildNumber == "4" and
+      .appVersion == "3.1.2" and .buildNumber == "5" and
       .firmwareVersion == "0.6.16" and .protocolVersion == "1.1" and
       .signatureKind == "Developer ID Application" and .hardenedRuntime == true and
       .usbReenumerated == true and .telemetryHealthy == true and
@@ -667,7 +667,7 @@ if [[ "$(gate_status developer-id-notarization)" == "pass" ]]; then
       .notarizationStatus == "Accepted" and .stapleValidated == true and
       .gatekeeperAccepted == true and
       (.executableSHA256 | test("^[0-9a-f]{64}$")) and
-      .releaseAssetFilename == "NotchAgent-Desk-Beta1-3.1.1.zip" and
+      .releaseAssetFilename == "NotchAgent-Desk-Beta1-3.1.2.zip" and
       (.releaseAssetSHA256 | test("^[0-9a-f]{64}$")) and
       (.completedAt | fromdateiso8601 | type) == "number"
     ' "$notarization_evidence" >/dev/null || {

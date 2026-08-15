@@ -5,6 +5,16 @@ import XCTest
 @testable import NotchAgent
 
 final class NotchAgentDeskTests: XCTestCase {
+    func testDeskSupportLinksUseExpectedSecureDestinations() {
+        XCTAssertEqual(NotchAgentDeskSupportLinks.setupGuide.scheme, "https")
+        XCTAssertEqual(NotchAgentDeskSupportLinks.setupGuide.host, "cfgauss.com.br")
+        XCTAssertEqual(NotchAgentDeskSupportLinks.setupGuide.path, "/notchagent/instalar")
+
+        XCTAssertEqual(NotchAgentDeskSupportLinks.codexInstallGuide.scheme, "https")
+        XCTAssertEqual(NotchAgentDeskSupportLinks.codexInstallGuide.host, "developers.openai.com")
+        XCTAssertEqual(NotchAgentDeskSupportLinks.codexInstallGuide.path, "/codex/cli")
+    }
+
     func testCodexOnboardingStatesAreExplicitAndOrdered() {
         XCTAssertEqual(CodexOnboardingStatus.classify(
             cliInstalled: false, authenticated: false, hasSession: false

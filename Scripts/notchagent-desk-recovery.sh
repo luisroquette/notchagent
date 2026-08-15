@@ -39,8 +39,8 @@ codesign --verify --deep --strict --verbose=2 "$app"
 
 app_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")
 build_number=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")
-[[ "$app_version" == "3.1.1" && "$build_number" == "4" ]] || {
-    echo "NOT READY: expected NotchAgent 3.1.1 build 4." >&2
+[[ "$app_version" == "3.1.2" && "$build_number" == "5" ]] || {
+    echo "NOT READY: expected NotchAgent 3.1.2 build 5." >&2
     exit 1
 }
 firmware/notchagent_desk/verify-release.sh "$package" >/dev/null

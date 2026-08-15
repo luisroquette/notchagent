@@ -10,7 +10,7 @@ evidence="${1:-}"
 
 jq -e '
   .schemaVersion == 1 and .gate == "ai-visual-review" and .result == "pass" and
-  .appVersion == "3.1.1" and .buildNumber == "4" and
+  .appVersion == "3.1.2" and .buildNumber == "5" and
   .source == "live-signed-macos-app" and .reviewer == "codex-vision" and
   .productOwnerWaiver == true and .generatedImagery == false and
   (.artifacts | length) == 2 and

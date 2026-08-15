@@ -7,7 +7,7 @@ firmware_package_manifest="firmware/notchagent_desk/release/manifest.json"
 jq -e '
   .schemaVersion == 1 and .product == "NotchAgent Desk Beta 1" and
   (keys | sort) == ["appVersion","buildNumber","channel","firmwareVersion","product","protocolVersion","schemaVersion"] and
-  .channel == "beta" and .appVersion == "3.1.1" and .buildNumber == "4" and
+  .channel == "beta" and .appVersion == "3.1.2" and .buildNumber == "5" and
   .firmwareVersion == "0.6.16" and .protocolVersion == "1.1"
 ' "$release_contract" >/dev/null || {
     echo "FAIL: invalid NotchAgent Desk Beta 1 release contract." >&2
