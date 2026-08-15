@@ -15,7 +15,7 @@
   <a href="#install"><img src="https://img.shields.io/badge/install-notarized%20DMG-F3B85A?style=flat-square" alt="Install the notarized DMG" /></a>
 </p>
 
-**Current version: 3.1.2** · Beta 1 · Desk guided setup · released 2026-08-14 · [version history](CHANGELOG.md)
+**Current version: 3.1.3** · Beta 1 · per-model quota breakdown · released 2026-08-15 · [version history](CHANGELOG.md)
 
 A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
 financial monitoring of external API accounts. It shows provider-reported

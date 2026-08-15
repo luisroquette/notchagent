@@ -13,6 +13,36 @@
 - The local `firmware/notchagent_desk` tree is retained only to reproduce the
   signed 3.1.2 release and will be removed in the next major app release.
 
+## 3.1.3 — 2026-08-15
+
+### Added
+
+- Per-model quota breakdown now shows inline on the compact home card
+  (previously only on the dedicated model detail pages), sorted by whichever
+  model still has the most headroom — the headline number already answers
+  "am I in trouble", this answers "where can I still work". When every known
+  model is exhausted, shows a hint pointing at the account's own usage page
+  instead of a wall of uninformative 0%s.
+
+### Fixed
+
+- Codex: the weekly quota headline could show room on one model's cap while
+  a different model's weekly cap was actually exhausted, because a single
+  API response only ever reports one model's scope at a time. Recovers
+  every model's own weekly cap across recently-scanned rollouts and always
+  surfaces whichever has the least headroom as the headline number.
+- Codex: named quotas are now keyed by model — `resetsAt` is recomputed
+  fresh on every response and isn't a stable identity, and `limitName` is
+  null on every locally-observed event; both fragmented or hid real scopes.
+  Expired scopes (past their own reset time) are also dropped so they can
+  no longer clutter the breakdown with stale readings.
+- Claude: Fable 5's quota — metered separately from the shared
+  Haiku/Sonnet/Opus pool — is now tracked and surfaced independently
+  instead of sharing a single cache with the other probed models.
+- Claude: corrected a stale `claude-opus-4-8` model ID in the quota probe
+  rotation to `claude-opus-5`, which was causing every Opus health/quota
+  probe to fail outright.
+
 ## 3.1.2 — 2026-08-14
 
 - Adds the PT/EN interactive visual setup guide directly to Desk settings.
