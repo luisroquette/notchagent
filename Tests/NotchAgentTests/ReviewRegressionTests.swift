@@ -158,17 +158,20 @@ final class StaleWindowTests: XCTestCase {
     }
 }
 
-/// Reproduces the bug reported 15/08/2026: `codex /status` showed the
-/// account-wide "Weekly limit" at 0% left (exhausted) AND a separate
-/// "GPT-5.3-Codex-Spark Weekly limit" at 91% left. NotchAgent showed only
-/// 92% left — it had picked up one scope from the newest single rollout
-/// event and never recovered the (older, but still current) other scope,
-/// which was actually exhausted. A first fix attempt tried to key the two
-/// scopes by `limit_name`, which turned out to be null on every
-/// locally-observed event for BOTH scopes (verified against live data) —
-/// only `resetsAt` actually distinguishes them, so the headline number is
-/// now always whichever known scope has the least headroom, regardless of
-/// any label.
+/// Reproduces the bug reported 15/08/2026 and its two follow-ups, found by
+/// re-testing against live data after each deploy:
+/// 1. `codex /status` showed "Weekly limit: 0% left" (sol, exhausted) AND
+///    "GPT-5.3-Codex-Spark Weekly limit: 91% left". NotchAgent showed only
+///    92% — it picked up whichever scope the newest single rollout event
+///    happened to report and never recovered the other.
+/// 2. First fix attempt keyed scopes by `limit_name` — null on every
+///    locally-observed event, useless.
+/// 3. Second fix attempt keyed scopes by `resetsAt` — NOT stable either:
+///    Codex recomputes it fresh on every response, so the same model's cap
+///    carries a different `resetsAt` on every sighting (sometimes 1 second
+///    apart), fragmenting one real scope into dozens of fake ones and
+///    surfacing arbitrary stale readings. `model` is the only field that's
+///    genuinely stable, and it's what the breakdown needs anyway.
 final class CodexNamedWeeklyQuotaTests: XCTestCase {
     private var root: URL!
 
@@ -185,22 +188,33 @@ final class CodexNamedWeeklyQuotaTests: XCTestCase {
         try? FileManager.default.removeItem(at: root)
     }
 
-    func testAggregateWeeklyLimitIsTheHeadlineNumberEvenWhenAnOlderSighting() async throws {
+    func testWorstModelIsTheHeadlineNumberEvenWhenAnOlderSighting() async throws {
         let now = Date()
-        let aggregateResets = now.addingTimeInterval(5 * 24 * 3600).timeIntervalSince1970
+        // "resetsAt drift" from the real bug: two sightings of the SAME
+        // model, minutes apart, computed slightly different reset times.
+        let solResetsA = now.addingTimeInterval(5 * 24 * 3600).timeIntervalSince1970
+        let solResetsB = solResetsA + 1
         let sparkResets = now.addingTimeInterval(7 * 24 * 3600).timeIntervalSince1970
 
-        // Older rollout (hours ago): the account-wide aggregate is exhausted.
-        let aggregateContent = """
-        {"timestamp":"\(now.addingTimeInterval(-6 * 3600).ISO8601Format())","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100}},"rate_limits":{"limit_id":"codex","limit_name":null,"primary":{"used_percent":100.0,"window_minutes":10080,"resets_at":\(aggregateResets)},"secondary":null,"plan_type":"pro"}}}
+        // Older rollout (hours ago): sol is exhausted.
+        let solContent = """
+        {"timestamp":"\(now.addingTimeInterval(-6 * 3600).ISO8601Format())","type":"turn_context","payload":{"cwd":"/Users/test","model":"gpt-5.6-sol","approval_policy":"on-request"}}
+        {"timestamp":"\(now.addingTimeInterval(-6 * 3600).ISO8601Format())","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100}},"rate_limits":{"limit_id":"codex","limit_name":null,"primary":{"used_percent":100.0,"window_minutes":10080,"resets_at":\(solResetsA)},"secondary":null,"plan_type":"pro"}}}
         """
-        try Data((aggregateContent + "\n").utf8).write(
-            to: root.appendingPathComponent("sessions/2026/08/15/rollout-aggregate-old.jsonl")
+        try Data((solContent + "\n").utf8).write(
+            to: root.appendingPathComponent("sessions/2026/08/15/rollout-sol-old.jsonl")
+        )
+        // A second, slightly newer sol sighting with a DRIFTED resetsAt —
+        // must collapse into the same scope, not create a second one.
+        let solDriftContent = """
+        {"timestamp":"\(now.addingTimeInterval(-3 * 3600).ISO8601Format())","type":"turn_context","payload":{"cwd":"/Users/test","model":"gpt-5.6-sol","approval_policy":"on-request"}}
+        {"timestamp":"\(now.addingTimeInterval(-3 * 3600).ISO8601Format())","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1200,"cached_input_tokens":0,"output_tokens":120,"total_tokens":1320}},"rate_limits":{"limit_id":"codex","limit_name":null,"primary":{"used_percent":100.0,"window_minutes":10080,"resets_at":\(solResetsB)},"secondary":null,"plan_type":"pro"}}}
+        """
+        try Data((solDriftContent + "\n").utf8).write(
+            to: root.appendingPathComponent("sessions/2026/08/15/rollout-sol-drift.jsonl")
         )
 
-        // Newest rollout: only the OTHER (near-empty) scope was reported —
-        // this is what the old code latched onto as "the" weekly number,
-        // via a model with its own separate weekly cap.
+        // Newest rollout: spark still has room.
         let sparkContent = """
         {"timestamp":"\(now.ISO8601Format())","type":"turn_context","payload":{"cwd":"/Users/test","model":"gpt-5.3-codex-spark","approval_policy":"on-request"}}
         {"timestamp":"\(now.ISO8601Format())","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":2000,"cached_input_tokens":0,"output_tokens":200,"total_tokens":2200}},"rate_limits":{"limit_id":"codex","limit_name":null,"primary":{"used_percent":8.0,"window_minutes":10080,"resets_at":\(sparkResets)},"secondary":null,"plan_type":"pro"}}}
@@ -214,10 +228,12 @@ final class CodexNamedWeeklyQuotaTests: XCTestCase {
 
         XCTAssertEqual(
             snapshot.weekly?.usedPercent, 100.0,
-            "the scope with the least headroom must be the headline number, not whichever scope the newest single rollout happened to report"
+            "the model with the least headroom must be the headline number, not whichever scope the newest single rollout happened to report"
         )
+        let names = snapshot.weekly?.namedQuotas?.map(\.name).sorted() ?? []
+        XCTAssertEqual(names, ["gpt-5.3-codex-spark", "gpt-5.6-sol"], "resetsAt drift must not fragment sol into two entries")
         let spark = try XCTUnwrap(snapshot.weekly?.namedQuotas?.first { $0.name == "gpt-5.3-codex-spark" })
-        XCTAssertEqual(spark.usedPercent, 8.0, "the other scope must still be recoverable for the detail view")
+        XCTAssertEqual(spark.usedPercent, 8.0, "the model that still has room must still be recoverable for the detail view")
     }
 
     /// Reproduces the 15/08/2026 follow-up bug: the breakdown showed the

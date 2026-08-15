@@ -224,12 +224,9 @@ final class CodexWeeklyScopeMergeTests: XCTestCase {
         return (info: info, start: start)
     }
 
-    /// `limitName` is null on every locally-observed rate-limits event for
-    /// BOTH concurrent weekly scopes (verified against live data) — it
-    /// cannot distinguish them. Only `resetsAt` differs, so that's the key:
-    /// two concurrent scopes with different reset times must both survive
-    /// even when they come from different files at different times.
-    func testRecoversBothConcurrentScopesKeyedByResetsAt() {
+    /// Two different models must both survive even when they come from
+    /// different files at different times.
+    func testRecoversEachModelsOwnScope() {
         let now = Date()
         let exhausted = entry(
             model: "gpt-5.6-sol", usedPercent: 100, resetsAt: now.addingTimeInterval(5 * 86_400),
@@ -239,25 +236,37 @@ final class CodexWeeklyScopeMergeTests: XCTestCase {
             model: "gpt-5.3-codex-spark", usedPercent: 8, resetsAt: now.addingTimeInterval(7 * 86_400),
             timestamp: now, start: now
         )
-        let scopes = CodexProvider.freshestWeeklyScopes([exhausted, other])
-        XCTAssertEqual(scopes.count, 2, "two different resetsAt must produce two distinct scopes")
-        XCTAssertEqual(scopes[exhausted.info.primary!.resetsAt!.timeIntervalSince1970]?.window.usedPercent, 100)
-        XCTAssertEqual(scopes[other.info.primary!.resetsAt!.timeIntervalSince1970]?.window.usedPercent, 8)
+        let scopes = CodexProvider.freshestWeeklyScopesByModel([exhausted, other])
+        XCTAssertEqual(scopes.count, 2)
+        XCTAssertEqual(scopes["gpt-5.6-sol"]?.window.usedPercent, 100)
+        XCTAssertEqual(scopes["gpt-5.3-codex-spark"]?.window.usedPercent, 8)
     }
 
-    func testKeepsOnlyTheFreshestSightingPerScope() {
+    /// Reproduces the exact bug reported 15/08/2026: `resetsAt` is
+    /// recomputed fresh on every response (drifts by mere seconds between
+    /// sightings of the SAME model's cap) — keying by it fragmented one real
+    /// scope into dozens of fake ones. Two sightings of the same model with
+    /// different `resetsAt` must collapse into ONE scope, keeping only the
+    /// freshest observation.
+    func testSameModelWithDriftingResetsAtCollapsesToOneScope() {
         let now = Date()
-        let resets = now.addingTimeInterval(86_400)
         let older = entry(
-            model: nil, usedPercent: 40, resetsAt: resets,
+            model: "gpt-5.6-sol", usedPercent: 40, resetsAt: now.addingTimeInterval(86_400),
             timestamp: now.addingTimeInterval(-3600), start: now.addingTimeInterval(-3600)
         )
         let newer = entry(
-            model: nil, usedPercent: 55, resetsAt: resets,
+            model: "gpt-5.6-sol", usedPercent: 55, resetsAt: now.addingTimeInterval(86_401), // 1s drift
             timestamp: now, start: now
         )
-        let scopes = CodexProvider.freshestWeeklyScopes([older, newer])
-        XCTAssertEqual(scopes[resets.timeIntervalSince1970]?.window.usedPercent, 55, "the freshest sighting of a scope must win, not the first one seen")
+        let scopes = CodexProvider.freshestWeeklyScopesByModel([older, newer])
+        XCTAssertEqual(scopes.count, 1, "the same model must never fragment into multiple scopes just because resetsAt drifted")
+        XCTAssertEqual(scopes["gpt-5.6-sol"]?.window.usedPercent, 55, "the freshest sighting must win, not the first one seen")
+    }
+
+    func testEntryWithNoKnownModelIsSkipped() {
+        let now = Date()
+        let unknown = entry(model: nil, usedPercent: 10, resetsAt: now.addingTimeInterval(86_400), timestamp: now, start: now)
+        XCTAssertTrue(CodexProvider.freshestWeeklyScopesByModel([unknown]).isEmpty, "an event with no model attached can't be honestly labeled, so it's skipped rather than guessed at")
     }
 }
 

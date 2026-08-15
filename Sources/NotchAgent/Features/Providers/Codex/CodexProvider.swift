@@ -84,44 +84,37 @@ struct CodexProvider: UsageProvider {
         }
         let sessionWindow = freshWindow(latest.sessionWindow)
 
-        // A single rate-limits response only ever reports ONE weekly scope at
-        // a time — verified against live data: `limit_name` is null on every
-        // locally-observed event, for BOTH concurrent scopes, so it cannot
-        // distinguish them (an earlier version of this fix wrongly assumed
-        // it could — see commit history). The only field that actually
-        // differs between two concurrent weekly windows is `resetsAt`, so
-        // that's the key. A session using only one model may never once
-        // report the other scope, so recovering every known scope means
-        // keeping the freshest sighting of each across every
-        // recently-scanned rollout, not just the single newest file.
-        // A scope whose resetsAt already passed is a dead, already-expired
-        // window — its old percentage (however extreme) says nothing about
-        // now and must never appear as "the" number or clutter the
-        // breakdown (review finding: two long-expired scopes with the same
-        // last-seen model both showing a stale 0% left cluttered the card).
-        let liveWeeklyScopes = Self.freshestWeeklyScopes(perFile).filter { $0.value.window.resetsAt.map { $0 > now } ?? false }
+        // `resetsAt` is NOT a stable key — verified against live data: Codex
+        // recomputes it fresh on every response (effectively "now + 7 days"
+        // at request time), so the same model's cap shows a different
+        // resetsAt on every single sighting, sometimes just 1 second apart.
+        // Keying by it (an earlier fix attempt) fragmented one real scope
+        // into dozens of fake ones and could surface an arbitrary stale
+        // reading as if current. `limitName` is null on every
+        // locally-observed event too, so it's no better (an even earlier
+        // attempt tried that — see commit history). `model` is the only
+        // field that's genuinely stable, and it's exactly what the
+        // breakdown needs to answer anyway: "which model still has room."
+        let modelWeeklyScopes = Self.freshestWeeklyScopesByModel(perFile)
+        // A model's freshest known reading is only trustworthy if its OWN
+        // resetsAt hasn't already passed — a model unused this rolling week
+        // would otherwise keep showing last week's number forever.
+        let liveModelScopes = modelWeeklyScopes.filter { $0.value.window.resetsAt.map { $0 > now } ?? false }
         // Codex exposes no reliable local label for "this is the account-wide
         // total" vs. "this is one model's own cap" — so instead of guessing
         // which scope is the aggregate, the headline number is always
-        // whichever known LIVE scope has the LEAST headroom. That's the one
+        // whichever known LIVE model has the LEAST headroom. That's the one
         // that actually blocks the user next, regardless of what it's called
         // (matches how a blocked quotaStatus already forces the gauge to
         // empty elsewhere — worst case always wins, never a calm number that
         // hides a real limit).
-        let primaryWeeklyScope = liveWeeklyScopes.values.max { $0.window.usedPercent < $1.window.usedPercent }
+        let primaryWeeklyScope = liveModelScopes.values.max { $0.window.usedPercent < $1.window.usedPercent }
         let weeklyWindow = primaryWeeklyScope?.window
-        // Best-effort label from the model active when this scope was last
-        // observed (real data, never invented) — falls back to the reset
-        // date when no model is known for that sighting.
-        let namedWeeklyQuotas: [NamedQuota] = liveWeeklyScopes.values
-            .map { scope in
-                NamedQuota(
-                    name: scope.model ?? "Weekly cap · resets \(scope.window.resetsAt.map { Format.time($0) } ?? "?")",
-                    usedPercent: scope.window.usedPercent,
-                    resetsAt: scope.window.resetsAt
-                )
+        let namedWeeklyQuotas: [NamedQuota] = liveModelScopes
+            .map { model, scope in
+                NamedQuota(name: model, usedPercent: scope.window.usedPercent, resetsAt: scope.window.resetsAt)
             }
-            .sorted { ($0.resetsAt ?? .distantFuture) < ($1.resetsAt ?? .distantFuture) }
+            .sorted { $0.name < $1.name }
 
         // Session tokens: sum every rollout STARTED inside the official window;
         // long-lived rollouts that began earlier are excluded (documented
@@ -205,33 +198,32 @@ struct CodexProvider: UsageProvider {
         )
     }
 
-    /// One weekly scope's window plus when it was last observed locally and
-    /// which model (if any) was active for that sighting.
+    /// One model's weekly window plus when it was last observed locally.
     struct WeeklyScope: Sendable, Equatable {
         var window: CodexRateWindow
         var observedAt: Date
-        var model: String?
     }
 
-    /// Recovers every distinct weekly scope seen across recently-scanned
-    /// rollouts, keyed by `resetsAt` — the only field that reliably
-    /// distinguishes two concurrent weekly windows in local data (`limitName`
-    /// is null on every locally-observed rate-limits event and cannot be
-    /// used for this). Pure and testable: a single API response only reports
-    /// one scope per turn, so this keeps the freshest sighting of each
-    /// rather than assuming the single newest event covers every scope.
-    static func freshestWeeklyScopes(
+    /// Recovers each model's freshest known weekly window, keyed by model
+    /// name — the only field that's genuinely stable across sightings.
+    /// `resetsAt` is NOT usable as a key: Codex recomputes it fresh on every
+    /// response (effectively "now + 7 days" at request time), so the same
+    /// model's cap carries a different `resetsAt` on every single sighting.
+    /// `limitName` is null on every locally-observed event and can't be used
+    /// either. Pure and testable: an event with no model attached (rare —
+    /// the `turn_context` marking it wasn't in the scanned tail) is skipped
+    /// rather than guessed at.
+    static func freshestWeeklyScopesByModel(
         _ perFile: [(info: CodexTokenInfo, start: Date)]
-    ) -> [TimeInterval: WeeklyScope] {
-        var byScope: [TimeInterval: WeeklyScope] = [:]
+    ) -> [String: WeeklyScope] {
+        var byModel: [String: WeeklyScope] = [:]
         for entry in perFile {
-            guard let window = entry.info.weeklyWindow, let resets = window.resetsAt else { continue }
-            let key = resets.timeIntervalSince1970
+            guard let window = entry.info.weeklyWindow, let model = entry.info.model else { continue }
             let observedAt = entry.info.timestamp ?? entry.start
-            if observedAt > (byScope[key]?.observedAt ?? .distantPast) {
-                byScope[key] = WeeklyScope(window: window, observedAt: observedAt, model: entry.info.model)
+            if observedAt > (byModel[model]?.observedAt ?? .distantPast) {
+                byModel[model] = WeeklyScope(window: window, observedAt: observedAt)
             }
         }
-        return byScope
+        return byModel
     }
 }
