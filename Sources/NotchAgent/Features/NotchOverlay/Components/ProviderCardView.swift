@@ -109,6 +109,9 @@ struct ProviderCardView: View {
                     .foregroundStyle(Theme.textDim)
                     .lineLimit(1)
             }
+            ForEach(namedQuotas(snapshot).prefix(2)) { quota in
+                namedQuotaLine(quota)
+            }
             if let verdict = BurnRate.verdict(burn) {
                 Text(verdict)
                     .font(Theme.body(9, weight: .semibold))
@@ -123,6 +126,35 @@ struct ProviderCardView: View {
                     .foregroundStyle(Theme.textFaint)
                     .lineLimit(2)
             }
+        }
+    }
+
+    /// Secondary scopes sharing the headline window (e.g. Codex's per-model
+    /// weekly cap, Claude's Fable 5 pool) — worst case first, so the model
+    /// closest to blocking is always the one visible without paging over to
+    /// the detail view.
+    private func namedQuotas(_ snapshot: UsageSnapshot) -> [NamedQuota] {
+        let quotas = snapshot.session?.namedQuotas ?? snapshot.weekly?.namedQuotas ?? []
+        return quotas.sorted { $0.usedPercent > $1.usedPercent }
+    }
+
+    private func namedQuotaLine(_ quota: NamedQuota) -> some View {
+        let remaining = max(0, 100 - quota.usedPercent)
+        return HStack(spacing: 4) {
+            Text(quota.name)
+                .font(Theme.body(8.5))
+                .foregroundStyle(Theme.textFaint)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Text("\(Int(remaining.rounded()))% left")
+                .font(Theme.body(8.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(Theme.riskTint(
+                    used: quota.usedPercent,
+                    projectedToRunOut: false,
+                    warningAt: store.settings.warningThresholdPercent,
+                    criticalAt: store.settings.criticalThresholdPercent
+                ))
         }
     }
 
