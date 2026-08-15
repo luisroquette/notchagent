@@ -40,6 +40,26 @@ public struct CostEstimate: Codable, Sendable, Equatable {
     }
 }
 
+/// A quota scoped to something narrower than the provider's headline number —
+/// one specific model (Codex's per-model weekly cap, Claude's separately
+/// metered Fable 5 pool) rather than the "all models" aggregate. Providers
+/// that only ever expose one number never populate these; the headline
+/// gauge always stays the aggregate/worst-case value.
+public struct NamedQuota: Codable, Sendable, Equatable, Identifiable {
+    public var name: String
+    /// 0–100.
+    public var usedPercent: Double
+    public var resetsAt: Date?
+
+    public var id: String { name }
+
+    public init(name: String, usedPercent: Double, resetsAt: Date? = nil) {
+        self.name = name
+        self.usedPercent = usedPercent
+        self.resetsAt = resetsAt
+    }
+}
+
 /// Usage inside the provider's current rate-limit session window (e.g. 5h block).
 public struct SessionUsage: Codable, Sendable, Equatable {
     public var tokens: TokenUsage
@@ -48,19 +68,24 @@ public struct SessionUsage: Codable, Sendable, Equatable {
     public var resetsAt: Date?
     /// 0–100. nil when the provider exposes no session limit locally.
     public var usedPercent: Double?
+    /// Other scopes sharing this window (e.g. a model with its own separate
+    /// cap) — never shown as the headline number, only in per-model detail.
+    public var namedQuotas: [NamedQuota]?
 
     public init(
         tokens: TokenUsage = .zero,
         cost: CostEstimate? = nil,
         startedAt: Date? = nil,
         resetsAt: Date? = nil,
-        usedPercent: Double? = nil
+        usedPercent: Double? = nil,
+        namedQuotas: [NamedQuota]? = nil
     ) {
         self.tokens = tokens
         self.cost = cost
         self.startedAt = startedAt
         self.resetsAt = resetsAt
         self.usedPercent = usedPercent
+        self.namedQuotas = namedQuotas
     }
 }
 
@@ -109,6 +134,9 @@ public struct WeeklyUsage: Codable, Sendable, Equatable {
     /// Per-hour activity used for the "hourly rhythm" chart. Optional so old
     /// persisted snapshots keep decoding.
     public var hourlyTotals: [HourlyTotal]?
+    /// Other scopes sharing this window (e.g. a model with its own separate
+    /// weekly cap) — never shown as the headline number, only in per-model detail.
+    public var namedQuotas: [NamedQuota]?
 
     public init(
         tokens: TokenUsage = .zero,
@@ -116,7 +144,8 @@ public struct WeeklyUsage: Codable, Sendable, Equatable {
         usedPercent: Double? = nil,
         resetsAt: Date? = nil,
         dailyTotals: [DailyTotal] = [],
-        hourlyTotals: [HourlyTotal]? = nil
+        hourlyTotals: [HourlyTotal]? = nil,
+        namedQuotas: [NamedQuota]? = nil
     ) {
         self.tokens = tokens
         self.cost = cost
@@ -124,6 +153,7 @@ public struct WeeklyUsage: Codable, Sendable, Equatable {
         self.resetsAt = resetsAt
         self.dailyTotals = dailyTotals
         self.hourlyTotals = hourlyTotals
+        self.namedQuotas = namedQuotas
     }
 }
 

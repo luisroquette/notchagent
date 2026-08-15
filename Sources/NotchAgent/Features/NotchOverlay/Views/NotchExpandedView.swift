@@ -1127,6 +1127,9 @@ struct NotchExpandedView: View {
         let snapshot = store.snapshots[.claudeCode]
         let health = snapshot?.modelHealth ?? []
         let breakdown = snapshot?.modelBreakdown ?? []
+        // Fable 5 is metered separately from the shared Haiku/Sonnet/Opus
+        // pool the headline gauge shows — its own % only lives here.
+        let fableQuota = snapshot?.weekly?.namedQuotas?.first { $0.name == "Claude Fable 5" }
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -1139,7 +1142,8 @@ struct NotchExpandedView: View {
                     modelCard(
                         family: family,
                         health: health.first { $0.model.contains(family.key) },
-                        usage: familyUsage(family.key, breakdown: breakdown)
+                        usage: familyUsage(family.key, breakdown: breakdown),
+                        quota: family.key == "fable" ? fableQuota : nil
                     )
                 }
             }
@@ -1163,7 +1167,8 @@ struct NotchExpandedView: View {
     private func modelCard(
         family: (key: String, name: String),
         health: ModelHealth?,
-        usage: (tokens: Int, cost: Double)?
+        usage: (tokens: Int, cost: Double)?,
+        quota: NamedQuota? = nil
     ) -> some View {
         VStack(spacing: 7) {
             PixelGlyph(
@@ -1175,6 +1180,13 @@ struct NotchExpandedView: View {
                 .font(Theme.body(12, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
             modelStatusPill(health)
+            if let quota {
+                GaugeLabel(
+                    text: "\(Int(max(0, 100 - quota.usedPercent).rounded()))% WEEKLY LEFT",
+                    color: riskColor(quota.usedPercent),
+                    size: 7.5
+                )
+            }
             if let usage {
                 GaugeLabel(
                     text: "\(Format.tokens(usage.tokens))\(usage.cost >= 0.01 ? " · ~" + Format.usd(usage.cost) : "")",
@@ -1212,11 +1224,14 @@ struct NotchExpandedView: View {
 
     // MARK: OpenAI models page
 
-    /// Per-model usage from Codex rollouts. OpenAI exposes no per-model quota
-    /// locally, so this page reports real consumption share — never fake limits.
+    /// Per-model usage AND per-model quota from Codex rollouts. OpenAI reports
+    /// some models' weekly cap separately from the account-wide aggregate
+    /// (e.g. "GPT-5.3-Codex-Spark") — the headline gauge always shows the
+    /// aggregate, this page is where the per-model number lives.
     private var gptModelsPage: some View {
         let snapshot = store.snapshots[.codex]
         let breakdown = snapshot?.modelBreakdown ?? []
+        let namedQuotas = snapshot?.weekly?.namedQuotas ?? []
         let totalTokens = max(breakdown.reduce(0) { $0 + $1.tokens }, 1)
 
         return VStack(alignment: .leading, spacing: 8) {
@@ -1247,6 +1262,15 @@ struct NotchExpandedView: View {
                 }
             }
 
+            if !namedQuotas.isEmpty {
+                GaugeLabel(text: "WEEKLY QUOTA BY MODEL", color: Theme.textSecondary, size: 8)
+                VStack(spacing: 6) {
+                    ForEach(namedQuotas) { quota in
+                        namedQuotaRow(quota)
+                    }
+                }
+            }
+
             VStack(spacing: 6) {
                 ForEach(breakdown.prefix(5)) { usage in
                     modelUsageRow(usage, share: Double(usage.tokens) / Double(totalTokens))
@@ -1255,11 +1279,37 @@ struct NotchExpandedView: View {
             .frame(maxHeight: .infinity, alignment: .top)
 
             GaugeLabel(
-                text: "LAST 7 DAYS · LOCAL ROLLOUTS · OPENAI EXPOSES NO PER-MODEL LIMITS",
+                text: "LAST 7 DAYS · LOCAL ROLLOUTS",
                 color: Theme.textFaint,
                 size: 7
             )
         }
+    }
+
+    /// A quota scoped to one model, separate from the provider's headline
+    /// aggregate — e.g. Codex's per-model weekly cap or Claude's Fable 5 pool.
+    private func namedQuotaRow(_ quota: NamedQuota) -> some View {
+        let remaining = max(0, 100 - quota.usedPercent)
+        return HStack(spacing: 10) {
+            Text(quota.name)
+                .font(Theme.body(11, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
+                .frame(width: 150, alignment: .leading)
+            SegmentedMeter(percent: remaining, segments: 16, tint: riskColor(quota.usedPercent), height: 6)
+            Text("\(Int(remaining.rounded()))% left")
+                .font(Theme.body(9.5))
+                .monospacedDigit()
+                .foregroundStyle(Theme.textDim)
+                .frame(width: 118, alignment: .trailing)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Theme.surface)
+        )
     }
 
     private func modelUsageRow(_ usage: ModelUsage, share: Double) -> some View {

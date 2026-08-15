@@ -207,6 +207,71 @@ final class CodexWindowClassificationTests: XCTestCase {
     }
 }
 
+final class CodexWeeklyScopeMergeTests: XCTestCase {
+    private func entry(
+        model: String?,
+        usedPercent: Double,
+        resetsAt: Date,
+        timestamp: Date,
+        start: Date
+    ) -> (info: CodexTokenInfo, start: Date) {
+        var info = CodexTokenInfo(
+            timestamp: timestamp,
+            totals: .zero,
+            primary: CodexRateWindow(usedPercent: usedPercent, windowMinutes: 10_080, resetsAt: resetsAt)
+        )
+        info.model = model
+        return (info: info, start: start)
+    }
+
+    /// `limitName` is null on every locally-observed rate-limits event for
+    /// BOTH concurrent weekly scopes (verified against live data) — it
+    /// cannot distinguish them. Only `resetsAt` differs, so that's the key:
+    /// two concurrent scopes with different reset times must both survive
+    /// even when they come from different files at different times.
+    func testRecoversBothConcurrentScopesKeyedByResetsAt() {
+        let now = Date()
+        let exhausted = entry(
+            model: "gpt-5.6-sol", usedPercent: 100, resetsAt: now.addingTimeInterval(5 * 86_400),
+            timestamp: now.addingTimeInterval(-6 * 3600), start: now.addingTimeInterval(-6 * 3600)
+        )
+        let other = entry(
+            model: "gpt-5.3-codex-spark", usedPercent: 8, resetsAt: now.addingTimeInterval(7 * 86_400),
+            timestamp: now, start: now
+        )
+        let scopes = CodexProvider.freshestWeeklyScopes([exhausted, other])
+        XCTAssertEqual(scopes.count, 2, "two different resetsAt must produce two distinct scopes")
+        XCTAssertEqual(scopes[exhausted.info.primary!.resetsAt!.timeIntervalSince1970]?.window.usedPercent, 100)
+        XCTAssertEqual(scopes[other.info.primary!.resetsAt!.timeIntervalSince1970]?.window.usedPercent, 8)
+    }
+
+    func testKeepsOnlyTheFreshestSightingPerScope() {
+        let now = Date()
+        let resets = now.addingTimeInterval(86_400)
+        let older = entry(
+            model: nil, usedPercent: 40, resetsAt: resets,
+            timestamp: now.addingTimeInterval(-3600), start: now.addingTimeInterval(-3600)
+        )
+        let newer = entry(
+            model: nil, usedPercent: 55, resetsAt: resets,
+            timestamp: now, start: now
+        )
+        let scopes = CodexProvider.freshestWeeklyScopes([older, newer])
+        XCTAssertEqual(scopes[resets.timeIntervalSince1970]?.window.usedPercent, 55, "the freshest sighting of a scope must win, not the first one seen")
+    }
+}
+
+final class ClaudeFableQuotaRoutingTests: XCTestCase {
+    /// Fable 5 is metered separately from the shared Haiku/Sonnet/Opus pool —
+    /// its headers must route to its own cache, never overwrite the main one.
+    func testFableModelRoutesToItsOwnCache() {
+        XCTAssertTrue(ClaudeQuotaProbe.isFableModel("claude-fable-5"))
+        XCTAssertFalse(ClaudeQuotaProbe.isFableModel("claude-sonnet-5"))
+        XCTAssertFalse(ClaudeQuotaProbe.isFableModel("claude-opus-4-8"))
+        XCTAssertFalse(ClaudeQuotaProbe.isFableModel("claude-haiku-4-5-20251001"))
+    }
+}
+
 final class AppSettingsCompatibilityTests: XCTestCase {
     func testDecodingOldSettingsAppliesNewDefaults() throws {
         // Persisted blob from a build that predates the quota probe flag.

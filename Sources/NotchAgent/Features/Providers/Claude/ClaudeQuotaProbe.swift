@@ -76,7 +76,20 @@ actor ClaudeQuotaProbe {
         "claude-fable-5",
     ]
 
+    /// Fable 5 is metered separately from the shared Haiku/Sonnet/Opus pool
+    /// (confirmed against the account's own usage page, which lists it as
+    /// its own "Fable" section next to "Todos os modelos") — its headers
+    /// must never overwrite the shared-pool cache, or vice versa.
+    static let fableModel = "claude-fable-5"
+
+    /// Pure routing rule: does a probed model share the aggregate pool, or
+    /// does it have its own separate quota? Exposed so the cache-selection
+    /// rule is unit-testable without a network round-trip.
+    static func isFableModel(_ model: String) -> Bool { model == fableModel }
+
     private var cache: ClaudeQuota?
+    /// Fable 5's own quota, tracked apart from `cache` — see `fableModel`.
+    private var fableCache: ClaudeQuota?
     private var lastAttempt = Date.distantPast
     private var missingTokenLogged = false
     private var rotationIndex = 0
@@ -91,6 +104,11 @@ actor ClaudeQuotaProbe {
     func modelHealthSnapshot() -> [ModelHealth] {
         Self.modelRotation.compactMap { health[$0] }
     }
+
+    /// Fable 5's own quota, kept separate from `currentQuota()`'s shared-pool
+    /// value. Never throttled independently — refreshed whenever the
+    /// rotation's Fable cycle successfully returns headers.
+    func fableQuota() -> ClaudeQuota? { fableCache }
 
     /// Cached quota when fresh; otherwise probes the API. Returns the last
     /// good value on transient failures — never throws into the provider.
@@ -141,7 +159,11 @@ actor ClaudeQuotaProbe {
             }
             let quota = Self.parse(headers: headers)
             if quota.sessionPercent != nil || quota.weeklyPercent != nil {
-                cache = quota
+                if Self.isFableModel(model) {
+                    fableCache = quota
+                } else {
+                    cache = quota
+                }
                 Log.providers.debug("claude probe ok (\(model, privacy: .public), http \(http.statusCode, privacy: .public))")
             } else {
                 Log.providers.error("claude probe: no rate-limit headers (http \(http.statusCode, privacy: .public))")

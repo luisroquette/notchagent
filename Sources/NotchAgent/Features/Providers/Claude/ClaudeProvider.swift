@@ -72,6 +72,17 @@ struct ClaudeProvider: UsageProvider {
         let freshSessionReset = quota?.sessionResetsAt.flatMap { $0 > now ? $0 : nil }
         let freshWeeklyReset = quota?.weeklyResetsAt.flatMap { $0 > now ? $0 : nil }
 
+        // Fable 5 is metered separately from the shared Sonnet/Opus/Haiku
+        // pool (per the account's own usage page) — its % must never be
+        // folded into the headline gauge, only surfaced as a named quota.
+        var fable: ClaudeQuota?
+        if settings.claudeQuotaProbeEnabled, Self.paidProbeAllowed, let probe {
+            fable = await probe.fableQuota()
+        }
+        func namedFable(_ percent: Double?, resetsAt: Date?) -> [NamedQuota]? {
+            percent.map { [NamedQuota(name: "Claude Fable 5", usedPercent: $0, resetsAt: resetsAt)] }
+        }
+
         let files = roots.flatMap {
             recentFiles(under: $0, ext: "jsonl", modifiedAfter: now.addingTimeInterval(-Self.lookback))
         }
@@ -132,7 +143,8 @@ struct ClaudeProvider: UsageProvider {
                 usedPercent: quota?.sessionPercent
                     ?? settings.claudeSessionTokenBudget.map { budget in
                         min(100, Double(tokens.total) / Double(max(budget, 1)) * 100)
-                    }
+                    },
+                namedQuotas: namedFable(fable?.sessionPercent, resetsAt: fable?.sessionResetsAt)
             )
         }
 
@@ -163,7 +175,8 @@ struct ClaudeProvider: UsageProvider {
             dailyTotals: byDay
                 .map { DailyTotal(day: $0.key, tokens: $0.value.tokens, costUSD: $0.value.cost) }
                 .sorted { $0.day < $1.day },
-            hourlyTotals: hourly.sorted { $0.hour < $1.hour }
+            hourlyTotals: hourly.sorted { $0.hour < $1.hour },
+            namedQuotas: namedFable(fable?.weeklyPercent, resetsAt: fable?.weeklyResetsAt)
         )
 
         let breakdown = mergedModels
