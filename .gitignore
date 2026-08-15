@@ -24,3 +24,6 @@ xcuserdata/
 docs/evidence/
 firmware/notchagent_desk/release/
 firmware/notchagent_desk/build/
+# Local tool-installed hooks (graphify etc.) bake in machine-specific
+# absolute paths — never meant to be tracked or scanned for public release.
+/.githooks/
