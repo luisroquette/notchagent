@@ -14,7 +14,11 @@ reflects the aggregate state by color and offers a right-click menu (Refresh,
 Pause, Settings, Show Bar, Quit) as a fallback if the bar is ever dismissed.
 Built with .NET 8 + [Avalonia UI](https://avaloniaui.net) — not Electron/WebView.
 
-## Status: v1
+## Status: preview — source build only
+
+There is no signed Windows installer or physically validated Windows release.
+The implementation below is available to contributors and must not be marketed
+as equivalent to the notarized macOS app or the Desk Beta 1 host path.
 
 Ported from the Mac app's calibrated logic (same JSONL parsers, same
 "current window" semantics, same threshold-alert/recovery lifecycle):
@@ -57,9 +61,10 @@ The result is a single `NotchAgent.Windows.exe` (~90 MB, self-contained).
 
 ## Known limitations
 
-- Not code-signed. Windows SmartScreen will warn on first run ("Windows
-  protected your PC") — click "More info" → "Run anyway". Signing requires
-  an Authenticode certificate, a separate step from this build.
+- Not code-signed. The generated executable is a development artifact, not a
+  customer installer. Do not distribute it or instruct customers to bypass
+  SmartScreen; public release requires Authenticode signing and a clean install
+  test on physical Windows 10 and Windows 11 machines.
 - Built and validated end-to-end on macOS (no Windows machine available in
   this environment): the same Avalonia app runs locally on macOS (Avalonia
   is cross-platform for dev), which is how a real cross-thread crash in the

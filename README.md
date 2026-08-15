@@ -12,17 +12,20 @@
   <a href="https://luisroquette.github.io/notchagent/"><img src="https://img.shields.io/badge/website-live-FF654F?style=flat-square" alt="NotchAgent website" /></a>
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.1.2--beta.1-38D6C7?style=flat-square" alt="Version v3.1.2 Beta 1" /></a>
-  <a href="#install"><img src="https://img.shields.io/badge/install-Homebrew-F3B85A?style=flat-square" alt="Install with Homebrew" /></a>
+  <a href="#install"><img src="https://img.shields.io/badge/install-notarized%20DMG-F3B85A?style=flat-square" alt="Install the notarized DMG" /></a>
 </p>
 
-**Current version: 3.1.2** · Desk guided setup · released 2026-08-14 · [version history](CHANGELOG.md)
+**Current version: 3.1.2** · Beta 1 · Desk guided setup · released 2026-08-14 · [version history](CHANGELOG.md)
 
 A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
 financial monitoring of external API accounts. It shows provider-reported
 spend, balance, plans and quotas with explicit sources and time windows —
 local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
 
-**Also available for Windows** — a system-tray companion (.NET 8 + Avalonia, same parsers, same quota probe) since Windows has no notch. See [`windows/README.md`](windows/README.md) for the current (v1) feature set and build instructions.
+**Windows preview (build from source)** — a .NET 8 + Avalonia system-tray
+companion is under validation. It is not yet offered as a signed installer or
+as equivalent to the macOS release. See [`windows/README.md`](windows/README.md)
+for the implemented feature set, build instructions, and current limits.
 
 **NotchAgent Desk Beta 1** consumes the app's same local-first state on a
 Guition JC4832W535 ESP32-S3 touch display over USB. The hardware source of
@@ -63,18 +66,27 @@ and [compatibility matrix](https://github.com/luisroquette/notchagent-desk/blob/
 
 ## Install
 
-**Homebrew** (recommended):
+**Notarized DMG** (recommended, no Terminal):
+
+1. Download [`NotchAgent-Desk-Beta1-3.1.2.dmg`](https://github.com/luisroquette/notchagent/releases/download/v3.1.2/NotchAgent-Desk-Beta1-3.1.2.dmg).
+2. Open the DMG and drag **NotchAgent** to **Applications**.
+3. Open NotchAgent and follow the guided setup.
+
+The DMG is signed with Developer ID, notarized by Apple, and carries a stapled
+ticket. Its published SHA-256 is
+`afc66a576d48b2c1a4bfeb9099d864158e673b9209b1e2db0436b0c709a234f4`.
+
+**Homebrew** (developer channel):
 
 ```bash
 brew install --cask luisroquette/tap/notchagent
-xattr -dr com.apple.quarantine /Applications/NotchAgent.app   # free & unsigned — clears Gatekeeper once
 open /Applications/NotchAgent.app
 ```
 
-**Or download** the latest `NotchAgent.app` from [Releases](../../releases), unzip, move to `/Applications`, then clear the quarantine flag:
+**Or download the signed ZIP** from [v3.1.2](../../releases/tag/v3.1.2), unzip it,
+and move `NotchAgent.app` to `/Applications`:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/NotchAgent.app
 open /Applications/NotchAgent.app
 ```
 
@@ -119,7 +131,7 @@ git config core.hooksPath .githooks
 swift run                          # development (menu bar + overlay live)
 swift test                         # unit + integration test suite
 ./Scripts/audit-public-release.sh  # blocks secrets and personal IDs
-./Scripts/make-app.sh              # builds dist/NotchAgent.app (icon + stable signature included)
+./Scripts/make-app.sh              # builds a local dist/NotchAgent.app for development
 open dist/NotchAgent.app
 ```
 
@@ -239,18 +251,20 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 
 - Notch geometry is inferred (`safeAreaInsets` + auxiliary areas) — there's no official API; a fallback pill covers Apple changes.
 - Costs are estimates from a public table; subscription plans don't bill per token.
-- Distribution isn't notarized yet: the first launch may require clearing quarantine. Local builds use the first available Apple Development identity; set `NOTCHAGENT_SIGN_IDENTITY` to pick a different stable identity.
+- The public 3.1.2 build is a notarized Beta 1. Stable promotion remains gated by the complete 24-hour physical soak and pilot evidence.
+- Local source builds are not the notarized release; they use the first available Apple Development identity unless `NOTCHAGENT_SIGN_IDENTITY` selects another identity.
 - `Limited` on the MODELS page reflects the account's unified rate limit at probe time, not the model itself being unavailable.
 
 ## Distribution status
 
-- [x] NotchAgent 3.1.1 · Desk Beta 1 · automated test suite
-- [x] Public release [v3.1.1](https://github.com/luisroquette/notchagent/releases/tag/v3.1.1)
+- [x] NotchAgent 3.1.2 · Desk Beta 1 · automated test suite
+- [x] Public prerelease [v3.1.2](https://github.com/luisroquette/notchagent/releases/tag/v3.1.2)
 - [x] Homebrew Cask install
 - [x] Packaged `.app` with icon + launch-at-login + notifications
 - [x] Developer ID signature + notarization + stapled ticket
-- [ ] DMG (`create-dmg`)
-- [x] Auto-update (Sparkle 2) — embedded; commercial builds require an HTTPS appcast and EdDSA public key
+- [x] Notarized DMG + signed ZIP with published SHA-256 digests
+- [x] Auto-update (Sparkle 2) — HTTPS appcast, embedded EdDSA public key, and release signature verified
+- [ ] Stable-channel promotion — waits for the physical soak and pilot gates
 
 Commercial release builds use `NOTCHAGENT_UPDATE_FEED_URL` and
 `NOTCHAGENT_UPDATE_PUBLIC_ED_KEY`. After notarization,

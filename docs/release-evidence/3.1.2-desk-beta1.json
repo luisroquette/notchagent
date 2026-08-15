@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "product": "NotchAgent Desk Beta 1",
+  "release": {
+    "appVersion": "3.1.2",
+    "buildNumber": "5",
+    "firmwareVersion": "0.6.16",
+    "protocolVersion": "1.1",
+    "channel": "beta",
+    "releaseUrl": "https://github.com/luisroquette/notchagent/releases/tag/v3.1.2",
+    "dmgSHA256": "afc66a576d48b2c1a4bfeb9099d864158e673b9209b1e2db0436b0c709a234f4",
+    "zipSHA256": "742b374d570e2474f3ae71532cbfed004255f708151d6ad00e8ae9c44bb29162",
+    "developerIdSignature": "pass",
+    "hardenedRuntime": "pass",
+    "notarizationStaple": "pass",
+    "gatekeeperAssessment": "pass",
+    "sparkleEdDSASignature": "pass"
+  },
+  "physicalResetReconnect": {
+    "executedAt": "2026-08-15T04:44:26Z",
+    "cycles": 100,
+    "passedCycles": 100,
+    "durationSeconds": 815.25,
+    "maximumReconnectMilliseconds": 10914,
+    "minimumFramesPerSecond": 8.457711,
+    "minimumFreeHeapBytes": 163452,
+    "invalidFrameCount": 0,
+    "touchReadErrorCount": 0,
+    "touchControllerPresentEveryCycle": true,
+    "result": "pass"
+  },
+  "remainingReleaseGates": [
+    "complete-24-hour-soak",
+    "physical-touch-observation",
+    "abrupt-power-cycle",
+    "five-user-seven-day-pilot"
+  ]
+}
