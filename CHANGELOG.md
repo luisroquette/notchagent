@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Separated the NotchAgent desktop software from the physical NotchAgent Desk
+  product. Hardware, firmware, protocol, compatibility, and factory work now
+  lives in `luisroquette/notchagent-desk`.
+
+### Deprecated
+
+- The local `firmware/notchagent_desk` tree is retained only to reproduce the
+  signed 3.1.2 release and will be removed in the next major app release.
+
 ## 3.1.2 — 2026-08-14
 
 - Adds the PT/EN interactive visual setup guide directly to Desk settings.
