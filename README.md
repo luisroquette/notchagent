@@ -2,6 +2,12 @@
 
 **The fuel gauge for your AI agents, living in your MacBook's notch.**
 
+> **This is the desktop software repository.** The physical ESP32-S3 product,
+> firmware, USB protocol, compatibility matrix, and factory contracts now live
+> in [`luisroquette/notchagent-desk`](https://github.com/luisroquette/notchagent-desk).
+> Product pages: [NotchAgent app](https://cfgauss.com.br/shop/notchagent) ·
+> [NotchAgent Desk](https://cfgauss.com.br/shop/notchagent-desk).
+
 <p align="center">
   <a href="https://luisroquette.github.io/notchagent/"><img src="https://img.shields.io/badge/website-live-FF654F?style=flat-square" alt="NotchAgent website" /></a>
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
@@ -18,18 +24,18 @@ local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
 
 **Also available for Windows** — a system-tray companion (.NET 8 + Avalonia, same parsers, same quota probe) since Windows has no notch. See [`windows/README.md`](windows/README.md) for the current (v1) feature set and build instructions.
 
-**NotchAgent Desk Beta 1** extends the same local-first state to a
-Guition JC4832W535 ESP32-S3 touch display over USB. The device has no provider
-credentials, network access, or independent polling. See
-[`docs/NOTCHAGENT_DESK.md`](docs/NOTCHAGENT_DESK.md) and
-[`firmware/notchagent_desk`](firmware/notchagent_desk).
+**NotchAgent Desk Beta 1** consumes the app's same local-first state on a
+Guition JC4832W535 ESP32-S3 touch display over USB. The hardware source of
+truth is [`notchagent-desk`](https://github.com/luisroquette/notchagent-desk).
+This repository retains the 3.1.2 integration snapshot temporarily so the
+signed release remains reproducible; new hardware work belongs there.
 
 Beta 1 adds automatic device identity, visible firmware/protocol/health,
 sanitized diagnostics, a hash-verified local recovery updater, and repeatable
 reconnect/soak-test gates. No device telemetry leaves the Mac.
-See the [onboarding guide](docs/NOTCHAGENT_DESK_ONBOARDING.md),
-[verified BOM](docs/NOTCHAGENT_DESK_BOM.md), and
-[five-person pilot protocol](docs/NOTCHAGENT_DESK_PILOT.md).
+See the [live setup guide](https://cfgauss.com.br/notchagent/instalar),
+[Desk BOM](https://github.com/luisroquette/notchagent-desk/blob/main/docs/BOM.md),
+and [compatibility matrix](https://github.com/luisroquette/notchagent-desk/blob/main/COMPATIBILITY.md).
 
 ![The compact notch bar: Claude on the left wing, Codex on the right](docs/img/notch-compact.png)
 
@@ -194,6 +200,10 @@ NOTCHAGENT_DISABLE_PAID_PROBES=1 swift test
 
 Every version must add an entry at the top of `CHANGELOG.md` with the date,
 what's new, fixes, security, and validation.
+
+The complete release contract is in [`VERSIONING.md`](VERSIONING.md). Hardware
+and firmware versions are owned by the separate Desk repository and never reuse
+the app version number.
 
 ## Architecture
 

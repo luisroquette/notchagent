@@ -1,5 +1,9 @@
 # NotchAgent Desk
 
+> **Moved:** the hardware source of truth is now
+> [`luisroquette/notchagent-desk`](https://github.com/luisroquette/notchagent-desk).
+> This document is retained as the historical app 3.1.2 integration record.
+
 NotchAgent Desk extends NotchAgent to a 480x320 ESP32-S3 touch display. It is a
 physical interface, not a second collector: providers, credentials, polling,
 history, projections, and alert decisions remain on the Mac.
