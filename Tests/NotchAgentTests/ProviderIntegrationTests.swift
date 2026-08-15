@@ -105,6 +105,6 @@ final class ProviderIntegrationTests: XCTestCase {
         XCTAssertNil(snapshot.session, "gemini must not fabricate token data")
         XCTAssertNil(snapshot.weekly)
         XCTAssertNotNil(snapshot.lastActivityAt)
-        XCTAssertTrue(snapshot.note?.contains("1 prompts today") ?? false)
+        XCTAssertTrue(snapshot.note?.contains("1 in 7 days") ?? false)
     }
 }
