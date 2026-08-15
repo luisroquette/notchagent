@@ -94,21 +94,26 @@ struct CodexProvider: UsageProvider {
         // report the other scope, so recovering every known scope means
         // keeping the freshest sighting of each across every
         // recently-scanned rollout, not just the single newest file.
-        let weeklyScopes = Self.freshestWeeklyScopes(perFile)
+        // A scope whose resetsAt already passed is a dead, already-expired
+        // window — its old percentage (however extreme) says nothing about
+        // now and must never appear as "the" number or clutter the
+        // breakdown (review finding: two long-expired scopes with the same
+        // last-seen model both showing a stale 0% left cluttered the card).
+        let liveWeeklyScopes = Self.freshestWeeklyScopes(perFile).filter { $0.value.window.resetsAt.map { $0 > now } ?? false }
         // Codex exposes no reliable local label for "this is the account-wide
         // total" vs. "this is one model's own cap" — so instead of guessing
         // which scope is the aggregate, the headline number is always
-        // whichever known scope has the LEAST headroom. That's the one that
-        // actually blocks the user next, regardless of what it's called
+        // whichever known LIVE scope has the LEAST headroom. That's the one
+        // that actually blocks the user next, regardless of what it's called
         // (matches how a blocked quotaStatus already forces the gauge to
         // empty elsewhere — worst case always wins, never a calm number that
         // hides a real limit).
-        let primaryWeeklyScope = weeklyScopes.values.max { $0.window.usedPercent < $1.window.usedPercent }
-        let weeklyWindow = freshWindow(primaryWeeklyScope?.window)
+        let primaryWeeklyScope = liveWeeklyScopes.values.max { $0.window.usedPercent < $1.window.usedPercent }
+        let weeklyWindow = primaryWeeklyScope?.window
         // Best-effort label from the model active when this scope was last
         // observed (real data, never invented) — falls back to the reset
         // date when no model is known for that sighting.
-        let namedWeeklyQuotas: [NamedQuota] = weeklyScopes.values
+        let namedWeeklyQuotas: [NamedQuota] = liveWeeklyScopes.values
             .map { scope in
                 NamedQuota(
                     name: scope.model ?? "Weekly cap · resets \(scope.window.resetsAt.map { Format.time($0) } ?? "?")",

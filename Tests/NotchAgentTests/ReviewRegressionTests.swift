@@ -219,4 +219,38 @@ final class CodexNamedWeeklyQuotaTests: XCTestCase {
         let spark = try XCTUnwrap(snapshot.weekly?.namedQuotas?.first { $0.name == "gpt-5.3-codex-spark" })
         XCTAssertEqual(spark.usedPercent, 8.0, "the other scope must still be recoverable for the detail view")
     }
+
+    /// Reproduces the 15/08/2026 follow-up bug: the breakdown showed the
+    /// same model twice, both stuck at "0% left", because scopes whose
+    /// resetsAt had already passed (dead, from a previous week) were never
+    /// filtered out of the named-quota list — only the headline number was
+    /// protected against staleness.
+    func testExpiredScopeNeverAppearsInTheBreakdown() async throws {
+        let now = Date()
+        let expiredResets = now.addingTimeInterval(-3600).timeIntervalSince1970 // already passed
+        let liveResets = now.addingTimeInterval(6 * 24 * 3600).timeIntervalSince1970
+
+        let expiredContent = """
+        {"timestamp":"\(now.addingTimeInterval(-2 * 24 * 3600).ISO8601Format())","type":"turn_context","payload":{"cwd":"/Users/test","model":"gpt-5.6-sol","approval_policy":"on-request"}}
+        {"timestamp":"\(now.addingTimeInterval(-2 * 24 * 3600).ISO8601Format())","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":500,"cached_input_tokens":0,"output_tokens":50,"total_tokens":550}},"rate_limits":{"limit_id":"codex","limit_name":null,"primary":{"used_percent":0.0,"window_minutes":10080,"resets_at":\(expiredResets)},"secondary":null,"plan_type":"pro"}}}
+        """
+        try Data((expiredContent + "\n").utf8).write(
+            to: root.appendingPathComponent("sessions/2026/08/15/rollout-expired.jsonl")
+        )
+
+        let liveContent = """
+        {"timestamp":"\(now.ISO8601Format())","type":"turn_context","payload":{"cwd":"/Users/test","model":"gpt-5.3-codex-spark","approval_policy":"on-request"}}
+        {"timestamp":"\(now.ISO8601Format())","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100}},"rate_limits":{"limit_id":"codex","limit_name":null,"primary":{"used_percent":40.0,"window_minutes":10080,"resets_at":\(liveResets)},"secondary":null,"plan_type":"pro"}}}
+        """
+        try Data((liveContent + "\n").utf8).write(
+            to: root.appendingPathComponent("sessions/2026/08/15/rollout-live.jsonl")
+        )
+
+        let provider = CodexProvider(root: root.appendingPathComponent("sessions"))
+        let snapshot = try await provider.fetchSnapshot(settings: AppSettings())
+
+        let names = snapshot.weekly?.namedQuotas?.map(\.name) ?? []
+        XCTAssertEqual(names, ["gpt-5.3-codex-spark"], "an expired scope must never appear in the breakdown, no matter how it reads")
+        XCTAssertEqual(snapshot.weekly?.usedPercent, 40.0, "the headline must come from the live scope, not a stale one")
+    }
 }

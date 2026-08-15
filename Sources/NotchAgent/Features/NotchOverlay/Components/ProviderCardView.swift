@@ -109,8 +109,15 @@ struct ProviderCardView: View {
                     .foregroundStyle(Theme.textDim)
                     .lineLimit(1)
             }
-            ForEach(namedQuotas(snapshot).prefix(2)) { quota in
-                namedQuotaLine(quota)
+            if let hint = namedQuotaHint(snapshot) {
+                Text(hint)
+                    .font(Theme.body(8.5))
+                    .foregroundStyle(Theme.textFaint)
+                    .lineLimit(2)
+            } else {
+                ForEach(namedQuotas(snapshot).prefix(2)) { quota in
+                    namedQuotaLine(quota)
+                }
             }
             if let verdict = BurnRate.verdict(burn) {
                 Text(verdict)
@@ -130,12 +137,26 @@ struct ProviderCardView: View {
     }
 
     /// Secondary scopes sharing the headline window (e.g. Codex's per-model
-    /// weekly cap, Claude's Fable 5 pool) — worst case first, so the model
-    /// closest to blocking is always the one visible without paging over to
-    /// the detail view.
+    /// weekly cap, Claude's Fable 5 pool) — most headroom FIRST. The
+    /// headline number above already answers "am I in trouble"; this answers
+    /// "where do I still have room to work", so it must surface what's still
+    /// usable, not repeat the worst case.
     private func namedQuotas(_ snapshot: UsageSnapshot) -> [NamedQuota] {
         let quotas = snapshot.session?.namedQuotas ?? snapshot.weekly?.namedQuotas ?? []
-        return quotas.sorted { $0.usedPercent > $1.usedPercent }
+        return quotas.sorted { $0.usedPercent < $1.usedPercent }
+    }
+
+    /// When every known scope is exhausted, listing them all at "0% left"
+    /// answers nothing — point at where to actually check for a model with
+    /// room, since a scope NotchAgent has never seen locally (never used
+    /// this week) simply isn't in this data at all.
+    private func namedQuotaHint(_ snapshot: UsageSnapshot) -> String? {
+        let quotas = namedQuotas(snapshot)
+        guard !quotas.isEmpty, quotas.allSatisfy({ $0.usedPercent >= 99.5 }) else { return nil }
+        let portal = snapshot.provider == .codex
+            ? "chatgpt.com/codex/settings/usage"
+            : "claude.ai/settings/usage"
+        return "Every model seen locally this week is exhausted · check \(portal) for one that isn't"
     }
 
     private func namedQuotaLine(_ quota: NamedQuota) -> some View {
