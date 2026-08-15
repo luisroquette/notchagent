@@ -11,7 +11,7 @@ that still require a supplier sample and owner approval.
 | Flash / PSRAM | 16 MB flash, 8 MB OPI PSRAM | Verified by connected prototype |
 | Data link | Any USB data cable compatible with the board connector and the customer's Mac/dock | Verified function; commodity item, no fixed SKU |
 | Firmware | NotchAgent Desk factory image, protocol v1.1 | Build and recovery flow validated |
-| Mac software | NotchAgent macOS 14+ app with Desk firmware package | Build validated; notarization and public download pending |
+| Mac software | NotchAgent 3.1.2 Beta 1, macOS 14+, embedded Desk firmware 0.6.16 | Developer ID signed, notarized, stapled, and publicly downloadable |
 
 ## Purchasing gates
 
@@ -70,11 +70,11 @@ accepted units before a lot advances.
 
 For distribution, build with `NOTCHAGENT_SIGN_IDENTITY="Developer ID Application: …"`.
 Use `Scripts/make-notchagent-desk-beta1.sh`; it enforces the release contract
-in `docs/NOTCHAGENT_DESK_RELEASE.json` (app 3.1.1 build 4, firmware 0.6.16,
+in `docs/NOTCHAGENT_DESK_RELEASE.json` (app 3.1.2 build 5, firmware 0.6.16,
 protocol 1.1) and enables hardened runtime. Then run
 `Scripts/notarize-app.sh` with a `notarytool` Keychain profile; it refuses Apple
 Development/ad-hoc signatures, validates the staple and Gatekeeper result, and
-writes the final stapled `NotchAgent-Desk-Beta1-3.1.1.zip`. Its sanitized
+writes the final stapled `NotchAgent-Desk-Beta1-3.1.2.zip`. Its sanitized
 evidence binds that exact ZIP by SHA-256 to the onboarding publication record,
 without storing the signing identity, Team ID, Keychain profile, or notarization
 submission identifier. Existing evidence or release assets are never overwritten.

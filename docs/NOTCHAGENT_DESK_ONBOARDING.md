@@ -43,9 +43,13 @@ separate explicit consent. Export **Safe diagnostic** when support needs device-
 the report excludes serial paths, account identifiers, credentials, amounts,
 and raw errors.
 
-Canonical onboarding and download entry point:
-<https://github.com/luisroquette/notchagent/blob/master/docs/NOTCHAGENT_DESK_ONBOARDING.md>
+Customer onboarding and permanent download entry points:
 
-Do not print the production onboarding card until this exact URL is published
-and `NotchAgent-Desk-Beta1-3.1.1.zip` is available from the `v3.1.1` repository
-release with the same SHA-256 recorded by the notarization gate.
+- <https://cfgauss.com.br/notchagent/instalar>
+- <https://cfgauss.com.br/notchagent/download>
+
+The public 3.1.2 Beta 1 release contains the notarized DMG and signed ZIP. The
+DMG SHA-256 is
+`afc66a576d48b2c1a4bfeb9099d864158e673b9209b1e2db0436b0c709a234f4`.
+The QR card may use the permanent `/notchagent/instalar` URL; it must not point
+directly to a versioned GitHub asset.

@@ -154,9 +154,14 @@ commercial/signing gates without weakening the final release gate.
   ambient recommendation, API-account provider fallback, and `apiServices`
   payload. The Beta now has four self-configuring pages: NOW, BURN, RHYTHM,
   and MODELS.
-- PENDING: start the supervised 0.6.16 soak after physical layout validation.
-- PENDING: 100 reconnects and the replacement soak on 0.6.16,
-  abrupt-power recovery, and the
+- ACTIVE: the supervised 24-hour 0.6.16 soak started on 2026-08-15 and is
+  collecting release-app telemetry without reliability failures.
+- PASS: 100/100 physical reset and USB reconnect cycles completed on 0.6.16
+  on 2026-08-15. Maximum reconnect time was 10.914 seconds; the touch
+  controller remained present and both invalid-frame and touch-read-error
+  counters remained zero. Sanitized evidence is recorded in
+  `docs/release-evidence/3.1.2-desk-beta1.json`.
+- PENDING: completion of the replacement soak on 0.6.16, abrupt-power recovery, and the
   dock/hub/Mac matrix. These gates must not be inferred from the passing
   historical firmware tests.
 
