@@ -782,8 +782,8 @@ done
 soak_app="$test_dir/NotchAgent.app"
 mkdir -p "$soak_app/Contents"
 plutil -create xml1 "$soak_app/Contents/Info.plist"
-plutil -insert CFBundleShortVersionString -string 3.1.1 "$soak_app/Contents/Info.plist"
-plutil -insert CFBundleVersion -string 4 "$soak_app/Contents/Info.plist"
+plutil -insert CFBundleShortVersionString -string 3.1.2 "$soak_app/Contents/Info.plist"
+plutil -insert CFBundleVersion -string 5 "$soak_app/Contents/Info.plist"
 soak_evidence=$(NOTCHAGENT_DESK_SOAK_APP="$soak_app" \
   Scripts/notchagent-desk-soak-evidence.sh "$soak_source" 20)
 jq -e --arg source "$soak_source" '
@@ -969,7 +969,7 @@ jq -n --slurpfile package firmware/notchagent_desk/release/manifest.json \
   --arg source "$current_smoke_source" --arg reportSHA "$current_smoke_sha" '
   {schemaVersion:2,gate:"final-app-physical-smoke",result:"pass",
    capturedAt:"2026-08-13T17:40:45Z",durationSeconds:45,
-   appVersion:"3.1.1",buildNumber:"4",signatureKind:"Apple Development",
+   appVersion:"3.1.2",buildNumber:"5",signatureKind:"Apple Development",
    firmwareVersion:"0.6.16",firmwareImageSHA256:$package[0].imageSHA256,
    firmwareSourceSHA256:$package[0].sourceSHA256,protocolVersion:"1.1",
    connectionContinuity:true,firstConnectionMilliseconds:0,
@@ -1055,7 +1055,7 @@ jq -n --arg qrSHA256 "$qr_sha" '{schemaVersion:3,gate:"onboarding-qr",result:"pa
   url:"https://github.com/luisroquette/notchagent/blob/master/docs/NOTCHAGENT_DESK_ONBOARDING.md",
   qrFile:"docs/img/notchagent-desk-onboarding-qr.svg",qrSHA256:$qrSHA256,
   publishedCommitSHA:("a" * 40),guideHTTPStatus:200,guideContentSHA256:("b" * 64),
-  releaseAssetURL:"https://github.com/luisroquette/notchagent/releases/download/v3.1.1/NotchAgent-Desk-Beta1-3.1.1.zip",
+  releaseAssetURL:"https://github.com/luisroquette/notchagent/releases/download/v3.1.2/NotchAgent-Desk-Beta1-3.1.2.zip",
   releaseAssetSHA256:("c" * 64),notarizationEvidenceSHA256:("d" * 64),
   downloadedExecutableSHA256:("a" * 64),downloadedFirmwareManifestSHA256:("e" * 64),
   artifactSignatureVerified:true,artifactStapleValidated:true,
@@ -1100,7 +1100,7 @@ jq -n --arg telemetryReport "$factory_telemetry_a" \
   --argjson telemetry "$factory_telemetry_summary" \
   '{schemaVersion:2, gate:"local-signed-recovery", result:"pass",
   startedAt:"2026-08-13T14:00:00Z", completedAt:"2026-08-13T14:00:11Z",
-  durationSeconds:11, appVersion:"3.1.1", buildNumber:"4", firmwareVersion:"0.6.16",
+  durationSeconds:11, appVersion:"3.1.2", buildNumber:"5", firmwareVersion:"0.6.16",
   protocolVersion:"1.1", signatureKind:"Developer ID Application", hardenedRuntime:true,
   usbReenumerated:true, telemetryHealthy:true, telemetryReport:$telemetryReport,
   telemetrySHA256:$telemetrySHA256,
@@ -1212,10 +1212,10 @@ set -e
 valid_notarization="$test_dir/valid-notarization.json"
 jq -n '{schemaVersion:2, gate:"developer-id-notarization", result:"pass",
   completedAt:"2026-08-13T14:00:00Z", bundleIdentifier:"br.com.lfrprojects.notchagent",
-  appVersion:"3.1.1", buildNumber:"4", signatureKind:"Developer ID Application",
+  appVersion:"3.1.2", buildNumber:"5", signatureKind:"Developer ID Application",
   hardenedRuntime:true, notarizationStatus:"Accepted", stapleValidated:true,
   gatekeeperAccepted:true, executableSHA256:("a" * 64),
-  releaseAssetFilename:"NotchAgent-Desk-Beta1-3.1.1.zip",
+  releaseAssetFilename:"NotchAgent-Desk-Beta1-3.1.2.zip",
   releaseAssetSHA256:("c" * 64)}' > "$valid_notarization"
 notarization_status="$test_dir/notarization-status.json"
 jq --arg evidence "$valid_notarization" '

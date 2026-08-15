@@ -184,6 +184,18 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Link(destination: NotchAgentDeskSupportLinks.setupGuide) {
+                    Label(
+                        pt ? "Abrir guia visual" : "Open visual guide",
+                        systemImage: "rectangle.stack.badge.play"
+                    )
+                }
+                .accessibilityHint(
+                    pt
+                        ? "Abre o passo a passo de instalação no navegador."
+                        : "Opens the installation walkthrough in your browser."
+                )
+
                 if !preferences.settings.notchAgentDeskEnabled {
                     Button {
                         preferences.settings.notchAgentDeskEnabled = true
@@ -437,8 +449,7 @@ struct SettingsView: View {
         codexOnboardingMessage = nil
 
         if action == .openInstallGuide {
-            guard let url = URL(string: "https://developers.openai.com/codex/cli"),
-                  NSWorkspace.shared.open(url)
+            guard NSWorkspace.shared.open(NotchAgentDeskSupportLinks.codexInstallGuide)
             else {
                 codexOnboardingMessage = portuguese
                     ? "Não foi possível abrir o guia de instalação."

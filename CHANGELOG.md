@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.2 — 2026-08-14
+
+- Adds the PT/EN interactive visual setup guide directly to Desk settings.
+- Keeps Codex installation on the official OpenAI documentation while the
+  product walkthrough covers download, USB connection, authentication, and activation.
+
 ## 3.1.1 — 2026-08-14 (Desk Beta 1)
 
 - Adds NotchAgent Desk automatic USB discovery, local usage mirroring, hardware
