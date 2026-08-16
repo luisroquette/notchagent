@@ -987,6 +987,11 @@ struct NotchExpandedView: View {
         let projection = store.burnProjection(for: focus)
         let used = session?.usedPercent
         let verdict = burnVerdict(projection: projection, hasSamples: !samples.isEmpty)
+        let dominantModel = session?.modelTokens.flatMap { ModelProjection.dominantModel(modelTokens: $0) }
+        let alternates = dominantModel.map { model in
+            ModelProjection.alternates(dominantModel: model, sessionTokens: session?.tokens ?? .zero)
+        } ?? []
+        let dominantModelShortName = dominantModel.map(ModelProjection.shortName(for:))
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
@@ -1034,7 +1039,9 @@ struct NotchExpandedView: View {
                 samples: samples,
                 projection: projection,
                 windowStart: start,
-                windowEnd: end
+                windowEnd: end,
+                dominantModelShortName: dominantModelShortName,
+                alternates: alternates
             )
             .frame(maxHeight: .infinity)
 

@@ -8,6 +8,12 @@ struct BurnChartView: View {
     let projection: BurnRate.Projection?
     let windowStart: Date
     let windowEnd: Date
+    /// Display name of the model the solid/dashed history line already
+    /// represents (e.g. "Sonnet") — nil hides the legend entirely.
+    let dominantModelShortName: String?
+    /// The 3 (or fewer) other Claude tiers, each with a price ratio
+    /// against the dominant model. Empty hides the alternate lines.
+    let alternates: [ModelProjection.Alternate]
 
     @State private var hoverX: CGFloat?
 
@@ -27,6 +33,21 @@ struct BurnChartView: View {
                 Spacer()
                 GaugeLabel(text: "RESET \(Format.time(windowEnd))", color: Theme.coralDim, size: 8)
             }
+            if let dominantModelShortName, !alternates.isEmpty {
+                HStack(spacing: 10) {
+                    legendDot(color: Theme.coral, label: dominantModelShortName)
+                    ForEach(alternates) { alternate in
+                        legendDot(color: Theme.color(forModel: alternate.model), label: alternate.shortName)
+                    }
+                }
+            }
+        }
+    }
+
+    private func legendDot(color: Color, label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            GaugeLabel(text: label.uppercased(), color: Theme.textFaint, size: 7)
         }
     }
 
@@ -51,6 +72,37 @@ struct BurnChartView: View {
         } else {
             let hours = windowEnd.timeIntervalSince(last.date) / 3600
             points.append((windowEnd, min(100, last.percent + projection.percentPerHour * hours), true))
+        }
+        return points
+    }
+
+    /// Same shape as `polyline`, scaled by `alternate.priceRatio` — "if
+    /// these tokens had all been on this model instead." Stops drawing
+    /// once it would cross 100% (that model would already be exhausted;
+    /// no marker, this is a context line, not the primary instrument).
+    private func alternatePolyline(_ alternate: ModelProjection.Alternate) -> [(date: Date, percent: Double)] {
+        let visible = visibleSamples
+        guard let last = visible.last else { return [] }
+
+        var points: [(Date, Double)] = []
+        for sample in visible {
+            let scaled = min(100, sample.percent * alternate.priceRatio)
+            points.append((sample.date, scaled))
+            if scaled >= 100 { return points }
+        }
+
+        guard let projection, projection.percentPerHour > 0.1 else { return points }
+        let scaledRate = projection.percentPerHour * alternate.priceRatio
+        guard scaledRate > 0.1 else { return points }
+
+        let lastPercent = points.last?.1 ?? 0
+        let hoursToFull = (100 - lastPercent) / scaledRate
+        let exhaustsAt = last.date.addingTimeInterval(hoursToFull * 3600)
+        if exhaustsAt <= windowEnd {
+            points.append((exhaustsAt, 100))
+        } else {
+            let hours = windowEnd.timeIntervalSince(last.date) / 3600
+            points.append((windowEnd, min(100, lastPercent + scaledRate * hours)))
         }
         return points
     }
@@ -144,6 +196,21 @@ struct BurnChartView: View {
                         at: CGPoint(x: min(marker.x, canvasSize.width - 48), y: marker.y + 12)
                     )
                 }
+            }
+
+            for alternate in alternates {
+                let points = alternatePolyline(alternate)
+                guard points.count > 1 else { continue }
+                var altPath = Path()
+                altPath.move(to: CGPoint(x: x(points[0].0), y: y(points[0].1)))
+                for point in points.dropFirst() {
+                    altPath.addLine(to: CGPoint(x: x(point.0), y: y(point.1)))
+                }
+                context.stroke(
+                    altPath,
+                    with: .color(Theme.color(forModel: alternate.model)),
+                    style: StrokeStyle(lineWidth: 1, lineCap: .round, dash: [3, 4])
+                )
             }
 
             // "Now": vertical hairline + white dot, label above the dot.
