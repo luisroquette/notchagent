@@ -1048,7 +1048,7 @@ struct NotchExpandedView: View {
             .frame(maxHeight: .infinity)
 
             GaugeLabel(
-                text: "SOLID = REAL USAGE · DOTTED = PROJECTION AT CURRENT PACE",
+                text: "SOLID = REAL · DASHED = PROJECTED",
                 color: Theme.textFaint,
                 size: 7
             )

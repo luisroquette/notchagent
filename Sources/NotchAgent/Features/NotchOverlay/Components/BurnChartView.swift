@@ -33,21 +33,6 @@ struct BurnChartView: View {
                 Spacer()
                 GaugeLabel(text: "RESET \(Format.time(windowEnd))", color: Theme.coralDim, size: 8)
             }
-            if let dominantModelShortName, !alternates.isEmpty {
-                HStack(spacing: 10) {
-                    legendDot(color: Theme.coral, label: dominantModelShortName)
-                    ForEach(alternates) { alternate in
-                        legendDot(color: Theme.color(forModel: alternate.model), label: alternate.shortName)
-                    }
-                }
-            }
-        }
-    }
-
-    private func legendDot(color: Color, label: String) -> some View {
-        HStack(spacing: 4) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            GaugeLabel(text: label.uppercased(), color: Theme.textFaint, size: 7)
         }
     }
 
@@ -211,6 +196,7 @@ struct BurnChartView: View {
                 }
             }
 
+            var placedLabelYs: [CGFloat] = []
             for alternate in alternates {
                 let points = alternatePolyline(alternate)
                 guard points.count > 1 else { continue }
@@ -219,11 +205,22 @@ struct BurnChartView: View {
                 for point in points.dropFirst() {
                     altPath.addLine(to: CGPoint(x: x(point.0), y: y(point.1)))
                 }
+                let color = Theme.color(forModel: alternate.model)
                 context.stroke(
                     altPath,
-                    with: .color(Theme.color(forModel: alternate.model)),
-                    style: StrokeStyle(lineWidth: 1, lineCap: .round, dash: [3, 4])
+                    with: .color(color),
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [3, 4])
                 )
+                if let end = points.last {
+                    let labelY = Self.nonCollidingLabelY(y(end.1), avoiding: placedLabelYs, minGap: 12)
+                    placedLabelYs.append(labelY)
+                    drawEndLabel(
+                        context: context,
+                        x: x(end.0), y: labelY,
+                        text: alternate.shortName, color: color,
+                        canvasWidth: canvasSize.width
+                    )
+                }
             }
 
             // "Now": vertical hairline + white dot, label above the dot.
@@ -237,7 +234,8 @@ struct BurnChartView: View {
                 with: .color(Theme.marker)
             )
             context.draw(
-                Text("NOW").font(Theme.label(7)).foregroundStyle(Theme.textDim),
+                Text(dominantModelShortName.map { "NOW · \($0.uppercased())" } ?? "NOW")
+                    .font(Theme.label(7)).foregroundStyle(Theme.textDim),
                 at: CGPoint(
                     x: min(max(nowPoint.x, 16), canvasSize.width - 16),
                     y: max(nowPoint.y - 13, 8)
@@ -348,5 +346,24 @@ struct BurnChartView: View {
             lineWidth: 0.5
         )
         context.draw(resolved, at: CGPoint(x: bubble.midX, y: bubble.midY), anchor: .center)
+    }
+
+    /// A small colored identity dot + the model's name in neutral text —
+    /// text never carries the series color, only the dot does (see
+    /// dataviz skill's "text never wears the data color" rule). Clamped
+    /// so a line ending near the right edge doesn't clip its label.
+    private func drawEndLabel(
+        context: GraphicsContext, x: CGFloat, y: CGFloat, text: String, color: Color, canvasWidth: CGFloat
+    ) {
+        let dotX = min(max(x + 6, 10), canvasWidth - 44)
+        context.fill(
+            Path(ellipseIn: CGRect(x: dotX - 2.5, y: y - 2.5, width: 5, height: 5)),
+            with: .color(color)
+        )
+        context.draw(
+            Text(text.uppercased()).font(Theme.label(7.5)).foregroundStyle(Theme.textFaint),
+            at: CGPoint(x: dotX + 8, y: y),
+            anchor: .leading
+        )
     }
 }
