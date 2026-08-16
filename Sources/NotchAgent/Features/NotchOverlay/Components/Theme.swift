@@ -63,23 +63,30 @@ enum Theme {
     static let gridStrong = dynamic(dark: NSColor.white.withAlphaComponent(0.18), light: NSColor.black.withAlphaComponent(0.22))
     static let bubble = dynamic(dark: NSColor.black.withAlphaComponent(0.85), light: NSColor.white.withAlphaComponent(0.95))
 
-    // Burn-chart multi-model projection lines — 4 fixed hues, distinct
-    // from coral (current model), ok/caution/warning/danger (state ramp).
+    // Re-picked 2026-08-16 after a live user report ("can't tell the
+    // lines apart") turned out to be measurable: the original 4 colors
+    // validated at worst-pair ΔE 12 (dataviz skill's contrast checker),
+    // below the 15 floor for normal color vision. These validate at
+    // worst-pair ΔE 16 (dark) / 19.7 (dark, normal-vision) alongside
+    // Theme.coral. Before changing these again, re-run
+    // `node scripts/validate_palette.js "<hex,hex,...>" --mode dark`
+    // (and --mode light) from the dataviz skill directory — don't
+    // eyeball it.
     static let modelHaiku = dynamic(
-        dark: NSColor(red: 0.42, green: 0.68, blue: 0.94, alpha: 1),
-        light: NSColor(red: 0.15, green: 0.42, blue: 0.75, alpha: 1)
+        dark: NSColor(red: 0.224, green: 0.529, blue: 0.898, alpha: 1),
+        light: NSColor(red: 0.165, green: 0.471, blue: 0.839, alpha: 1)
     )
     static let modelSonnet = dynamic(
-        dark: NSColor(red: 0.35, green: 0.80, blue: 0.78, alpha: 1),
-        light: NSColor(red: 0.10, green: 0.50, blue: 0.48, alpha: 1)
+        dark: NSColor(red: 0.098, green: 0.620, blue: 0.439, alpha: 1),
+        light: NSColor(red: 0.106, green: 0.686, blue: 0.478, alpha: 1)
     )
     static let modelOpus = dynamic(
-        dark: NSColor(red: 0.68, green: 0.56, blue: 0.94, alpha: 1),
-        light: NSColor(red: 0.42, green: 0.28, blue: 0.72, alpha: 1)
+        dark: NSColor(red: 0.565, green: 0.522, blue: 0.914, alpha: 1),
+        light: NSColor(red: 0.290, green: 0.227, blue: 0.655, alpha: 1)
     )
     static let modelFable = dynamic(
-        dark: NSColor(red: 0.94, green: 0.52, blue: 0.72, alpha: 1),
-        light: NSColor(red: 0.72, green: 0.20, blue: 0.46, alpha: 1)
+        dark: NSColor(red: 0.835, green: 0.318, blue: 0.506, alpha: 1),
+        light: NSColor(red: 0.910, green: 0.482, blue: 0.643, alpha: 1)
     )
 
     /// Fixed color identity for one of the 4 known Claude tiers — same
