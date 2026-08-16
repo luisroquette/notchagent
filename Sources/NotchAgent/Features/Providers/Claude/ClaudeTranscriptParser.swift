@@ -16,6 +16,11 @@ struct ClaudeFileStat: Sendable {
 
     var hours: [Date: HourStat] = [:]
     var byModel: [String: ModelStat] = [:]
+    /// Same tokens as `hours`/`byModel`, but keyed by both dimensions at
+    /// once — the only shape that can answer "what did each model burn
+    /// inside this specific hour" (needed to scope per-model usage to the
+    /// 5h session window, not just the whole lookback).
+    var hourlyByModel: [Date: [String: TokenUsage]] = [:]
     var lastActivity: Date?
     var lastModel: String?
     var usageLineCount: Int = 0
@@ -105,6 +110,10 @@ enum ClaudeTranscriptParser {
             modelStat.tokens += tokens
             modelStat.costUSD += cost
             stat.byModel[model] = modelStat
+
+            var byHourModel = stat.hourlyByModel[hour] ?? [:]
+            byHourModel[model, default: .zero] += tokens
+            stat.hourlyByModel[hour] = byHourModel
 
             if stat.lastActivity.map({ timestamp > $0 }) ?? true {
                 stat.lastActivity = timestamp

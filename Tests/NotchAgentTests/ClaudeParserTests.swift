@@ -26,6 +26,14 @@ final class ClaudeParserTests: XCTestCase {
         XCTAssertGreaterThan(bucket.costUSD, 0)
     }
 
+    func testAggregatesHourlyByModel() throws {
+        let stat = try ClaudeTranscriptParser.parseFile(at: fixtureURL).stat
+        let hour14 = Timestamps.parseISO8601("2026-07-10T14:00:00Z")!
+        let byModel = try XCTUnwrap(stat.hourlyByModel[hour14])
+        XCTAssertEqual(byModel["claude-fable-5"], TokenUsage(input: 100, output: 200, cacheWrite: 1000, cacheRead: 5000))
+        XCTAssertEqual(byModel["claude-sonnet-5"], TokenUsage(input: 50, output: 75, cacheWrite: 0, cacheRead: 0))
+    }
+
     func testTracksLastActivityAndModel() throws {
         let stat = try ClaudeTranscriptParser.parseFile(at: fixtureURL).stat
         XCTAssertEqual(stat.lastModel, "claude-fable-5")
