@@ -143,17 +143,18 @@ struct ClaudeProvider: UsageProvider {
             ?? SessionBlocks.currentBlock(activityHours: Array(merged.keys), now: now)
         if let window = sessionWindow {
             let (tokens, cost) = Self.sumBuckets(merged, from: window.start, to: window.end)
+            let (usedPercent, usedPercentIsFromQuota) = Self.sessionUsedPercent(
+                quota: quota, tokens: tokens.total, budget: settings.claudeSessionTokenBudget
+            )
             session = SessionUsage(
                 tokens: tokens,
                 cost: CostEstimate(amountUSD: cost),
                 startedAt: window.start,
                 resetsAt: window.end,
-                usedPercent: quota?.sessionPercent
-                    ?? settings.claudeSessionTokenBudget.map { budget in
-                        min(100, Double(tokens.total) / Double(max(budget, 1)) * 100)
-                    },
+                usedPercent: usedPercent,
                 namedQuotas: namedFable(fable?.sessionPercent, resetsAt: fable?.sessionResetsAt),
-                modelTokens: Self.sumBucketsByModel(mergedHourlyByModel, from: window.start, to: window.end)
+                modelTokens: Self.sumBucketsByModel(mergedHourlyByModel, from: window.start, to: window.end),
+                usedPercentIsFromQuota: usedPercentIsFromQuota
             )
         }
 
@@ -215,6 +216,23 @@ struct ClaudeProvider: UsageProvider {
             modelBreakdown: breakdown.isEmpty ? nil : breakdown,
             modelHealth: modelHealth
         )
+    }
+
+    /// The session `usedPercent` gate (Finding 6): a dollar-cost-correlated
+    /// percent (`quota.sessionPercent`, from the API probe) vs. a rough
+    /// token-count approximation (the budget fallback) — features that scale
+    /// this percent by a dollar-based price ratio must know which one they
+    /// got. Pure and unit-tested directly, same pattern as `sumBuckets`.
+    static func sessionUsedPercent(
+        quota: ClaudeQuota?, tokens: Int, budget: Int?
+    ) -> (percent: Double?, isFromQuota: Bool) {
+        if let sessionPercent = quota?.sessionPercent {
+            return (sessionPercent, true)
+        }
+        if let budget {
+            return (min(100, Double(tokens) / Double(max(budget, 1)) * 100), false)
+        }
+        return (nil, false)
     }
 
     /// Hour buckets are the finest grain we keep, so window boundaries carry

@@ -69,9 +69,13 @@ struct BurnChartView: View {
     }
 
     /// History polyline plus the projected end point (flagged), for scrubbing.
-    private var polyline: [(date: Date, percent: Double, projected: Bool)] {
-        var points = visibleSamples.map { ($0.date, $0.percent, false) }
-        guard let last = visibleSamples.last, let projection, projection.percentPerHour > 0.1 else {
+    /// Takes `visible` as a parameter (rather than re-deriving it from
+    /// `visibleSamples`) so a single `chart(in:)` redraw computes it once
+    /// and threads it through, instead of every caller re-filtering the
+    /// full sample array — see the perf note at the `chart(in:)` call site.
+    private func polyline(from visible: [PercentSample]) -> [(date: Date, percent: Double, projected: Bool)] {
+        var points = visible.map { ($0.date, $0.percent, false) }
+        guard let last = visible.last, let projection, projection.percentPerHour > 0.1 else {
             return points
         }
         if let exhaustsAt = projection.exhaustsAt, exhaustsAt <= windowEnd {
@@ -87,8 +91,9 @@ struct BurnChartView: View {
     /// these tokens had all been on this model instead." Stops drawing
     /// once it would cross 100% (that model would already be exhausted;
     /// no marker, this is a context line, not the primary instrument).
-    private func alternatePolyline(_ alternate: ModelProjection.Alternate) -> [(date: Date, percent: Double)] {
-        let visible = visibleSamples
+    private func alternatePolyline(
+        _ alternate: ModelProjection.Alternate, visibleSamples visible: [PercentSample]
+    ) -> [(date: Date, percent: Double)] {
         guard let last = visible.last else { return [] }
 
         var points: [(Date, Double)] = []
@@ -114,8 +119,9 @@ struct BurnChartView: View {
         return points
     }
 
-    private func interpolate(at date: Date) -> (percent: Double, projected: Bool)? {
-        let points = polyline
+    private func interpolate(
+        at date: Date, in points: [(date: Date, percent: Double, projected: Bool)]
+    ) -> (percent: Double, projected: Bool)? {
         guard let first = points.first else { return nil }
         if date <= first.date { return (first.percent, first.projected) }
         for (a, b) in zip(points, points.dropFirst()) where date <= b.date {
@@ -150,6 +156,22 @@ struct BurnChartView: View {
                 return
             }
 
+            // `visible` and `points` are computed exactly once per redraw
+            // and threaded into every consumer below (history line,
+            // projection target, alternates, scrubber interpolation)
+            // instead of each independently re-deriving them from
+            // `visibleSamples`/`polyline` — during active hover
+            // (`onContinuousHover`, up to 60-120/sec) that used to mean up
+            // to 7 redundant evaluations per Canvas redraw.
+            let points = polyline(from: visible)
+
+            // Computed here (not just at its draw site further down) so
+            // the label collision-avoidance seeding below has NOW's
+            // y-position available before the alternates loop runs — the
+            // hairline/dot/label are still drawn later, in their original
+            // visual order (on top of the alternates).
+            let nowPoint = CGPoint(x: x(last.date), y: y(last.percent))
+
             // Burned area under the history line.
             var area = Path()
             area.move(to: CGPoint(x: x(first.date), y: canvasSize.height))
@@ -179,28 +201,54 @@ struct BurnChartView: View {
                 style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
             )
 
-            // Projection + projected-empty marker.
-            if let target = polyline.last, target.projected {
+            // Projection + projected-empty marker. `emptyMarkerLabelY` and
+            // `labelPositions` feed the collision-avoidance seeding
+            // (Finding 3) and the scrubber-bubble collision check
+            // (Finding 4) below.
+            var emptyMarkerLabelY: CGFloat?
+            var labelPositions: [CGPoint] = []
+            if let target = points.last, target.projected {
                 var projected = Path()
                 projected.move(to: CGPoint(x: x(last.date), y: y(last.percent)))
                 projected.addLine(to: CGPoint(x: x(target.date), y: y(target.percent)))
                 let runsOut = target.percent >= 100 && target.date < windowEnd
-                context.stroke(
-                    projected,
-                    with: .color(runsOut ? Theme.danger.opacity(0.8) : Theme.coralDim),
-                    style: StrokeStyle(lineWidth: 1.6, lineCap: .round, dash: [3, 4])
-                )
                 if runsOut {
+                    // Actually running out: unchanged from before this fix round.
+                    context.stroke(
+                        projected,
+                        with: .color(Theme.danger.opacity(0.8)),
+                        style: StrokeStyle(lineWidth: 1.6, lineCap: .round, dash: [3, 4])
+                    )
                     let marker = CGPoint(x: x(target.date), y: y(100))
                     context.fill(
                         Path(ellipseIn: CGRect(x: marker.x - 4, y: marker.y - 4, width: 8, height: 8)),
                         with: .color(Theme.danger)
                     )
+                    // Two-sided clamp (Finding 2) — a fast-burn session can
+                    // put marker.x near 0; the old clamp only capped the
+                    // upper bound, clipping the label off the left edge.
+                    let markerLabelPos = CGPoint(
+                        x: max(min(marker.x, canvasSize.width - 48), 48), y: marker.y + 12
+                    )
                     context.draw(
                         Text("EMPTY \(Format.time(target.date))")
                             .font(Theme.label(7.5))
                             .foregroundStyle(Theme.danger),
-                        at: CGPoint(x: min(marker.x, canvasSize.width - 48), y: marker.y + 12)
+                        at: markerLabelPos
+                    )
+                    emptyMarkerLabelY = markerLabelPos.y
+                    labelPositions.append(markerLabelPos)
+                } else {
+                    // Not actually running out: the projected segment answers
+                    // this page's headline question ("will it last?") for the
+                    // primary model, so it must read as at least as heavy as
+                    // the alternates' own dashed lines (Finding 5) — was
+                    // lineWidth 1.6 / Theme.coralDim (55% opacity), visually
+                    // lighter than every alternate.
+                    context.stroke(
+                        projected,
+                        with: .color(Theme.coral),
+                        style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [3, 4])
                     )
                 }
             }
@@ -215,7 +263,7 @@ struct BurnChartView: View {
             // to the lines' actual top-to-bottom visual order instead of
             // inverting it.
             let alternatesWithPoints = alternates
-                .map { ($0, alternatePolyline($0)) }
+                .map { ($0, alternatePolyline($0, visibleSamples: visible)) }
                 .filter { $0.1.count > 1 }
                 .sorted { ($0.1.last?.1 ?? 0) > ($1.1.last?.1 ?? 0) }
 
@@ -224,11 +272,18 @@ struct BurnChartView: View {
             // animation — a bare `6...(canvasSize.height - 6)` traps if
             // canvasSize.height < 12.
             let safeBounds: ClosedRange<CGFloat> = 6...max(6, canvasSize.height - 6)
-            var placedLabelYs: [CGFloat] = []
-            for (alternate, points) in alternatesWithPoints {
+            // Seeded with NOW's and (when drawn) the EMPTY marker's label
+            // y-positions (Finding 3) — previously this started empty and
+            // only ever accumulated alternate labels, leaving NOW/EMPTY
+            // completely invisible to the collision check even though they
+            // occupy the same space and can land within a few pixels of an
+            // alternate's label.
+            var placedLabelYs: [CGFloat] = [nowPoint.y]
+            if let emptyMarkerLabelY { placedLabelYs.append(emptyMarkerLabelY) }
+            for (alternate, altPoints) in alternatesWithPoints {
                 var altPath = Path()
-                altPath.move(to: CGPoint(x: x(points[0].0), y: y(points[0].1)))
-                for point in points.dropFirst() {
+                altPath.move(to: CGPoint(x: x(altPoints[0].0), y: y(altPoints[0].1)))
+                for point in altPoints.dropFirst() {
                     altPath.addLine(to: CGPoint(x: x(point.0), y: y(point.1)))
                 }
                 let color = Theme.color(forModel: alternate.model)
@@ -237,20 +292,20 @@ struct BurnChartView: View {
                     with: .color(color),
                     style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [3, 4])
                 )
-                if let end = points.last {
+                if let end = altPoints.last {
                     let labelY = Self.nonCollidingLabelY(y(end.1), avoiding: placedLabelYs, minGap: 12, clampedTo: safeBounds)
                     placedLabelYs.append(labelY)
-                    drawEndLabel(
+                    let dotX = drawEndLabel(
                         context: context,
                         x: x(end.0), y: labelY,
                         text: alternate.shortName, color: color,
                         canvasWidth: canvasSize.width
                     )
+                    labelPositions.append(CGPoint(x: dotX, y: labelY))
                 }
             }
 
             // "Now": vertical hairline + white dot, label above the dot.
-            let nowPoint = CGPoint(x: x(last.date), y: y(last.percent))
             var nowLine = Path()
             nowLine.move(to: CGPoint(x: nowPoint.x, y: 0))
             nowLine.addLine(to: CGPoint(x: nowPoint.x, y: canvasSize.height))
@@ -267,9 +322,14 @@ struct BurnChartView: View {
                 max(nowPoint.x, nowTextSize.width / 2 + 4),
                 canvasSize.width - nowTextSize.width / 2 - 4
             )
-            context.draw(resolvedNow, at: CGPoint(x: nowLabelX, y: max(nowPoint.y - 13, 8)))
+            let nowLabelY = max(nowPoint.y - 13, 8)
+            context.draw(resolvedNow, at: CGPoint(x: nowLabelX, y: nowLabelY))
+            labelPositions.append(CGPoint(x: nowLabelX, y: nowLabelY))
 
-            drawScrubber(context: context, size: canvasSize, x: x, y: y)
+            drawScrubber(
+                context: context, size: canvasSize, x: x, y: y,
+                polyline: points, labelPositions: labelPositions
+            )
         }
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -337,11 +397,13 @@ struct BurnChartView: View {
     /// Crosshair + value bubble following the pointer.
     private func drawScrubber(
         context: GraphicsContext, size: CGSize,
-        x: (Date) -> CGFloat, y: (Double) -> CGFloat
+        x: (Date) -> CGFloat, y: (Double) -> CGFloat,
+        polyline points: [(date: Date, percent: Double, projected: Bool)],
+        labelPositions: [CGPoint]
     ) {
-        guard let hoverX, hoverX >= 0, hoverX <= size.width, !polyline.isEmpty else { return }
+        guard let hoverX, hoverX >= 0, hoverX <= size.width, !points.isEmpty else { return }
         let date = windowStart.addingTimeInterval(span * Double(hoverX / size.width))
-        guard let value = interpolate(at: date) else { return }
+        guard let value = interpolate(at: date, in: points) else { return }
 
         var crosshair = Path()
         crosshair.move(to: CGPoint(x: hoverX, y: 0))
@@ -361,8 +423,22 @@ struct BurnChartView: View {
         let resolved = context.resolve(label)
         let textSize = resolved.measure(in: CGSize(width: 240, height: 20))
         let bubbleWidth = textSize.width + 14
+        let bubbleHeight = textSize.height + 8
         let bubbleX = min(max(hoverX - bubbleWidth / 2, 4), size.width - bubbleWidth - 4)
-        let bubble = CGRect(x: bubbleX, y: 6, width: bubbleWidth, height: textSize.height + 8)
+
+        // Finding 4: the bubble used to always anchor near the top of the
+        // canvas (y: 6), the same top-of-canvas band (y < 30) alternate/NOW/
+        // EMPTY labels cluster in when percentages run high (y(percent) → 0
+        // as percent → 100). An approximate check is enough here (not
+        // pixel-perfect bounding boxes) — if any label sits roughly in the
+        // bubble's x-range and that top band, drop the bubble to the
+        // chart's vertical middle instead, where there's headroom.
+        let topBandOccupied = labelPositions.contains { position in
+            position.y < 30 && position.x >= bubbleX - 10 && position.x <= bubbleX + bubbleWidth + 10
+        }
+        let bubbleY: CGFloat = topBandOccupied ? max(size.height / 2 - bubbleHeight / 2, 30) : 6
+
+        let bubble = CGRect(x: bubbleX, y: bubbleY, width: bubbleWidth, height: bubbleHeight)
         context.fill(
             Path(roundedRect: bubble, cornerRadius: 5),
             with: .color(Theme.bubble)
@@ -377,20 +453,40 @@ struct BurnChartView: View {
 
     /// A small colored identity dot + the model's name in neutral text —
     /// text never carries the series color, only the dot does (see
-    /// dataviz skill's "text never wears the data color" rule). Clamped
-    /// so a line ending near the right edge doesn't clip its label.
+    /// dataviz skill's "text never wears the data color" rule). Returns the
+    /// dot's final x (for the caller's label-collision bookkeeping).
+    ///
+    /// The dot stays at the line's true endpoint `x`, only lightly clamped
+    /// so the 5px-wide dot itself doesn't get cut off at the canvas edge
+    /// (Finding 1) — the old clamp moved the DOT up to 44px inward to make
+    /// room for the text, detaching it from the line it identifies in the
+    /// common case (a line that won't cross 100% before the window resets)
+    /// — exactly the "legend requiring color-matching at a distance"
+    /// failure mode this feature's direct-label design exists to avoid.
+    /// Only the TEXT repositions: it measures its own rendered width (like
+    /// the "NOW" label already does) and flips to a trailing anchor, drawn
+    /// to the LEFT of the dot, only when that still fits on-canvas —
+    /// otherwise it stays leading, so a degenerate too-narrow canvas can't
+    /// push the text off the opposite edge.
+    @discardableResult
     private func drawEndLabel(
         context: GraphicsContext, x: CGFloat, y: CGFloat, text: String, color: Color, canvasWidth: CGFloat
-    ) {
-        let dotX = min(max(x + 6, 10), canvasWidth - 44)
+    ) -> CGFloat {
+        let dotX = min(x, canvasWidth - 3)
         context.fill(
             Path(ellipseIn: CGRect(x: dotX - 2.5, y: y - 2.5, width: 5, height: 5)),
             with: .color(color)
         )
-        context.draw(
-            Text(text.uppercased()).font(Theme.label(7.5)).foregroundStyle(Theme.textDim),
-            at: CGPoint(x: dotX + 8, y: y),
-            anchor: .leading
-        )
+        let label = Text(text.uppercased()).font(Theme.label(7.5)).foregroundStyle(Theme.textDim)
+        let resolved = context.resolve(label)
+        let textWidth = resolved.measure(in: CGSize(width: 200, height: 20)).width
+        let fitsRight = dotX + 8 + textWidth <= canvasWidth
+        let fitsLeft = dotX - 8 - textWidth >= 0
+        if !fitsRight, fitsLeft {
+            context.draw(resolved, at: CGPoint(x: dotX - 8, y: y), anchor: .trailing)
+        } else {
+            context.draw(resolved, at: CGPoint(x: dotX + 8, y: y), anchor: .leading)
+        }
+        return dotX
     }
 }

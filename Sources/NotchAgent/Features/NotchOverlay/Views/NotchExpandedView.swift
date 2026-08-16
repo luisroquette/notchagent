@@ -987,7 +987,7 @@ struct NotchExpandedView: View {
         let projection = store.burnProjection(for: focus)
         let used = session?.usedPercent
         let verdict = burnVerdict(projection: projection, hasSamples: !samples.isEmpty)
-        let dominantModel = snapshot?.quotaStatus != nil
+        let dominantModel = session?.usedPercentIsFromQuota == true
             ? session?.modelTokens.flatMap { ModelProjection.dominantModel(modelTokens: $0) }
             : nil
         let alternates = dominantModel.map { model in

@@ -84,6 +84,67 @@ final class ProviderIntegrationTests: XCTestCase {
         XCTAssertNil(modelTokens["claude-opus-5"], "3-day-old activity is outside the 5h session window")
     }
 
+    /// REGRESSÃO (Finding 6): a malformed probe response where the 5h header
+    /// fails to parse but the 7d header succeeds sets `quota.sessionPercent`
+    /// nil while `quota.weeklyPercent` is present. The old gate
+    /// (`quotaStatus != nil`) is non-nil whenever EITHER percent is present,
+    /// so it let a token-budget-estimated (non-dollar) session percent get
+    /// scaled by a dollar-based price ratio. `usedPercentIsFromQuota` must
+    /// specifically track whether `session.usedPercent` came from
+    /// `quota.sessionPercent` — false here even though `usedPercent` itself
+    /// is populated via the budget fallback.
+    func testClaudeProviderSessionUsedPercentIsFromQuotaGateOnMalformedProbe() {
+        let malformedProbe = ClaudeQuota(
+            sessionPercent: nil,
+            weeklyPercent: 40,
+            sessionResetsAt: nil,
+            weeklyResetsAt: Date().addingTimeInterval(3600),
+            status: .ok,
+            limitingWindow: nil,
+            fetchedAt: Date()
+        )
+        let (percent, isFromQuota) = ClaudeProvider.sessionUsedPercent(
+            quota: malformedProbe, tokens: 500, budget: 10_000
+        )
+        let session = SessionUsage(
+            tokens: TokenUsage(input: 500), usedPercent: percent, usedPercentIsFromQuota: isFromQuota
+        )
+
+        XCTAssertEqual(session.usedPercent, 5.0, "still populated via the token-budget fallback")
+        XCTAssertFalse(session.usedPercentIsFromQuota, "session percent did not come from quota.sessionPercent")
+    }
+
+    /// Companion positive case: when the probe's 5h header DOES parse, the
+    /// gate must be true — otherwise the fix could regress to "always false".
+    func testClaudeProviderSessionUsedPercentIsFromQuotaTrueWhenSessionPercentPresent() {
+        let quota = ClaudeQuota(
+            sessionPercent: 62,
+            weeklyPercent: 40,
+            sessionResetsAt: Date().addingTimeInterval(1800),
+            weeklyResetsAt: Date().addingTimeInterval(3600),
+            status: .ok,
+            limitingWindow: nil,
+            fetchedAt: Date()
+        )
+        let (percent, isFromQuota) = ClaudeProvider.sessionUsedPercent(
+            quota: quota, tokens: 500, budget: 10_000
+        )
+        let session = SessionUsage(
+            tokens: TokenUsage(input: 500), usedPercent: percent, usedPercentIsFromQuota: isFromQuota
+        )
+
+        XCTAssertEqual(session.usedPercent, 62)
+        XCTAssertTrue(session.usedPercentIsFromQuota)
+    }
+
+    /// No probe, no budget configured — usedPercent stays nil and the field
+    /// defaults to false, never ambiguous.
+    func testClaudeProviderSessionUsedPercentIsFromQuotaFalseWithNoQuotaNoBudget() {
+        let (percent, isFromQuota) = ClaudeProvider.sessionUsedPercent(quota: nil, tokens: 500, budget: nil)
+        XCTAssertNil(percent)
+        XCTAssertFalse(isFromQuota)
+    }
+
     func testClaudeProviderNotInstalled() async throws {
         let provider = ClaudeProvider(root: root.appendingPathComponent("missing"), probe: nil)
         let snapshot = try await provider.fetchSnapshot(settings: AppSettings())

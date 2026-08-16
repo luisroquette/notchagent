@@ -76,6 +76,15 @@ public struct SessionUsage: Codable, Sendable, Equatable {
     /// have cost under a different model?" (`UsageSnapshot.modelBreakdown`
     /// is a flat total over the whole 8-day lookback, not this window).
     public var modelTokens: [String: TokenUsage]?
+    /// Whether `usedPercent` came from the provider's authoritative quota
+    /// probe (dollar-cost-correlated) rather than the local token-budget
+    /// fallback (a rough token-count approximation). Features that scale
+    /// `usedPercent` by a dollar-based ratio (e.g. burn-chart alternates)
+    /// must gate on this specifically — `UsageSnapshot.quotaStatus` is non-nil
+    /// whenever EITHER the session OR weekly probe percent is present, which
+    /// is not the same question. Defaults false so "no session at all" and
+    /// "budget fallback" both read as not-quota-backed, never ambiguous.
+    public var usedPercentIsFromQuota: Bool
 
     public init(
         tokens: TokenUsage = .zero,
@@ -84,7 +93,8 @@ public struct SessionUsage: Codable, Sendable, Equatable {
         resetsAt: Date? = nil,
         usedPercent: Double? = nil,
         namedQuotas: [NamedQuota]? = nil,
-        modelTokens: [String: TokenUsage]? = nil
+        modelTokens: [String: TokenUsage]? = nil,
+        usedPercentIsFromQuota: Bool = false
     ) {
         self.tokens = tokens
         self.cost = cost
@@ -93,6 +103,7 @@ public struct SessionUsage: Codable, Sendable, Equatable {
         self.usedPercent = usedPercent
         self.namedQuotas = namedQuotas
         self.modelTokens = modelTokens
+        self.usedPercentIsFromQuota = usedPercentIsFromQuota
     }
 }
 
