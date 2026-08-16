@@ -71,6 +71,11 @@ public struct SessionUsage: Codable, Sendable, Equatable {
     /// Other scopes sharing this window (e.g. a model with its own separate
     /// cap) — never shown as the headline number, only in per-model detail.
     public var namedQuotas: [NamedQuota]?
+    /// Token usage broken down by model, scoped to this session window —
+    /// the only data granular enough to answer "what would this session
+    /// have cost under a different model?" (`UsageSnapshot.modelBreakdown`
+    /// is a flat total over the whole 8-day lookback, not this window).
+    public var modelTokens: [String: TokenUsage]?
 
     public init(
         tokens: TokenUsage = .zero,
@@ -78,7 +83,8 @@ public struct SessionUsage: Codable, Sendable, Equatable {
         startedAt: Date? = nil,
         resetsAt: Date? = nil,
         usedPercent: Double? = nil,
-        namedQuotas: [NamedQuota]? = nil
+        namedQuotas: [NamedQuota]? = nil,
+        modelTokens: [String: TokenUsage]? = nil
     ) {
         self.tokens = tokens
         self.cost = cost
@@ -86,6 +92,7 @@ public struct SessionUsage: Codable, Sendable, Equatable {
         self.resetsAt = resetsAt
         self.usedPercent = usedPercent
         self.namedQuotas = namedQuotas
+        self.modelTokens = modelTokens
     }
 }
 

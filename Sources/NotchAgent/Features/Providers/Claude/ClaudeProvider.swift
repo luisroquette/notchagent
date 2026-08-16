@@ -88,6 +88,7 @@ struct ClaudeProvider: UsageProvider {
         }
         var merged: [Date: ClaudeFileStat.HourStat] = [:]
         var mergedModels: [String: ClaudeFileStat.ModelStat] = [:]
+        var mergedHourlyByModel: [Date: [String: TokenUsage]] = [:]
         var lastActivity: Date?
         var lastModel: String?
         var failedFiles = 0
@@ -115,6 +116,13 @@ struct ClaudeProvider: UsageProvider {
                 existing.tokens += modelStat.tokens
                 existing.costUSD += modelStat.costUSD
                 mergedModels[model] = existing
+            }
+            for (hour, byModel) in stat.hourlyByModel {
+                var existing = mergedHourlyByModel[hour] ?? [:]
+                for (model, tokens) in byModel {
+                    existing[model, default: .zero] += tokens
+                }
+                mergedHourlyByModel[hour] = existing
             }
             if let activity = stat.lastActivity, lastActivity.map({ activity > $0 }) ?? true {
                 lastActivity = activity
@@ -144,7 +152,8 @@ struct ClaudeProvider: UsageProvider {
                     ?? settings.claudeSessionTokenBudget.map { budget in
                         min(100, Double(tokens.total) / Double(max(budget, 1)) * 100)
                     },
-                namedQuotas: namedFable(fable?.sessionPercent, resetsAt: fable?.sessionResetsAt)
+                namedQuotas: namedFable(fable?.sessionPercent, resetsAt: fable?.sessionResetsAt),
+                modelTokens: Self.sumBucketsByModel(mergedHourlyByModel, from: window.start, to: window.end)
             )
         }
 
@@ -223,6 +232,23 @@ struct ClaudeProvider: UsageProvider {
             cost += bucket.costUSD
         }
         return (tokens, cost)
+    }
+
+    /// Same windowing as `sumBuckets`, but keyed by model — the source for
+    /// `SessionUsage.modelTokens`.
+    static func sumBucketsByModel(
+        _ merged: [Date: [String: TokenUsage]],
+        from start: Date,
+        to end: Date
+    ) -> [String: TokenUsage] {
+        var result: [String: TokenUsage] = [:]
+        let flooredStart = start.flooredToHour
+        for (hour, byModel) in merged where hour >= flooredStart && hour < end {
+            for (model, tokens) in byModel {
+                result[model, default: .zero] += tokens
+            }
+        }
+        return result
     }
 
     private func limitingNote(_ quota: ClaudeQuota?) -> String? {

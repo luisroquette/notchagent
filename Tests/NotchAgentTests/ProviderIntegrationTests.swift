@@ -57,6 +57,33 @@ final class ProviderIntegrationTests: XCTestCase {
         XCTAssertFalse(weekly.hourlyTotals?.isEmpty ?? true, "hourly rhythm data must be populated")
     }
 
+    func testClaudeProviderTracksPerModelTokensWithinSessionWindow() async throws {
+        let projectDir = root.appendingPathComponent("projects/-Users-test", isDirectory: true)
+        try FileManager.default.createDirectory(at: projectDir, withIntermediateDirectories: true)
+
+        let now = Date()
+        func line(_ date: Date, id: String, model: String, input: Int, output: Int) -> String {
+            """
+            {"type":"assistant","timestamp":"\(iso(date))","requestId":"\(id)","message":{"id":"m_\(id)","model":"\(model)","usage":{"input_tokens":\(input),"output_tokens":\(output)}}}
+            """
+        }
+        let content = [
+            line(now.addingTimeInterval(-90 * 60), id: "a", model: "claude-sonnet-5", input: 100, output: 400),
+            line(now.addingTimeInterval(-30 * 60), id: "b", model: "claude-haiku-4-5-20251001", input: 50, output: 250),
+            // Outside the 5h window entirely — must not leak into modelTokens.
+            line(now.addingTimeInterval(-3 * 86_400), id: "c", model: "claude-opus-5", input: 1000, output: 2000),
+        ].joined(separator: "\n") + "\n"
+        try Data(content.utf8).write(to: projectDir.appendingPathComponent("session.jsonl"))
+
+        let provider = ClaudeProvider(root: root.appendingPathComponent("projects"), probe: nil)
+        let snapshot = try await provider.fetchSnapshot(settings: AppSettings())
+
+        let modelTokens = try XCTUnwrap(snapshot.session?.modelTokens)
+        XCTAssertEqual(modelTokens["claude-sonnet-5"]?.total, 500)
+        XCTAssertEqual(modelTokens["claude-haiku-4-5-20251001"]?.total, 300)
+        XCTAssertNil(modelTokens["claude-opus-5"], "3-day-old activity is outside the 5h session window")
+    }
+
     func testClaudeProviderNotInstalled() async throws {
         let provider = ClaudeProvider(root: root.appendingPathComponent("missing"), probe: nil)
         let snapshot = try await provider.fetchSnapshot(settings: AppSettings())
