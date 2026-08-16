@@ -3,7 +3,7 @@ import Foundation
 enum NotchAgentDeskProtocol {
     static let product = "NotchAgent Desk"
     static let protocolMajor: UInt8 = 1
-    static let protocolMinor: UInt8 = 1
+    static let protocolMinor: UInt8 = 2
     static let maximumPayloadBytes = 16 * 1_024
 
     enum FrameType: UInt8, Codable, Sendable {
@@ -102,6 +102,15 @@ struct DeskSnapshot: Codable, Sendable, Equatable {
         var latencyMs: Int?
     }
 
+    struct ModelAlternate: Codable, Sendable, Equatable {
+        /// "Haiku"/"Sonnet"/"Opus"/"Fable" — matches ModelProjection.shortName(for:).
+        var shortName: String
+        /// costUSD(alternate, sessionTokens) / costUSD(dominant, sessionTokens).
+        /// Firmware multiplies each burnHistory.usedPercent by this and clamps
+        /// to 100 to draw the alternate's line — see ModelProjection.Alternate.
+        var priceRatio: Double
+    }
+
     var product: String
     var protocolMajor: UInt8
     var protocolMinor: UInt8
@@ -112,6 +121,8 @@ struct DeskSnapshot: Codable, Sendable, Equatable {
     var burnHistory: [BurnPoint]
     var rhythm: [RhythmPoint]
     var models: [Model]
+    var dominantModelShortName: String?
+    var modelAlternates: [ModelAlternate]?
     var alertThresholds: [Int] = ThresholdAlerts.defaultLevels
     var runnerEnabled: Bool = true
     var ambientRecommendation: DeskAmbientRecommendation? = nil

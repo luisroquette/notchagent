@@ -1227,6 +1227,32 @@ final class NotchAgentDeskTests: XCTestCase {
         XCTAssertFalse(providers.contains { ($0["id"] as? String) == ProviderID.apiAccounts.rawValue })
         XCTAssertLessThan(data.count, NotchAgentDeskProtocol.maximumPayloadBytes)
     }
+
+    func testDeskSnapshotDecodesWithoutModelAlternateFields() throws {
+        // A payload written before dominantModelShortName/modelAlternates
+        // existed — must not throw, matching the SessionUsage precedent.
+        let json = """
+        {
+            "product": "NotchAgent",
+            "protocolMajor": 1,
+            "protocolMinor": 1,
+            "generatedAt": 0,
+            "overallAttention": 0,
+            "isPaused": false,
+            "providers": [],
+            "burnHistory": [],
+            "rhythm": [],
+            "models": [],
+            "alertThresholds": [5,25,75,100],
+            "runnerEnabled": true
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .millisecondsSince1970
+        let snapshot = try decoder.decode(DeskSnapshot.self, from: Data(json.utf8))
+        XCTAssertNil(snapshot.dominantModelShortName)
+        XCTAssertNil(snapshot.modelAlternates)
+    }
 }
 
 private final class DeskConnectionStateRecorder: @unchecked Sendable {
