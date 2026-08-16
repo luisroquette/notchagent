@@ -13,6 +13,17 @@
 - The local `firmware/notchagent_desk` tree is retained only to reproduce the
   signed 3.1.2 release and will be removed in the next major app release.
 
+## 3.3.0 — 2026-08-16
+
+### Added
+
+- `DeskSnapshot` now carries `dominantModelShortName` and `modelAlternates`
+  (short name + price ratio per Claude tier), reusing the existing
+  `burnHistory` series so the physical NotchAgent Desk can render the same
+  multi-model burn projection as the macOS app's BURN chart. Wire protocol
+  minor version 1.1 → 1.2 — additive only, older Desk firmware ignores the
+  new fields safely.
+
 ## 3.2.0 — 2026-08-16
 
 ### Added
