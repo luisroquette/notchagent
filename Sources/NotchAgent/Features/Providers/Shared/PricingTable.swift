@@ -19,6 +19,8 @@ public struct ModelPricing: Sendable, Equatable {
 public enum PricingTable {
     /// Longest-prefix match wins, so keep more specific prefixes first.
     static let entries: [(prefix: String, pricing: ModelPricing)] = [
+        ("claude-opus-5", ModelPricing(input: 5, output: 25, cacheWrite: 6.25, cacheRead: 0.5)),
+        ("claude-fable-5", ModelPricing(input: 10, output: 50, cacheWrite: 12.5, cacheRead: 1.0)),
         ("claude-fable", ModelPricing(input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.5)),
         ("claude-opus", ModelPricing(input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.5)),
         ("claude-sonnet", ModelPricing(input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3)),

@@ -85,6 +85,19 @@ final class PricingTests: XCTestCase {
         let usage = TokenUsage(input: 1_000_000, output: 0, cacheWrite: 0, cacheRead: 0)
         XCTAssertNil(PricingTable.costUSD(model: "mystery", usage: usage))
     }
+
+    // REGRESSÃO: Opus 5 e Fable 5 caíam no mesmo catch-all antigo (15/75)
+    // e saíam com custo idêntico — Fable é mais caro que Opus na tabela
+    // oficial (achado 15/08/2026, ver
+    // docs/superpowers/specs/2026-08-15-burn-chart-multi-model-projection-design.md).
+    func testOpus5AndFable5HaveDistinctCurrentPricing() throws {
+        let usage = TokenUsage(input: 1_000_000, output: 1_000_000, cacheWrite: 0, cacheRead: 0)
+        let opusCost = try XCTUnwrap(PricingTable.costUSD(model: "claude-opus-5", usage: usage))
+        let fableCost = try XCTUnwrap(PricingTable.costUSD(model: "claude-fable-5", usage: usage))
+        XCTAssertEqual(opusCost, 30, accuracy: 0.001) // 5 + 25 per MTok
+        XCTAssertEqual(fableCost, 60, accuracy: 0.001) // 10 + 50 per MTok
+        XCTAssertGreaterThan(fableCost, opusCost)
+    }
 }
 
 final class FormatTests: XCTestCase {
