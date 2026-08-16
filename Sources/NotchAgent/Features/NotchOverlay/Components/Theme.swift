@@ -63,6 +63,36 @@ enum Theme {
     static let gridStrong = dynamic(dark: NSColor.white.withAlphaComponent(0.18), light: NSColor.black.withAlphaComponent(0.22))
     static let bubble = dynamic(dark: NSColor.black.withAlphaComponent(0.85), light: NSColor.white.withAlphaComponent(0.95))
 
+    // Burn-chart multi-model projection lines — 4 fixed hues, distinct
+    // from coral (current model), ok/caution/warning/danger (state ramp).
+    static let modelHaiku = dynamic(
+        dark: NSColor(red: 0.42, green: 0.68, blue: 0.94, alpha: 1),
+        light: NSColor(red: 0.15, green: 0.42, blue: 0.75, alpha: 1)
+    )
+    static let modelSonnet = dynamic(
+        dark: NSColor(red: 0.35, green: 0.80, blue: 0.78, alpha: 1),
+        light: NSColor(red: 0.10, green: 0.50, blue: 0.48, alpha: 1)
+    )
+    static let modelOpus = dynamic(
+        dark: NSColor(red: 0.68, green: 0.56, blue: 0.94, alpha: 1),
+        light: NSColor(red: 0.42, green: 0.28, blue: 0.72, alpha: 1)
+    )
+    static let modelFable = dynamic(
+        dark: NSColor(red: 0.94, green: 0.52, blue: 0.72, alpha: 1),
+        light: NSColor(red: 0.72, green: 0.20, blue: 0.46, alpha: 1)
+    )
+
+    /// Fixed color identity for one of the 4 known Claude tiers — same
+    /// substring match ModelProjection.shortName uses, so a model always
+    /// reads as the same color whether or not it's the highlighted one.
+    static func color(forModel model: String) -> Color {
+        if model.contains("haiku") { return modelHaiku }
+        if model.contains("sonnet") { return modelSonnet }
+        if model.contains("opus") { return modelOpus }
+        if model.contains("fable") { return modelFable }
+        return textDim
+    }
+
     private static func dynamic(dark: NSColor, light: NSColor) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
             appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
