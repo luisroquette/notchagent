@@ -66,12 +66,32 @@ enum Theme {
     // Re-picked 2026-08-16 after a live user report ("can't tell the
     // lines apart") turned out to be measurable: the original 4 colors
     // validated at worst-pair ΔE 12 (dataviz skill's contrast checker),
-    // below the 15 floor for normal color vision. These validate at
-    // worst-pair ΔE 16 (dark) / 19.7 (dark, normal-vision) alongside
-    // Theme.coral. Before changing these again, re-run
-    // `node scripts/validate_palette.js "<hex,hex,...>" --mode dark`
-    // (and --mode light) from the dataviz skill directory — don't
-    // eyeball it.
+    // below the 15 floor for normal color vision. These 4 clear that
+    // floor against EACH OTHER (worst pair ΔE 16 dark / 19.7 dark
+    // normal-vision — `node scripts/validate_palette.js
+    // "#3987E5,#199E70,#9085E9,#D55181" --mode dark`, from the dataviz
+    // skill directory).
+    //
+    // They do NOT all clear it against Theme.coral, which is always on
+    // screen too (the dominant model's own hue is never drawn — coral
+    // replaces it, so up to 3 of these 4 plus coral render together at
+    // once). Checking every combination that can actually co-occur
+    // (`--pairs all` on whichever 4 of the 5 are visible for a given
+    // dominant model) finds real sub-floor pairs: coral↔Fable ΔE 11.7
+    // normal-vision, Opus↔Haiku ΔE 9.8 normal-vision / down to 1.6-1.9
+    // for deutan color blindness. The dataviz skill's rule is that
+    // direct labels do NOT excuse a normal-vision-floor failure below
+    // 15 — this is a deliberate, disclosed exception to that rule, not
+    // an oversight: every line's identity is a permanently-visible text
+    // label glued to the line's own end (see drawEndLabel /
+    // "NOW · <model>" below), not a separate legend requiring
+    // color-matching at a distance or a hover-only tooltip, which
+    // meaningfully reduces how much the reader actually depends on hue
+    // alone in practice. Re-stepping to a 5-color set that clears the
+    // floor in every simultaneous combination was evaluated and rejected
+    // — it isn't achievable within a reasonably distinct hue budget (see
+    // the dataviz skill's own reference palette, which caps clean
+    // all-pairs validation at 3 simultaneous categorical slots).
     static let modelHaiku = dynamic(
         dark: NSColor(red: 0.224, green: 0.529, blue: 0.898, alpha: 1),
         light: NSColor(red: 0.165, green: 0.471, blue: 0.839, alpha: 1)

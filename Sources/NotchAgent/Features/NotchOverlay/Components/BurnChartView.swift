@@ -9,7 +9,8 @@ struct BurnChartView: View {
     let windowStart: Date
     let windowEnd: Date
     /// Display name of the model the solid/dashed history line already
-    /// represents (e.g. "Sonnet") — nil hides the legend entirely.
+    /// represents (e.g. "Sonnet") — nil leaves the "NOW" label as plain
+    /// "NOW" with no model name appended.
     let dominantModelShortName: String?
     /// The 3 (or fewer) other Claude tiers, each with a price ratio
     /// against the dominant model. Empty hides the alternate lines.
@@ -40,14 +41,22 @@ struct BurnChartView: View {
 
     private var span: TimeInterval { max(windowEnd.timeIntervalSince(windowStart), 60) }
 
-    /// Nudges `y` straight down in `minGap`-sized steps until it's at least
-    /// `minGap` away from every value in `placed` — used to keep two
-    /// alternate-line end labels from overlapping when their price ratios
-    /// land them close together vertically. Pure and deterministic so it's
-    /// unit-tested directly, unlike the rest of this file's Canvas drawing.
-    nonisolated static func nonCollidingLabelY(_ y: CGFloat, avoiding placed: [CGFloat], minGap: CGFloat) -> CGFloat {
-        var candidate = y
-        while placed.contains(where: { abs($0 - candidate) < minGap }) {
+    /// Clamps `y` into `bounds`, then nudges it straight down in
+    /// `minGap`-sized steps until it's at least `minGap` away from every
+    /// value in `placed` — used to keep two alternate-line end labels from
+    /// overlapping when their price ratios land them close together
+    /// vertically, and to keep every label on-canvas (a line reaching 100%
+    /// or 0% would otherwise draw its label off the top/bottom edge). The
+    /// nudge loop stops once nudging further would exceed the upper bound,
+    /// accepting a same-position overlap in the rare case of too many
+    /// converging labels rather than looping forever or drawing past the
+    /// bound. Pure and deterministic so it's unit-tested directly, unlike
+    /// the rest of this file's Canvas drawing.
+    nonisolated static func nonCollidingLabelY(
+        _ y: CGFloat, avoiding placed: [CGFloat], minGap: CGFloat, clampedTo bounds: ClosedRange<CGFloat>
+    ) -> CGFloat {
+        var candidate = min(max(y, bounds.lowerBound), bounds.upperBound)
+        while placed.contains(where: { abs($0 - candidate) < minGap }), candidate + minGap <= bounds.upperBound {
             candidate += minGap
         }
         return candidate
@@ -196,10 +205,23 @@ struct BurnChartView: View {
                 }
             }
 
+            // Compute each alternate's polyline once, then sort by its
+            // ending percent, descending. Higher percent maps to a smaller
+            // y (higher on screen, see `y(_:)` above), and
+            // nonCollidingLabelY only ever nudges DOWN — so processing
+            // highest-percent-first means each subsequent, lower line only
+            // ever gets pushed further down away from the ones already
+            // placed above it, keeping the collision-nudge order matched
+            // to the lines' actual top-to-bottom visual order instead of
+            // inverting it.
+            let alternatesWithPoints = alternates
+                .map { ($0, alternatePolyline($0)) }
+                .filter { $0.1.count > 1 }
+                .sorted { ($0.1.last?.1 ?? 0) > ($1.1.last?.1 ?? 0) }
+
+            let safeBounds: ClosedRange<CGFloat> = 6...(canvasSize.height - 6)
             var placedLabelYs: [CGFloat] = []
-            for alternate in alternates {
-                let points = alternatePolyline(alternate)
-                guard points.count > 1 else { continue }
+            for (alternate, points) in alternatesWithPoints {
                 var altPath = Path()
                 altPath.move(to: CGPoint(x: x(points[0].0), y: y(points[0].1)))
                 for point in points.dropFirst() {
@@ -212,7 +234,7 @@ struct BurnChartView: View {
                     style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [3, 4])
                 )
                 if let end = points.last {
-                    let labelY = Self.nonCollidingLabelY(y(end.1), avoiding: placedLabelYs, minGap: 12)
+                    let labelY = Self.nonCollidingLabelY(y(end.1), avoiding: placedLabelYs, minGap: 12, clampedTo: safeBounds)
                     placedLabelYs.append(labelY)
                     drawEndLabel(
                         context: context,
@@ -233,14 +255,15 @@ struct BurnChartView: View {
                 Path(ellipseIn: CGRect(x: nowPoint.x - 3.5, y: nowPoint.y - 3.5, width: 7, height: 7)),
                 with: .color(Theme.marker)
             )
-            context.draw(
-                Text(dominantModelShortName.map { "NOW · \($0.uppercased())" } ?? "NOW")
-                    .font(Theme.label(7)).foregroundStyle(Theme.textDim),
-                at: CGPoint(
-                    x: min(max(nowPoint.x, 16), canvasSize.width - 16),
-                    y: max(nowPoint.y - 13, 8)
-                )
+            let nowText = dominantModelShortName.map { "NOW · \($0.uppercased())" } ?? "NOW"
+            let nowLabel = Text(nowText).font(Theme.label(7)).foregroundStyle(Theme.textDim)
+            let resolvedNow = context.resolve(nowLabel)
+            let nowTextSize = resolvedNow.measure(in: CGSize(width: 200, height: 20))
+            let nowLabelX = min(
+                max(nowPoint.x, nowTextSize.width / 2 + 4),
+                canvasSize.width - nowTextSize.width / 2 - 4
             )
+            context.draw(resolvedNow, at: CGPoint(x: nowLabelX, y: max(nowPoint.y - 13, 8)))
 
             drawScrubber(context: context, size: canvasSize, x: x, y: y)
         }
@@ -361,7 +384,7 @@ struct BurnChartView: View {
             with: .color(color)
         )
         context.draw(
-            Text(text.uppercased()).font(Theme.label(7.5)).foregroundStyle(Theme.textFaint),
+            Text(text.uppercased()).font(Theme.label(7.5)).foregroundStyle(Theme.textDim),
             at: CGPoint(x: dotX + 8, y: y),
             anchor: .leading
         )
