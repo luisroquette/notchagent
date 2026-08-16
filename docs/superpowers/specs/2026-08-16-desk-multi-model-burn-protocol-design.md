@@ -45,8 +45,19 @@ New fields on `DeskSnapshot`, both defaulted for backward compatibility
 
 ```swift
 var dominantModelShortName: String? = nil
-var modelAlternates: [DeskSnapshot.ModelAlternate] = []
+var modelAlternates: [DeskSnapshot.ModelAlternate]? = nil
 ```
+
+**Note (updated after implementation review):** `modelAlternates` shipped as
+`Optional` rather than the non-optional `= []` shown in the original design
+above. Swift's synthesized `Codable` ignores a property's Swift-source
+default value for a JSON key that's absent — it always calls the throwing
+`decode(_:forKey:)` for a non-optional property, so `= []` would have thrown
+on any snapshot written before this field existed, violating this spec's own
+backward-compatibility requirement. Only `Optional` gets the free
+"missing key → nil" behavior. `DeskSnapshotFactory` still always assigns a
+concrete (possibly empty) array; callers should treat `nil` and `[]`
+identically.
 
 `DeskSnapshotFactory.make(from:now:)` populates both from the exact same
 calls `BurnChartView`'s call site already makes in `NotchExpandedView.swift`
@@ -56,9 +67,11 @@ path. `modelAlternates` stays empty when there's no session data yet (mirrors
 the app's own empty-state) or when `dominantModelShortName` is nil.
 
 The firmware derives each alternate's line by, for every `BurnPoint` in
-`burnHistory`, computing `min(100, usedPercent * priceRatio)` — identical to
-`BurnChartView.alternatePolyline`'s scale-and-cap rule. This keeps the wire
-payload at O(alternates) instead of O(alternates × history points).
+`burnHistory`, computing `min(100, usedPercent * priceRatio)` and stopping
+the line at the first point that reaches 100 — identical to
+`BurnChartView.alternatePolyline`'s scale-cap-and-stop rule, not a flat 100%
+tail. This keeps the wire payload at O(alternates) instead of O(alternates ×
+history points).
 
 ### Protocol version
 

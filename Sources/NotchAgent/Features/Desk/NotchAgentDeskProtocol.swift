@@ -106,8 +106,10 @@ struct DeskSnapshot: Codable, Sendable, Equatable {
         /// "Haiku"/"Sonnet"/"Opus"/"Fable" — matches ModelProjection.shortName(for:).
         var shortName: String
         /// costUSD(alternate, sessionTokens) / costUSD(dominant, sessionTokens).
-        /// Firmware multiplies each burnHistory.usedPercent by this and clamps
-        /// to 100 to draw the alternate's line — see ModelProjection.Alternate.
+        /// Firmware multiplies each burnHistory.usedPercent by this, clamped to
+        /// 100, and stops the line at the first point that reaches 100 — same
+        /// rule as the app's BurnChartView.alternatePolyline, not a flat 100%
+        /// tail. See ModelProjection.Alternate.
         var priceRatio: Double
     }
 
