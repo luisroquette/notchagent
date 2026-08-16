@@ -219,7 +219,11 @@ struct BurnChartView: View {
                 .filter { $0.1.count > 1 }
                 .sorted { ($0.1.last?.1 ?? 0) > ($1.1.last?.1 ?? 0) }
 
-            let safeBounds: ClosedRange<CGFloat> = 6...(canvasSize.height - 6)
+            // max(6, ...) guarantees upperBound >= lowerBound even when the
+            // panel reports a degenerate height mid-expand/collapse
+            // animation — a bare `6...(canvasSize.height - 6)` traps if
+            // canvasSize.height < 12.
+            let safeBounds: ClosedRange<CGFloat> = 6...max(6, canvasSize.height - 6)
             var placedLabelYs: [CGFloat] = []
             for (alternate, points) in alternatesWithPoints {
                 var altPath = Path()
