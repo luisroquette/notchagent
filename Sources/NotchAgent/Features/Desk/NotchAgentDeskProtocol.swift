@@ -157,6 +157,7 @@ enum DeskSnapshotFactory {
         let rhythm = aggregateRhythm(store.snapshots.values)
         let burnHistory = aggregateBurnHistory(store: store, now: now)
         let models = aggregateModels(store.snapshots.values)
+        let (dominantModelShortName, modelAlternates) = modelBurnAlternates(store: store)
         return DeskSnapshot(
             product: NotchAgentDeskProtocol.product,
             protocolMajor: NotchAgentDeskProtocol.protocolMajor,
@@ -168,6 +169,8 @@ enum DeskSnapshotFactory {
             burnHistory: burnHistory,
             rhythm: rhythm,
             models: models,
+            dominantModelShortName: dominantModelShortName,
+            modelAlternates: modelAlternates,
             alertThresholds: ThresholdAlerts.normalized(store.settings.quotaAlertThresholdPercents),
             runnerEnabled: store.settings.runnerEnabled,
             ambientRecommendation: NotchAgentDeskAmbientIntelligence.recommend(store: store, now: now)
@@ -190,6 +193,22 @@ enum DeskSnapshotFactory {
                     usedPercent: clamp($0.percent, lower: 0, upper: 100)
                 )
             }
+    }
+
+    @MainActor
+    private static func modelBurnAlternates(
+        store: UsageStore
+    ) -> (dominantModelShortName: String?, modelAlternates: [DeskSnapshot.ModelAlternate]) {
+        guard let primary = store.primaryProvider,
+              let session = store.snapshots[primary]?.session,
+              session.usedPercentIsFromQuota == true,
+              let modelTokens = session.modelTokens,
+              let dominant = ModelProjection.dominantModel(modelTokens: modelTokens)
+        else { return (nil, []) }
+
+        let alternates = ModelProjection.alternates(dominantModel: dominant, sessionTokens: session.tokens)
+            .map { DeskSnapshot.ModelAlternate(shortName: $0.shortName, priceRatio: $0.priceRatio) }
+        return (ModelProjection.shortName(for: dominant), alternates)
     }
 
     private static func aggregateRhythm(_ snapshots: Dictionary<ProviderID, UsageSnapshot>.Values) -> [DeskSnapshot.RhythmPoint] {

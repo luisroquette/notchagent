@@ -228,6 +228,60 @@ final class NotchAgentDeskTests: XCTestCase {
     }
 
     @MainActor
+    func testDominantModelAndAlternatesPopulatedFromPrimaryProviderSession() {
+        let suite = "NotchAgentDeskTests.ModelAlternates.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = UsageStore(preferences: PreferencesStore(defaults: defaults))
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        store.apply(UsageSnapshot(
+            provider: .claudeCode,
+            capturedAt: now,
+            health: .ok,
+            session: SessionUsage(
+                tokens: TokenUsage(input: 1_000, output: 500),
+                usedPercent: 40,
+                modelTokens: [
+                    "claude-sonnet-5": TokenUsage(input: 900, output: 450),
+                    "claude-haiku-4-5-20251001": TokenUsage(input: 100, output: 50),
+                ],
+                usedPercentIsFromQuota: true
+            ),
+            lastActivityAt: now
+        ))
+
+        let snapshot = DeskSnapshotFactory.make(from: store, now: now)
+        XCTAssertEqual(snapshot.dominantModelShortName, "Sonnet")
+        XCTAssertEqual(Set((snapshot.modelAlternates ?? []).map(\.shortName)), ["Haiku", "Opus", "Fable"])
+        XCTAssertTrue((snapshot.modelAlternates ?? []).allSatisfy { $0.priceRatio > 0 })
+    }
+
+    @MainActor
+    func testDominantModelIsNilWhenUsedPercentIsNotQuotaBacked() {
+        let suite = "NotchAgentDeskTests.ModelAlternates.NotQuota.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = UsageStore(preferences: PreferencesStore(defaults: defaults))
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        store.apply(UsageSnapshot(
+            provider: .claudeCode,
+            capturedAt: now,
+            health: .ok,
+            session: SessionUsage(
+                tokens: TokenUsage(input: 1_000, output: 500),
+                usedPercent: 40,
+                modelTokens: ["claude-sonnet-5": TokenUsage(input: 900, output: 450)],
+                usedPercentIsFromQuota: false
+            ),
+            lastActivityAt: now
+        ))
+
+        let snapshot = DeskSnapshotFactory.make(from: store, now: now)
+        XCTAssertNil(snapshot.dominantModelShortName)
+        XCTAssertEqual(snapshot.modelAlternates ?? [], [])
+    }
+
+    @MainActor
     func testSnapshotCarriesPauseRunnerAndAlertConfiguration() {
         let suite = "NotchAgentDeskTests.Configuration.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
