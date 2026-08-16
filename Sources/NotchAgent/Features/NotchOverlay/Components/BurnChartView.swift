@@ -55,6 +55,19 @@ struct BurnChartView: View {
 
     private var span: TimeInterval { max(windowEnd.timeIntervalSince(windowStart), 60) }
 
+    /// Nudges `y` straight down in `minGap`-sized steps until it's at least
+    /// `minGap` away from every value in `placed` — used to keep two
+    /// alternate-line end labels from overlapping when their price ratios
+    /// land them close together vertically. Pure and deterministic so it's
+    /// unit-tested directly, unlike the rest of this file's Canvas drawing.
+    nonisolated static func nonCollidingLabelY(_ y: CGFloat, avoiding placed: [CGFloat], minGap: CGFloat) -> CGFloat {
+        var candidate = y
+        while placed.contains(where: { abs($0 - candidate) < minGap }) {
+            candidate += minGap
+        }
+        return candidate
+    }
+
     private var visibleSamples: [PercentSample] {
         samples
             .filter { $0.date >= windowStart && $0.date <= windowEnd }
