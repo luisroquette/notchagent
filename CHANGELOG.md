@@ -13,6 +13,53 @@
 - The local `firmware/notchagent_desk` tree is retained only to reproduce the
   signed 3.1.2 release and will be removed in the next major app release.
 
+## 3.2.0 — 2026-08-16
+
+### Added
+
+- The BURN chart now projects quota burn for the other Claude model tiers
+  (Haiku, Sonnet, Opus, Fable) alongside the model actually in use, using
+  each tier's real per-token pricing — answers "would I last longer on a
+  different model" at a glance. The model with the most tokens spent in the
+  current 5h session (Haiku/Sonnet/Opus only — Fable is metered on a
+  separate quota pool and is never treated as dominant) stays the
+  highlighted line; the other three render as thinner alternates with a
+  direct end-of-line label instead of a separate legend row, so identifying
+  a line doesn't require looking away from it.
+- Per-model line colors validated for colorblind and normal-vision
+  contrast against the existing highlight color; the validation numbers
+  and remaining known-tight pairs are documented in-code rather than
+  asserted without evidence.
+
+### Fixed
+
+- `PricingTable` priced Claude Opus 5 and Fable 5 identically through a
+  stale generic fallback; Fable 5 is the more expensive tier and now has
+  its own entry.
+- The chart's end-of-line label could detach up to 44px from its actual
+  line endpoint in the common case; only the label text now clamps to stay
+  on-canvas, the marker dot stays anchored to the true data point.
+- The "NOW" label's collision-avoidance seed used the wrong y-coordinate
+  (13px off), which routinely failed to prevent the overlap it existed to
+  prevent.
+- A degenerate canvas height during the notch panel's expand/collapse
+  animation could trap on an invalid `ClosedRange` construction; the chart
+  now clamps defensively.
+- `SessionUsage`'s new `usedPercentIsFromQuota` field was briefly
+  non-optional, which would have broken decoding of any previously
+  persisted `snapshots.json` on upgrade; corrected to optional with a
+  regression test covering a payload missing the key.
+- Redundant `visibleSamples`/polyline recomputation (up to 7x per redraw
+  during active hover) consolidated to a single computation per frame.
+
+### Security
+
+- Full data-flow review of the new code (transcript parsing → provider →
+  projection → rendering) found no new network/credential surface, no
+  force-unwraps, and no unbounded work driven by transcript content — the
+  alternate-model candidate list is a fixed 4-entry array, not derived from
+  file contents.
+
 ## 3.1.3 — 2026-08-15
 
 ### Added
