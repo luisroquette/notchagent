@@ -111,7 +111,7 @@ final class ProviderIntegrationTests: XCTestCase {
         )
 
         XCTAssertEqual(session.usedPercent, 5.0, "still populated via the token-budget fallback")
-        XCTAssertFalse(session.usedPercentIsFromQuota, "session percent did not come from quota.sessionPercent")
+        XCTAssertEqual(session.usedPercentIsFromQuota, false, "session percent did not come from quota.sessionPercent")
     }
 
     /// Companion positive case: when the probe's 5h header DOES parse, the
@@ -134,7 +134,7 @@ final class ProviderIntegrationTests: XCTestCase {
         )
 
         XCTAssertEqual(session.usedPercent, 62)
-        XCTAssertTrue(session.usedPercentIsFromQuota)
+        XCTAssertEqual(session.usedPercentIsFromQuota, true)
     }
 
     /// No probe, no budget configured — usedPercent stays nil and the field

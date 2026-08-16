@@ -82,9 +82,11 @@ public struct SessionUsage: Codable, Sendable, Equatable {
     /// `usedPercent` by a dollar-based ratio (e.g. burn-chart alternates)
     /// must gate on this specifically — `UsageSnapshot.quotaStatus` is non-nil
     /// whenever EITHER the session OR weekly probe percent is present, which
-    /// is not the same question. Defaults false so "no session at all" and
-    /// "budget fallback" both read as not-quota-backed, never ambiguous.
-    public var usedPercentIsFromQuota: Bool
+    /// is not the same question. Optional — like `namedQuotas`/`modelTokens`
+    /// — so a `snapshots.json` written before this field existed still
+    /// decodes; callers treat nil the same as false ("not quota-backed"),
+    /// never ambiguous.
+    public var usedPercentIsFromQuota: Bool?
 
     public init(
         tokens: TokenUsage = .zero,
@@ -94,7 +96,7 @@ public struct SessionUsage: Codable, Sendable, Equatable {
         usedPercent: Double? = nil,
         namedQuotas: [NamedQuota]? = nil,
         modelTokens: [String: TokenUsage]? = nil,
-        usedPercentIsFromQuota: Bool = false
+        usedPercentIsFromQuota: Bool? = nil
     ) {
         self.tokens = tokens
         self.cost = cost

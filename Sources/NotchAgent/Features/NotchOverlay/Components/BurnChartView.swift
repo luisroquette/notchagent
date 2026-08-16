@@ -171,6 +171,13 @@ struct BurnChartView: View {
             // hairline/dot/label are still drawn later, in their original
             // visual order (on top of the alternates).
             let nowPoint = CGPoint(x: x(last.date), y: y(last.percent))
+            // The NOW label draws 13px above its dot (see the NOW-label
+            // draw site below, which reuses this exact value) — seeding
+            // collision-avoidance with `nowPoint.y` instead of this would
+            // put the seed 13px off from where the label actually renders,
+            // just outside the 12px minGap, so it would never actually
+            // prevent an alternate's label from landing on top of it.
+            let nowLabelY = max(nowPoint.y - 13, 8)
 
             // Burned area under the history line.
             var area = Path()
@@ -278,7 +285,7 @@ struct BurnChartView: View {
             // completely invisible to the collision check even though they
             // occupy the same space and can land within a few pixels of an
             // alternate's label.
-            var placedLabelYs: [CGFloat] = [nowPoint.y]
+            var placedLabelYs: [CGFloat] = [nowLabelY]
             if let emptyMarkerLabelY { placedLabelYs.append(emptyMarkerLabelY) }
             for (alternate, altPoints) in alternatesWithPoints {
                 var altPath = Path()
@@ -322,7 +329,6 @@ struct BurnChartView: View {
                 max(nowPoint.x, nowTextSize.width / 2 + 4),
                 canvasSize.width - nowTextSize.width / 2 - 4
             )
-            let nowLabelY = max(nowPoint.y - 13, 8)
             context.draw(resolvedNow, at: CGPoint(x: nowLabelX, y: nowLabelY))
             labelPositions.append(CGPoint(x: nowLabelX, y: nowLabelY))
 

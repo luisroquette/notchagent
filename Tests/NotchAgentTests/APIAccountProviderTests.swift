@@ -182,6 +182,35 @@ final class APIAccountProviderTests: XCTestCase {
         XCTAssertNil(restored.monthlySpendBRL)
     }
 
+    /// REGRESSÃO: `usedPercentIsFromQuota` was added as a non-optional
+    /// `Bool`. Swift's synthesized `Decodable` throws on a missing key
+    /// regardless of the memberwise init's default — so a `snapshots.json`
+    /// written by a build before this field existed fails to decode, and
+    /// `SnapshotStore.load()`'s `try?` silently returns an empty cache for
+    /// every provider on first launch after upgrade. Must decode to `nil`,
+    /// not throw, the same way every other field added to `SessionUsage`
+    /// after its initial release (`namedQuotas`, `modelTokens`) does.
+    func testSessionUsageDecodesSnapshotsCreatedBeforeUsedPercentIsFromQuotaField() throws {
+        let session = SessionUsage(
+            tokens: TokenUsage(input: 500, output: 200),
+            usedPercent: 42,
+            modelTokens: ["claude-sonnet-5": TokenUsage(input: 500, output: 200)],
+            usedPercentIsFromQuota: true
+        )
+        var json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(session)) as? [String: Any]
+        )
+        json.removeValue(forKey: "usedPercentIsFromQuota")
+
+        let restored = try JSONDecoder().decode(
+            SessionUsage.self,
+            from: JSONSerialization.data(withJSONObject: json)
+        )
+
+        XCTAssertNil(restored.usedPercentIsFromQuota, "missing key from a pre-upgrade snapshot must decode to nil, not throw")
+        XCTAssertEqual(restored.usedPercent, 42, "the rest of the snapshot must still decode intact")
+    }
+
     func testOfficialSourceComparatorAppliesMonetaryTolerance() {
         let api = AccountQuota(
             service: .deepSeek,
