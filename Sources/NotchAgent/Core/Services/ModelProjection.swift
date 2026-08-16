@@ -22,10 +22,19 @@ public enum ModelProjection {
         }
     }
 
-    /// The model with the most tokens spent in the current window — the
-    /// model the chart's existing solid/dashed history line represents.
+    /// The model with the most tokens spent in the current window, restricted to
+    /// the shared Haiku/Sonnet/Opus pool this chart's % axis actually represents.
+    /// Fable 5 is excluded even though its own tokens are real — it's metered on
+    /// its own separate quota (see the Fable comment in ClaudeProvider.swift), so
+    /// it has no % on this axis to be "dominant" of. It still appears as one of
+    /// the alternate lines, just never as the highlighted one. Any non-Claude
+    /// model id (e.g. a GPT or Gemini entry that happens to appear in the same
+    /// transcript) is excluded for the same reason — there's no shared axis to
+    /// project it onto either.
     public static func dominantModel(modelTokens: [String: TokenUsage]) -> String? {
-        modelTokens.max { $0.value.total < $1.value.total }?.key
+        modelTokens
+            .filter { isSharedPoolModel($0.key) }
+            .max { $0.value.total < $1.value.total }?.key
     }
 
     /// One alternate per candidate other than `dominantModel`. Silently
@@ -43,7 +52,7 @@ public enum ModelProjection {
         else { return [] }
 
         return candidates
-            .filter { $0 != dominantModel }
+            .filter { shortName(for: $0) != shortName(for: dominantModel) }
             .compactMap { candidate in
                 guard let cost = PricingTable.costUSD(model: candidate, usage: sessionTokens) else { return nil }
                 return Alternate(model: candidate, shortName: shortName(for: candidate), priceRatio: cost / dominantCost)
@@ -59,5 +68,12 @@ public enum ModelProjection {
     /// model — out of scope for this feature, see the design spec).
     public static func shortName(for model: String) -> String {
         families.first { model.contains($0.key) }?.name ?? model
+    }
+
+    /// True for a model id in the shared Haiku/Sonnet/Opus quota pool this
+    /// chart's % axis represents. False for Fable (separately metered) and
+    /// for any non-Claude id.
+    private static func isSharedPoolModel(_ model: String) -> Bool {
+        model.contains("haiku") || model.contains("sonnet") || model.contains("opus")
     }
 }
