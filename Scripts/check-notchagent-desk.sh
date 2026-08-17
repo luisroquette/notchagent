@@ -4,16 +4,13 @@ cd "$(dirname "$0")/.."
 
 export ARDUINO_DIRECTORIES_USER="${ARDUINO_DIRECTORIES_USER:-${NOTCHAGENT_ARDUINO_USER_DIR:-${HOME:?}/Library/Application Support/NotchAgent/Arduino}}"
 
-release_version=$(jq -r '.appVersion' docs/NOTCHAGENT_DESK_RELEASE.json)
-release_build=$(jq -r '.buildNumber' docs/NOTCHAGENT_DESK_RELEASE.json)
-[[ "$(tr -d '[:space:]' < VERSION)" == "$release_version" ]] || {
-    echo "ERROR: VERSION must match Desk release appVersion $release_version." >&2
-    exit 1
-}
-[[ "$(tr -d '[:space:]' < BUILD_NUMBER)" == "$release_build" ]] || {
-    echo "ERROR: BUILD_NUMBER must match Desk release buildNumber $release_build." >&2
-    exit 1
-}
+# NotchAgent (VERSION/BUILD_NUMBER, raiz do repo) e NotchAgent Desk
+# (docs/NOTCHAGENT_DESK_RELEASE.json) são produtos SEPARADOS, com ciclos de release
+# independentes — confirmado pelo dono em 17/08/2026. Este gate comparava os dois e travava
+# toda release do produto principal que não coincidisse por acaso com a versão do Desk (ex.:
+# VERSION 3.3.0 vs appVersion 3.1.2, depois de 3 releases do principal sem tocar no Desk).
+# A checagem fazia sentido só na v3.1.1 (ec14e39, quando o script nasceu e os dois produtos
+# ainda eram a mesma versão) — deixou de valer assim que divergiram de propósito.
 
 Scripts/check-github-actions-pins.sh
 
