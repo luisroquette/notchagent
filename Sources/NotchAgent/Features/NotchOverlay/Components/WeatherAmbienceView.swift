@@ -2,10 +2,9 @@ import SwiftUI
 
 /// The ambient background of the Now page. Presence is the contract:
 /// the effect must read at a glance (like the iOS lock-screen weather),
-/// without ever competing with the cards on top — particles stay under
-/// alpha 0.4 and the whole view only exists while the Now page is mounted
-/// (the pager unmounts it on every other page), so the TimelineView costs
-/// zero CPU anywhere else.
+/// without ever competing with the cards on top. The whole view only
+/// exists while the Now page is mounted (the pager unmounts it on every
+/// other page), so the TimelineViews cost zero CPU anywhere else.
 struct WeatherAmbienceView: View {
     let phase: WeatherStore.Phase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -24,12 +23,34 @@ struct WeatherAmbienceView: View {
                 case .cloudy:
                     cloudVeil
                 case .partlyCloudy:
-                    ZStack {
-                        cloudVeil.opacity(0.6)
-                        sunGlow(isDay: snapshot.isDay).opacity(0.7)
+                    if snapshot.isDay {
+                        ZStack {
+                            cloudVeil.opacity(0.6)
+                            sunGlow
+                        }
+                    } else {
+                        ZStack(alignment: .topTrailing) {
+                            nightVeil
+                            StarField(density: 0.6)
+                            moon
+                        }
                     }
                 case .clear:
-                    sunGlow(isDay: snapshot.isDay)
+                    if snapshot.isDay {
+                        sunGlow
+                    } else {
+                        ZStack(alignment: .topTrailing) {
+                            nightVeil
+                            if reduceMotion {
+                                // No-motion night: static star dust instead
+                                // of the twinkle loop.
+                                StarDust(density: 1.0)
+                            } else {
+                                StarField(density: 1.0)
+                            }
+                            moon
+                        }
+                    }
                 }
             case .unavailable:
                 Color.clear
@@ -38,7 +59,8 @@ struct WeatherAmbienceView: View {
         .allowsHitTesting(false)
     }
 
-    /// No-motion fallback: a visible tint instead of particles.
+    /// No-motion fallback for precipitation: a visible tint instead of
+    /// falling particles.
     @ViewBuilder
     private func staticVeil(_ snapshot: WeatherSnapshot) -> some View {
         switch snapshot.condition {
@@ -54,8 +76,8 @@ struct WeatherAmbienceView: View {
     private var cloudVeil: some View {
         LinearGradient(
             colors: [
-                Color(white: 0.62).opacity(0.17),
-                Color(white: 0.62).opacity(0.05),
+                Color(white: 0.62).opacity(0.24),
+                Color(white: 0.62).opacity(0.08),
                 .clear,
             ],
             startPoint: .top,
@@ -63,30 +85,59 @@ struct WeatherAmbienceView: View {
         )
     }
 
-    @ViewBuilder
-    private func sunGlow(isDay: Bool) -> some View {
+    /// Cool blue wash for clear nights — the panel reads as "night" before
+    /// anything else.
+    private var nightVeil: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.30, green: 0.45, blue: 0.85).opacity(0.14),
+                Color(red: 0.20, green: 0.30, blue: 0.60).opacity(0.06),
+                .clear,
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private var sunGlow: some View {
+        RadialGradient(
+            colors: [
+                Color.orange.opacity(0.16),
+                Color.orange.opacity(0.05),
+                .clear,
+            ],
+            center: .topTrailing,
+            startRadius: 0,
+            endRadius: 340
+        )
+    }
+
+    /// A small bright moon with a wide soft halo, top-right.
+    private var moon: some View {
         ZStack {
-            // Night reads as a cool veil over the whole panel.
-            if !isDay {
-                Color(red: 0.35, green: 0.5, blue: 0.9).opacity(0.06)
-            }
-            RadialGradient(
-                colors: [
-                    (isDay ? Color.orange : Color(red: 0.55, green: 0.7, blue: 1.0)).opacity(isDay ? 0.12 : 0.10),
-                    .clear,
-                ],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: 340
-            )
+            Circle()
+                .fill(Color(red: 0.75, green: 0.85, blue: 1.0).opacity(0.10))
+                .frame(width: 110, height: 110)
+                .blur(radius: 24)
+            Circle()
+                .fill(Color(red: 0.94, green: 0.96, blue: 1.0).opacity(0.85))
+                .frame(width: 22, height: 22)
+                .overlay(
+                    Circle()
+                        .fill(Color(red: 0.20, green: 0.26, blue: 0.45).opacity(0.45))
+                        .frame(width: 9, height: 9)
+                        .offset(x: -5, y: -4)
+                )
         }
+        .padding(.top, 10)
+        .padding(.trailing, 14)
     }
 }
 
 /// Canvas rain/storm/snow. Deterministic per-particle pseudo-randomness
 /// (golden-ratio seed per index) — no RNG in the render loop, so the
 /// animation stays stable across frame rates. Rain drops are rounded
-/// strokes with real presence (alpha 0.22-0.38), not hairlines.
+/// strokes with real presence, not hairlines.
 private struct ParticleField: View {
     let condition: WeatherCondition
     let isDay: Bool
@@ -101,7 +152,7 @@ private struct ParticleField: View {
                 if condition == .rain || condition == .storm {
                     context.fill(
                         Path(CGRect(origin: .zero, size: size)),
-                        with: .color(Color(red: 0.45, green: 0.6, blue: 0.9).opacity(0.06))
+                        with: .color(Color(red: 0.45, green: 0.6, blue: 0.9).opacity(0.07))
                     )
                 }
 
@@ -171,5 +222,50 @@ private struct ParticleField: View {
     private static func alpha(for condition: WeatherCondition, seed: Double) -> Double {
         let floor: Double = condition == .storm ? 0.26 : 0.22
         return min(0.38, floor + seed.truncatingRemainder(dividingBy: 1) * 0.10)
+    }
+}
+
+/// Twinkling stars for clear nights — the iOS lock-screen cue that made
+/// "nothing" visible. Deterministic seeds; each star breathes on its own
+/// phase so the sky feels alive, not strobing.
+private struct StarField: View {
+    let density: Double
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+            Canvas { context, size in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let count = Int(44 * density)
+                for index in 0..<count {
+                    let seed = Double(index) * 1.61803398875
+                    let x = (seed * 311.0).truncatingRemainder(dividingBy: max(size.width, 1))
+                    let y = (seed * 137.0).truncatingRemainder(dividingBy: max(size.height * 0.55, 1))
+                    let twinkle = sin(t * 1.4 + seed * 47.0)
+                    let alpha = 0.16 + 0.22 * max(0, twinkle)
+                    let side = 1.0 + seed.truncatingRemainder(dividingBy: 1) * 1.5
+                    let rect = CGRect(x: x, y: y, width: side, height: side)
+                    context.fill(Path(ellipseIn: rect), with: .color(Color.white.opacity(alpha)))
+                }
+            }
+        }
+    }
+}
+
+/// Static star dust for Reduce Motion nights: same sky, no twinkle loop.
+private struct StarDust: View {
+    let density: Double
+
+    var body: some View {
+        Canvas { context, size in
+            let count = Int(44 * density)
+            for index in 0..<count {
+                let seed = Double(index) * 1.61803398875
+                let x = (seed * 311.0).truncatingRemainder(dividingBy: max(size.width, 1))
+                let y = (seed * 137.0).truncatingRemainder(dividingBy: max(size.height * 0.55, 1))
+                let side = 1.0 + seed.truncatingRemainder(dividingBy: 1) * 1.5
+                let rect = CGRect(x: x, y: y, width: side, height: side)
+                context.fill(Path(ellipseIn: rect), with: .color(Color.white.opacity(0.24)))
+            }
+        }
     }
 }
