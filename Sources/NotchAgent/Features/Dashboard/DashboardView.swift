@@ -65,6 +65,7 @@ struct DashboardView: View {
 
     private var decisionMode: some View {
         let advice = DecisionAdvisor.advise(snapshots: store.snapshots, budget: spending.monthlyBudgetStatus)
+            + store.sessionPayloads.values.flatMap { PayloadAdvisor.advise($0) }
         return GroupBox("Modo decisão") {
             VStack(alignment: .leading, spacing: 7) {
                 ForEach(advice) { item in
