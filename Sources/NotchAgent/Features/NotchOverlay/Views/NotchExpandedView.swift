@@ -7,6 +7,8 @@ struct NotchExpandedView: View {
     @Environment(UsageStore.self) private var store
     @Environment(NotchViewModel.self) private var viewModel
     @Environment(WindowRouter.self) private var router
+    @Environment(WeatherStore.self) private var weather
+    @Environment(PreferencesStore.self) private var preferences
     @EnvironmentObject private var spending: SubscriptionStore
 
     @State private var rhythmToday = false
@@ -183,6 +185,9 @@ struct NotchExpandedView: View {
         let stripProviders = Self.panelStripProviders
 
         return VStack(spacing: 8) {
+            if preferences.settings.weatherEnabled {
+                WeatherHeaderView(phase: weather.phase)
+            }
             HStack(spacing: 10) {
                 ForEach(cardProviders) { provider in
                     ProviderCardView(
@@ -197,6 +202,11 @@ struct NotchExpandedView: View {
             .frame(maxHeight: .infinity)
             ForEach(stripProviders) { provider in
                 providerStrip(provider)
+            }
+        }
+        .background {
+            if preferences.settings.weatherEnabled {
+                WeatherAmbienceView(phase: weather.phase)
             }
         }
     }
