@@ -68,6 +68,9 @@ and [compatibility matrix](https://github.com/luisroquette/notchagent-desk/blob/
 
 **Notarized DMG** (recommended, no Terminal):
 
+> The notarized DMG below is still the 3.1.2 build. The current 3.4.0 ships
+> as the locally-signed ZIP (see below).
+
 1. Download [`NotchAgent-Desk-Beta1-3.1.2.dmg`](https://github.com/luisroquette/notchagent/releases/download/v3.1.2/NotchAgent-Desk-Beta1-3.1.2.dmg).
 2. Open the DMG and drag **NotchAgent** to **Applications**.
 3. Open NotchAgent and follow the guided setup.
@@ -83,12 +86,16 @@ brew install --cask luisroquette/tap/notchagent
 open /Applications/NotchAgent.app
 ```
 
-**Or download the signed ZIP** from [v3.1.2](../../releases/tag/v3.1.2), unzip it,
+**Or download the signed ZIP** from [v3.4.0](../../releases/tag/v3.4.0), unzip it,
 and move `NotchAgent.app` to `/Applications`:
 
 ```bash
 open /Applications/NotchAgent.app
 ```
+
+The 3.4.0 ZIP is signed with a local Apple Development identity (not
+notarized). On first open, Gatekeeper may warn — right-click the app in
+Finder and choose **Open**.
 
 **Or build from source** (Xcode 15+ / Swift 6 toolchain):
 
