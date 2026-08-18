@@ -55,4 +55,19 @@ final class DecisionAdvisorTests: XCTestCase {
         let advice = DecisionAdvisor.advise(snapshots: [.claudeCode: snapshot], budget: nil)
         XCTAssertFalse(advice.contains { $0.title == "Modelo mais caro dominando" })
     }
+
+    // REGRESSÃO: cota própria do Fable ≥ 70% gera conselho; abaixo não.
+    func testFablePoolHighTriggersAdvice() {
+        let session = SessionUsage(namedQuotas: [NamedQuota(name: "Fable 5", usedPercent: 82, resetsAt: Date())])
+        let snapshot = UsageSnapshot(provider: .claudeCode, health: .ok, session: session)
+        let advice = DecisionAdvisor.advise(snapshots: [.claudeCode: snapshot], budget: nil)
+        XCTAssertTrue(advice.contains { $0.title == "Fable 5: cota própria" })
+    }
+
+    func testFablePoolLowDoesNotTriggerAdvice() {
+        let session = SessionUsage(namedQuotas: [NamedQuota(name: "Fable 5", usedPercent: 40, resetsAt: Date())])
+        let snapshot = UsageSnapshot(provider: .claudeCode, health: .ok, session: session)
+        let advice = DecisionAdvisor.advise(snapshots: [.claudeCode: snapshot], budget: nil)
+        XCTAssertFalse(advice.contains { $0.title == "Fable 5: cota própria" })
+    }
 }

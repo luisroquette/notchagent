@@ -12,6 +12,7 @@ struct DecisionAdvice: Identifiable, Equatable {
 enum DecisionAdvisor {
     static let cacheShareMin = 0.25
     static let modelDominanceShare = 0.40
+    static let fablePoolWarnPercent = 70.0
     static let minTokensForAdvice = 50_000
 
     static func advise(snapshots: [ProviderID: UsageSnapshot], budget: MonthlyBudgetStatus?) -> [DecisionAdvice] {
@@ -30,6 +31,7 @@ enum DecisionAdvisor {
         for provider in ProviderID.allCases {
             if let coldCache = coldCacheAdvice(snapshots[provider]) { advice.append(coldCache) }
             if let expensiveModel = dominantExpensiveModelAdvice(snapshots[provider]) { advice.append(expensiveModel) }
+            if let fablePool = fablePoolAdvice(snapshots[provider]) { advice.append(fablePool) }
             guard let gauge = GaugeMetric.from(snapshots[provider]), gauge.remaining <= 20 else { continue }
             advice.append(.init(title: "Poupe \(provider.shortName)", detail: "Restam \(Int(gauge.remaining.rounded()))% da quota atual.", severity: .warning))
         }
@@ -80,6 +82,18 @@ enum DecisionAdvisor {
             title: "Modelo mais caro dominando",
             detail: "\(expensive.0) é \(pct)% da sessão; \(cheaper.0) tem preço ~\(ratio)% menor (estimativa local).",
             severity: .normal
+        )
+    }
+
+    /// A cota separada do Fable 5 (pool próprio, fora do agregado) está alta.
+    private static func fablePoolAdvice(_ snapshot: UsageSnapshot?) -> DecisionAdvice? {
+        guard let fable = snapshot?.session?.namedQuotas?
+            .first(where: { $0.name.lowercased().contains("fable") }),
+            fable.usedPercent >= fablePoolWarnPercent else { return nil }
+        return DecisionAdvice(
+            title: "Fable 5: cota própria",
+            detail: "A cota separada do Fable 5 está em \(Int(fable.usedPercent.rounded()))%; o pool compartilhado pode estar intacto — verifique qual janela está limitando.",
+            severity: .warning
         )
     }
 }
