@@ -10,6 +10,9 @@ struct DecisionAdvice: Identifiable, Equatable {
 }
 
 enum DecisionAdvisor {
+    static let cacheShareMin = 0.25
+    static let minTokensForAdvice = 50_000
+
     static func advise(snapshots: [ProviderID: UsageSnapshot], budget: MonthlyBudgetStatus?) -> [DecisionAdvice] {
         var advice: [DecisionAdvice] = []
         if let budget {
@@ -24,6 +27,7 @@ enum DecisionAdvisor {
             }
         }
         for provider in ProviderID.allCases {
+            if let coldCache = coldCacheAdvice(snapshots[provider]) { advice.append(coldCache) }
             guard let gauge = GaugeMetric.from(snapshots[provider]), gauge.remaining <= 20 else { continue }
             advice.append(.init(title: "Poupe \(provider.shortName)", detail: "Restam \(Int(gauge.remaining.rounded()))% da quota atual.", severity: .warning))
         }
@@ -35,5 +39,20 @@ enum DecisionAdvisor {
             advice.append(.init(title: "Pode continuar", detail: "Sem pressão de orçamento ou quota detectada agora.", severity: .normal))
         }
         return Array(advice.prefix(3))
+    }
+
+    /// Sessão com pouco cache lido (releitura de contexto cara). Só dispara
+    /// acima do piso de tokens — sessão minúscula não merece conselho.
+    private static func coldCacheAdvice(_ snapshot: UsageSnapshot?) -> DecisionAdvice? {
+        guard let session = snapshot?.session,
+              session.tokens.total >= minTokensForAdvice else { return nil }
+        let share = Double(session.tokens.cacheRead) / Double(max(session.tokens.total, 1))
+        guard share < cacheShareMin else { return nil }
+        let pct = Int((share * 100).rounded())
+        return DecisionAdvice(
+            title: "Sessão fria de cache",
+            detail: "Apenas \(pct)% dos tokens desta sessão são leitura de cache; manter a sessão ativa reutiliza contexto (cache expira em 1h).",
+            severity: .warning
+        )
     }
 }
