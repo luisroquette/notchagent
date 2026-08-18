@@ -110,3 +110,19 @@ extension ProviderCardViewTests {
         XCTAssertEqual(ProviderCardView.sessionLabel(snapshotWithSessionOrigin(false), metric: metric), "OF WEEKLY LIMIT LEFT")
     }
 }
+
+// MARK: - Provider mascot mapping
+
+extension ProviderCardViewTests {
+    func testMascotNameMapsActiveModelFamily() {
+        XCTAssertEqual(ProviderCardView.mascotName(for: "claude-sonnet-4-6"), "claude-sonnet")
+        XCTAssertEqual(ProviderCardView.mascotName(for: "claude-fable-5"), "claude-fable")
+        XCTAssertEqual(ProviderCardView.mascotName(for: "claude-opus-4-8"), "claude-opus")
+        XCTAssertEqual(ProviderCardView.mascotName(for: "claude-haiku-4-5-20251001"), "claude-haiku")
+    }
+
+    func testMascotNameFallsBackToSonnet() {
+        XCTAssertEqual(ProviderCardView.mascotName(for: nil), "claude-sonnet")
+        XCTAssertEqual(ProviderCardView.mascotName(for: "gpt-5.3-codex-spark"), "claude-sonnet")
+    }
+}

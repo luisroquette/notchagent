@@ -1295,7 +1295,7 @@ struct NotchExpandedView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 5) {
                             Text(top.model)
                                 .font(Theme.numeral(19))
-                                .foregroundStyle(Theme.coral)
+                                .foregroundStyle(Theme.textPrimary)
                                 .lineLimit(1)
                             GaugeLabel(
                                 text: "TOP MODEL · \(Int(Double(top.tokens) / Double(totalTokens) * 100))% OF TOKENS",
@@ -1376,7 +1376,7 @@ struct NotchExpandedView: View {
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1)
                 .frame(width: 150, alignment: .leading)
-            SegmentedMeter(percent: share * 100, segments: 16, tint: Theme.coral.opacity(0.9), height: 6)
+            SegmentedMeter(percent: share * 100, segments: 16, tint: Theme.textPrimary.opacity(0.85), height: 6)
             Text("\(Format.tokens(usage.tokens))\(usage.costUSD >= 0.01 ? " · ~" + Format.usd(usage.costUSD) : "")")
                 .font(Theme.body(9.5))
                 .monospacedDigit()

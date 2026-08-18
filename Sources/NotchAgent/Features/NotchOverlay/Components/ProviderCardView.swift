@@ -83,15 +83,42 @@ struct ProviderCardView: View {
 
     private var header: some View {
         HStack(spacing: 5) {
-            Image(systemName: provider.symbolName)
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(Theme.textSecondary)
+            providerGlyph
             GaugeLabel(text: provider.shortName, color: Theme.textSecondary, size: 9)
             Spacer()
             if let chip = quotaChip {
                 StatusPill(text: chip.text, color: chip.color)
             }
         }
+    }
+
+    /// Brand glyph per provider: the Claude mascot (active model family) and
+    /// the OpenAI knot, so the two cards are told apart at a glance.
+    @ViewBuilder
+    private var providerGlyph: some View {
+        switch provider {
+        case .claudeCode:
+            ClaudeMascot(name: Self.mascotName(for: snapshot?.activeModel))
+                .frame(width: 14, height: 14)
+        case .codex:
+            OpenAIGlyph()
+                .frame(width: 14, height: 14)
+        default:
+            Image(systemName: provider.symbolName)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Theme.textSecondary)
+        }
+    }
+
+    /// Maps an active model name to its mascot family asset; unknown or
+    /// missing models fall back to sonnet.
+    static func mascotName(for model: String?) -> String {
+        let families = ["fable", "opus", "haiku", "sonnet"]
+        let lower = model?.lowercased() ?? ""
+        for family in families where lower.contains(family) {
+            return "claude-\(family)"
+        }
+        return "claude-sonnet"
     }
 
     private var quotaChip: (text: String, color: Color)? {
