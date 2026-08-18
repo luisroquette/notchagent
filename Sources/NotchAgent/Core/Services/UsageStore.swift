@@ -7,6 +7,9 @@ import Observation
 @Observable
 final class UsageStore {
     private(set) var snapshots: [ProviderID: UsageSnapshot] = [:]
+    /// Payloads de insights por provider — a ÚNICA fronteira entre o motor e
+    /// as views (notch/painel/notificação renderizam, nunca recalculam).
+    private(set) var sessionPayloads: [ProviderID: SessionInsightsPayload] = [:]
     private(set) var refreshStates: [ProviderID: RefreshState] = [:]
     private(set) var accountRefreshStates: [UUID: RefreshState] = [:]
     private(set) var events: [UsageEvent] = []
@@ -70,6 +73,10 @@ final class UsageStore {
             snapshots[provider] = snapshot
         }
         onDeskStateChange?()
+    }
+
+    func setPayloads(_ payloads: [ProviderID: SessionInsightsPayload]) {
+        sessionPayloads = payloads
     }
 
     func markRefreshing(_ provider: ProviderID) {
