@@ -8,11 +8,10 @@ struct NotchContainerView: View {
     @Environment(WeatherStore.self) private var weather
     @Environment(PreferencesStore.self) private var preferences
 
-    /// Weather ambience only lives on the Now page — every other page (and
-    /// the compact bar) stays untouched.
+    /// Weather ambience lives on EVERY expanded page — the compact bar
+    /// stays untouched.
     private var ambienceActive: Bool {
         viewModel.isExpanded
-            && viewModel.expandedPage == 0
             && preferences.settings.weatherEnabled
     }
 

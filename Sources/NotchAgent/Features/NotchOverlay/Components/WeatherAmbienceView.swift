@@ -113,25 +113,26 @@ struct WeatherSkyView: View {
         )
     }
 
-    /// A small bright moon with a wide soft halo, top-right.
+    /// A small bright moon with a soft halo, parked in the empty cap strip
+    /// (the content starts below it, so no card can cover it).
     private var moon: some View {
         ZStack {
             Circle()
-                .fill(Color(red: 0.75, green: 0.85, blue: 1.0).opacity(0.10))
-                .frame(width: 110, height: 110)
-                .blur(radius: 24)
+                .fill(Color(red: 0.75, green: 0.85, blue: 1.0).opacity(0.12))
+                .frame(width: 68, height: 68)
+                .blur(radius: 16)
             Circle()
-                .fill(Color(red: 0.94, green: 0.96, blue: 1.0).opacity(0.85))
-                .frame(width: 22, height: 22)
+                .fill(Color(red: 0.94, green: 0.96, blue: 1.0).opacity(0.9))
+                .frame(width: 18, height: 18)
                 .overlay(
                     Circle()
                         .fill(Color(red: 0.20, green: 0.26, blue: 0.45).opacity(0.45))
-                        .frame(width: 9, height: 9)
-                        .offset(x: -5, y: -4)
+                        .frame(width: 8, height: 8)
+                        .offset(x: -4, y: -3)
                 )
         }
-        .padding(.top, 10)
-        .padding(.trailing, 14)
+        .padding(.top, 4)
+        .padding(.trailing, 26)
     }
 }
 
@@ -139,7 +140,8 @@ struct WeatherSkyView: View {
 
 /// Precipitation that falls ON the UI — cards, mascots, everything. Alpha
 /// is scaled down versus the old background-only version so numbers stay
-/// readable through the drops.
+/// readable through the drops. Clear nights also get a front star dust so
+/// the sky reads above the cards, not only between them.
 struct WeatherForegroundOverlay: View {
     let phase: WeatherStore.Phase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -159,7 +161,27 @@ struct WeatherForegroundOverlay: View {
                             alphaScale: 0.55
                         )
                     }
-                case .clear, .partlyCloudy, .cloudy:
+                case .clear:
+                    if !snapshot.isDay {
+                        if reduceMotion {
+                            StarDust(density: 0.45, alphaScale: 0.7)
+                        } else {
+                            StarField(density: 0.45, alphaScale: 0.7)
+                        }
+                    } else {
+                        Color.clear
+                    }
+                case .partlyCloudy:
+                    if !snapshot.isDay {
+                        if reduceMotion {
+                            StarDust(density: 0.3, alphaScale: 0.6)
+                        } else {
+                            StarField(density: 0.3, alphaScale: 0.6)
+                        }
+                    } else {
+                        Color.clear
+                    }
+                case .cloudy:
                     Color.clear
                 }
             case .unavailable:
@@ -259,6 +281,9 @@ private struct ParticleField: View {
 /// phase so the sky feels alive, not strobing.
 private struct StarField: View {
     let density: Double
+    /// Front stars sit on top of the cards and need to be quieter than
+    /// background ones.
+    var alphaScale: Double = 1.0
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
@@ -270,7 +295,7 @@ private struct StarField: View {
                     let x = (seed * 311.0).truncatingRemainder(dividingBy: max(size.width, 1))
                     let y = (seed * 137.0).truncatingRemainder(dividingBy: max(size.height * 0.55, 1))
                     let twinkle = sin(t * 1.4 + seed * 47.0)
-                    let alpha = 0.16 + 0.22 * max(0, twinkle)
+                    let alpha = (0.16 + 0.22 * max(0, twinkle)) * alphaScale
                     let side = 1.0 + seed.truncatingRemainder(dividingBy: 1) * 1.5
                     let rect = CGRect(x: x, y: y, width: side, height: side)
                     context.fill(Path(ellipseIn: rect), with: .color(Color.white.opacity(alpha)))
@@ -283,6 +308,7 @@ private struct StarField: View {
 /// Static star dust for Reduce Motion nights: same sky, no twinkle loop.
 private struct StarDust: View {
     let density: Double
+    var alphaScale: Double = 1.0
 
     var body: some View {
         Canvas { context, size in
@@ -293,7 +319,7 @@ private struct StarDust: View {
                 let y = (seed * 137.0).truncatingRemainder(dividingBy: max(size.height * 0.55, 1))
                 let side = 1.0 + seed.truncatingRemainder(dividingBy: 1) * 1.5
                 let rect = CGRect(x: x, y: y, width: side, height: side)
-                context.fill(Path(ellipseIn: rect), with: .color(Color.white.opacity(0.24)))
+                context.fill(Path(ellipseIn: rect), with: .color(Color.white.opacity(0.24 * alphaScale)))
             }
         }
     }
