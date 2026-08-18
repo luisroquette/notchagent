@@ -123,6 +123,29 @@ struct SettingsView: View {
                     }
                 }
             }
+
+            Section(pt ? "Ambiente" : "Ambience") {
+                Toggle(
+                    pt ? "Ambiente climático na página Now" : "Weather ambience on the Now page",
+                    isOn: $preferences.settings.weatherEnabled
+                )
+                TextField(
+                    pt ? "Cidade manual (opcional)" : "City override (optional)",
+                    text: Binding(
+                        get: { preferences.settings.weatherCity ?? "" },
+                        set: { newValue in
+                            let trimmed = newValue.trimmingCharacters(in: .whitespaces)
+                            preferences.settings.weatherCity = trimmed.isEmpty ? nil : trimmed
+                        }
+                    )
+                )
+                .textFieldStyle(.roundedBorder)
+            }
+            .onChange(of: preferences.settings.weatherEnabled) { _, _ in
+                // Toggle changed: react now instead of waiting for the next
+                // 30-min cycle (refreshIfNeeded no-ops when disabled).
+                Task { await AppEnvironment.shared.weather.refreshIfNeeded() }
+            }
             }
 
             if selectedSection == .desk {

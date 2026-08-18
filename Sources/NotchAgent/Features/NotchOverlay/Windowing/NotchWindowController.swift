@@ -11,14 +11,16 @@ final class NotchWindowController {
     private let store: UsageStore
     private let router: WindowRouter
     private let spending: SubscriptionStore
+    private let weather: WeatherStore
     private var scrollMonitor: Any?
     private var keyMonitor: Any?
 
-    init(viewModel: NotchViewModel, store: UsageStore, router: WindowRouter, spending: SubscriptionStore) {
+    init(viewModel: NotchViewModel, store: UsageStore, router: WindowRouter, spending: SubscriptionStore, weather: WeatherStore) {
         self.viewModel = viewModel
         self.store = store
         self.router = router
         self.spending = spending
+        self.weather = weather
     }
 
     func show() {
@@ -72,6 +74,7 @@ final class NotchWindowController {
                     .environment(store)
                     .environment(store.preferences)
                     .environment(router)
+                    .environment(weather)
                     .environmentObject(spending)
             )
             let hosting = NotchHitTestView(rootView: root)

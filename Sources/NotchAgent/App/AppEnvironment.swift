@@ -18,6 +18,7 @@ final class AppEnvironment {
     let desk: NotchAgentDeskCoordinator
     let appUpdates: AppUpdateController
     let notifications = NotificationService()
+    let weather: WeatherStore
     private(set) var notchController: NotchWindowController?
     private var exchangeRateTask: Task<Void, Never>?
 
@@ -38,6 +39,7 @@ final class AppEnvironment {
         spending = SubscriptionStore()
         desk = NotchAgentDeskCoordinator(store: store)
         appUpdates = AppUpdateController()
+        weather = WeatherStore(settings: preferences)
         router.environment = self
         desk.onConnectionPhaseChange = { [weak self] phase in
             guard let self,
@@ -64,7 +66,13 @@ final class AppEnvironment {
             Log.providers.info("\(provider.id.rawValue, privacy: .public): \(String(describing: installation), privacy: .public)")
         }
 
-        let controller = NotchWindowController(viewModel: notchViewModel, store: store, router: router, spending: spending)
+        let controller = NotchWindowController(
+            viewModel: notchViewModel,
+            store: store,
+            router: router,
+            spending: spending,
+            weather: weather
+        )
         notchController = controller
         controller.show()
 
@@ -76,10 +84,15 @@ final class AppEnvironment {
             }
         }
         startExchangeRateRefresh()
+        startWeather()
         // Discovery and hardware telemetry are automatic. The preference only
         // controls whether sanitized usage snapshots are mirrored to the Desk.
         desk.start(mirroringEnabled: deskMirroringOverride ?? preferences.settings.notchAgentDeskEnabled)
         store.record(UsageEvent(kind: .info, message: "NotchAgent started"))
+    }
+
+    private func startWeather() {
+        weather.start()
     }
 
     private func startExchangeRateRefresh() {
