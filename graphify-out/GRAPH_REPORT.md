@@ -1,16 +1,16 @@
 # Graph Report - NotchAgent  (2026-08-18)
 
 ## Corpus Check
-- 259 files · ~236,010 words
+- 259 files · ~235,888 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3417 nodes · 7497 edges · 229 communities (156 shown, 73 thin omitted)
+- 3421 nodes · 7491 edges · 229 communities (149 shown, 80 thin omitted)
 - Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 581 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `896a8ee7`
+- Built from commit: `ed0b73be`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,16 +18,16 @@
 - NotchExpandedView
 - ProviderCardView
 - NotchRunnerView
-- .make
+- DeskSnapshot
 - RefreshScheduler
 - APIAccountProviderTests
 - Anthropic Usage Quota Reader
 - SubscriptionStore
-- SessionUsage
+- Equatable
 - Blocked Coherence Tests
 - UsageStore
-- Date
-- MonthlyBudgetStatus
+- AttentionLevel
+- AIExpense
 - AnthropicUsageQuotaReader
 - NotchAgentDeskSerialTransport
 - SubscriptionImportIssue
@@ -41,9 +41,9 @@
 - AISubscription
 - NotchAgent.Windows.Models
 - Subscription
-- SubscriptionHistoryEvent
+- SubscriptionSyncSnapshot
 - .report
-- Alert Moment View
+- APIServiceID
 - XCTestCase
 - I Usage Provider
 - R E A D M E
@@ -51,83 +51,83 @@
 - Touch
 - String
 - ClaudeProvider
-- .testPhysicalTelemetryWhenExplicitlyEnabled
+- DeskDeviceTelemetry
 - DeskFirmwarePackage
 - Settings View
-- AnthropicAPIConsoleReader
+- .normalized
 - NotchAgentDeskTests
-- FrameType
+- FloatingBarWindow
 - AppSettings
 - ClaudeQuotaProbe
 - CodingKeys
 - GoogleAIStudioConsoleReader
-- AIExpense
-- FloatingBarWindow
+- .record
+- App
 - APIAccountUsage
 - APIAccountProvider.swift
 - XCTest
 - TwitterAPIIOConsoleReader
-- RhythmChartView
+- APIAccountDataOrigin
 - RunnerControl
-- APIAccountDisplayConfidence
-- Twitter A P I I O Console Reader
+- APIAccountAuditItem
+- .Update
 - AppEnvironment
 - .encode
-- HistoryStore
+- .advise
 - Page
 - NotchViewModel
 - View
 - ProviderIntegrationTests
 - AnthropicConsoleReader
-- NotchAgentDeskUpdater.swift
-- Notch Runner View
-- SubscriptionSyncSnapshot
+- .preview
+- Decodable
+- CloudSubscriptionSync
 - NotchWindowController
-- APIAccountCardDropDelegate
+- .body
 - ProviderID
-- APIAccountProvider
-- RefreshGenerationTracker
+- APIAccountReadStatus
+- AlertMomentView
 - DeepSeekConsoleReader
 - System Integration
-- Burn Chart Rendering
-- A P I Account Provider
-- Decision Advisor
+- MenuBarContentView
+- .project
+- FullscreenDetector
 - Foundation
 - SettingsWindow
 - Notch Expanded View
-- .body
+- Void
 - CodexProvider
-- A P I Account Portal Session
+- UsageSnapshot
 - CodexProvider
 - WindowRouter
 - Deep Seek Console Reader
 - BurnChartView
 - ScrollPagingTests
-- ThemeMode
-- Settings Window.axaml
+- CaseIterable
+- .forEachLine
 - .parseISO8601
 - NotchGeometry
 - ClaudeProvider
 - Desk Protocol
 - Window Router
-- Spending Engine
-- Provider
-- Decodable
+- .configuration
+- ProviderCapabilities
+- CodexTokenInfo
 - Subscription
-- Notch Expanded View
-- ThresholdAlerts
+- IncrementalParseTests
+- .fromSnapshots
 - Scroll Paging Tests
-- DeskFirmwareUpdateError
+- StatusPageService
 - Format
 - DashboardView
-- Sendable
+- NotchAgentDeskConnectionState
 - AccountQuota
 - ClaudeQuotaProbe
 - Burn Rate
 - ProviderHealth
 - CodexRolloutParser.cs
 - Precision Calibration Tests
-- Codex Rollout Parser
+- UsageStore
 - NotchAgentDeskBridge.swift
 - Desk ProviderState Struct
 - Menu Bar Label View
@@ -136,16 +136,16 @@
 - App Update Controller
 - Script
 - NSObject
-- MetricProvenance
-- .apply
-- SpendingView.swift
+- Date
+- HourStat
+- SpendingView
 - NotchShape
 - CodexParserTests
 - Pricing Table
-- .tick
-- GeminiProvider
+- SubscriptionStore.swift
+- Bool
 - Notch Agent. Windows
-- FileStamp
+- recentFiles
 - Threshold And Model Tests
 - GaugeLabel
 - Program
@@ -153,20 +153,20 @@
 - ClaudeFileStat
 - Desk UI Construction
 - App Delegate
-- NotchHitTestView
+- BurnRate
 - Notch Agent Desk Ambient Intelligence
-- IUsageProvider.cs
-- CloudSyncState
+- Date
+- CodexOnboardingStatus
 - Pricing Table
-- DeskFrameCodecError
+- Double
 - Verify Toolchain
-- package_manifest.swift
+- ProviderID
 - Audit Public Release
-- SegmentedMeter
+- ModelHealth
 - AppKit
 - Package Release
 - Notch View Model
-- DeskFirmwareVerification
+- RefreshState
 - Notchagent Desk Soak
 - Public Release Security
 - N O T C H A G E N T D E S K P I L O T
@@ -220,7 +220,7 @@
 - Notchagent Desk Soak Status
 - Notchagent Desk Telemetry Evidence
 - AgentMeterProvider
-- .defaultCandidatePaths
+- String
 - Notchagent Desk Touch Summary
 - .requiredURL
 - AttentionLevel
@@ -261,12 +261,12 @@
   Tests/NotchAgentTests/NotchAgentDeskTests.swift → Sources/NotchAgent/Features/Desk/NotchAgentDeskProtocol.swift
 - `StatusAggregatorTests` --calls--> `AppSettings`  [INFERRED]
   Tests/NotchAgentTests/AggregatorAndFormatTests.swift → Sources/NotchAgent/Core/Models/AppSettings.swift
-- `DeskConnectionStateRecorder` --references--> `NotchAgentDeskConnectionState`  [EXTRACTED]
-  Tests/NotchAgentTests/NotchAgentDeskTests.swift → Sources/NotchAgent/Features/Desk/NotchAgentDeskProtocol.swift
 - `DeskConnectionStateRecorder` --references--> `DeskDeviceTelemetry`  [EXTRACTED]
   Tests/NotchAgentTests/NotchAgentDeskTests.swift → Sources/NotchAgent/Features/Desk/NotchAgentDeskProtocol.swift
-- `DeskTimestampedTelemetrySample` --references--> `DeskDeviceTelemetry`  [EXTRACTED]
+- `DeskConnectionStateRecorder` --references--> `NotchAgentDeskConnectionState`  [EXTRACTED]
   Tests/NotchAgentTests/NotchAgentDeskTests.swift → Sources/NotchAgent/Features/Desk/NotchAgentDeskProtocol.swift
+- `NotchAgentApp` --implements--> `App`  [EXTRACTED]
+  Sources/NotchAgent/App/NotchAgentApp.swift → windows/NotchAgent.Windows/App.axaml.cs
 
 ## Import Cycles
 - None detected.
@@ -280,11 +280,11 @@
 - **Desk Beta 1 Release Assurance** — docs_notchagent_desk_beta_1_reliability_gates, docs_notchagent_desk_bom_procurement_gate, docs_notchagent_desk_factory_per_unit_qc, docs_notchagent_desk_pilot_acceptance_gates, docs_notchagent_desk_bom_notarized_distribution [INFERRED 0.95]
 - **Desk Local-First Privacy Model** — readme_local_first_privacy, docs_notchagent_desk_desk_privacy_boundary, docs_notchagent_desk_onboarding_explicit_mirroring_consent, firmware_notchagent_desk_readme_nonce_authenticated_ram_snapshot, docs_api_account_monitoring_safe_diagnostics [INFERRED 0.95]
 
-## Communities (229 total, 73 thin omitted)
+## Communities (229 total, 80 thin omitted)
 
 ### Community 0 - "NotchExpandedView"
-Cohesion: 0.09
-Nodes (31): APIAccount, APIAccountDashboardRow, APIAccountFinancialSummary, APIAccountMoneyPresentation, APIAccountReadStatus, APIAccountUsage, Decimal, Set (+23 more)
+Cohesion: 0.06
+Nodes (38): APIAccount, APIAccountDashboardRow, APIAccountFinancialSummary, APIAccountReadStatus, APIAccountUsage, APIServiceID, Date, Decimal (+30 more)
 
 ### Community 1 - "ProviderCardView"
 Cohesion: 0.17
@@ -294,65 +294,65 @@ Nodes (13): ProviderCardView, .body, .quotaChip, .refreshText, .unavailable, Att
 Cohesion: 0.20
 Nodes (15): Path, NotchRunnerView, .body, .difficulty, .obstacleOffsets, .spacingScale, .speed, Bool (+7 more)
 
-### Community 3 - ".make"
-Cohesion: 0.10
-Nodes (13): Dictionary, PreferencesStore, .settings, AppSettings, UserDefaults, NotchAgentDeskAmbientIntelligence, UsageStore, DeskSnapshotFactory (+5 more)
+### Community 3 - "DeskSnapshot"
+Cohesion: 0.18
+Nodes (17): AttentionLevel, DeskAmbientRecommendation, Dictionary, ProviderHealth, BurnPoint, DeskSnapshot, DeskSnapshotFactory, ModelAlternate (+9 more)
 
 ### Community 4 - "RefreshScheduler"
-Cohesion: 0.21
-Nodes (7): UsageProvider, RefreshScheduler, Never, SnapshotStore, Task, UsageStore, Void
+Cohesion: 0.09
+Nodes (20): UsageProvider, RefreshGenerationTracker, RefreshRequestQueue, RefreshScheduler, Bool, Never, SnapshotStore, Task (+12 more)
 
 ### Community 5 - "APIAccountProviderTests"
-Cohesion: 0.06
-Nodes (9): APIAccountSpendWindow, Calendar, DateInterval, TimeInterval, .total, APIAccountFinancePresentation, Double, String (+1 more)
+Cohesion: 0.07
+Nodes (8): .total, APIAccountBilling, Set, .apiAccountsExcludedFromTotal, APIAccountProviderTests, Double, String, UUID
 
 ### Community 6 - "Anthropic Usage Quota Reader"
 Cohesion: 0.22
 Nodes (6): BlockedCoherenceTests, RestoreMomentTests, Bool, Double, UsageSnapshot, UsageStore
 
 ### Community 7 - "SubscriptionStore"
-Cohesion: 0.09
-Nodes (24): AnyObject, ObservableObject, SubscriptionRepositoryProtocol, SubscriptionStore, .monthlySpend, .summary, Bool, Decimal (+16 more)
+Cohesion: 0.13
+Nodes (13): AnyObject, ObservableObject, SubscriptionRepositoryProtocol, SubscriptionStore, .monthlySpend, .summary, Bool, Decimal (+5 more)
 
-### Community 8 - "SessionUsage"
-Cohesion: 0.10
-Nodes (32): Identifiable, CostEstimate, DailyTotal, .id, HourlyTotal, .id, ModelHealth, .id (+24 more)
+### Community 8 - "Equatable"
+Cohesion: 0.11
+Nodes (34): Codable, Equatable, ModelProbeStatus, CostEstimate, DailyTotal, .id, HourlyTotal, .id (+26 more)
 
 ### Community 9 - "Blocked Coherence Tests"
 Cohesion: 0.06
 Nodes (46): Alert: Almost Empty (5h Window) Screenshot, Almost Empty Alert Card, Pixel Space-Invader Mascot, Segmented Quota Progress Bar, Dashboard (Top) Screenshot, Claude Code Provider Card, Hourly Rhythm Bar Chart, Range and Provider Filter Toggle (+38 more)
 
 ### Community 10 - "UsageStore"
-Cohesion: 0.11
-Nodes (20): AppSettings, AttentionLevel, Bool, Double, Int, Never, PreferencesStore, ProviderAlert (+12 more)
+Cohesion: 0.10
+Nodes (26): AppSettings, Bool, Double, Int, Never, PercentSample, PreferencesStore, ProviderAlert (+18 more)
 
-### Community 11 - "Date"
-Cohesion: 0.11
-Nodes (26): Comparable, AttentionLevel, critical, .label, normal, warning, Kind, alert (+18 more)
+### Community 11 - "AttentionLevel"
+Cohesion: 0.13
+Nodes (21): Comparable, AttentionLevel, critical, .label, normal, warning, Kind, alert (+13 more)
 
-### Community 12 - "MonthlyBudgetStatus"
-Cohesion: 0.09
-Nodes (26): Int, MonthlyBudgetAlert, MonthlyBudgetLevel, critical, exceeded, normal, warning, MonthlyBudgetStatus (+18 more)
+### Community 12 - "AIExpense"
+Cohesion: 0.10
+Nodes (21): AIExpense, MonthlyBudgetAlert, MonthlyBudgetLevel, critical, exceeded, normal, warning, MonthlyBudgetStatus (+13 more)
 
 ### Community 13 - "AnthropicUsageQuotaReader"
-Cohesion: 0.12
-Nodes (16): Range, AnthropicUsageQuotaReader, Match, CheckedContinuation, ClaudeQuota, Double, Error, Int (+8 more)
+Cohesion: 0.07
+Nodes (29): Range, AnthropicAPIConsoleReader, Calendar, CheckedContinuation, Double, Error, Int, Never (+21 more)
 
 ### Community 14 - "NotchAgentDeskSerialTransport"
-Cohesion: 0.21
-Nodes (9): DeskFrameStreamDecoder, NotchAgentDeskSerialTransport, Data, DeskFrame, Int32, Sendable, UInt32, UInt8 (+1 more)
+Cohesion: 0.13
+Nodes (13): io_service_t, NotchAgentDeskSerialTransport, Data, DeskFrame, Int, Int32, Never, Sendable (+5 more)
 
 ### Community 15 - "SubscriptionImportIssue"
-Cohesion: 0.07
-Nodes (29): Error, CloudSyncFailure, accountUnavailable, InvoiceImportParser, InvoiceImportPreview, Data, Decimal, String (+21 more)
+Cohesion: 0.11
+Nodes (18): ParseFailure, RawSubscription, SubscriptionImportFormat, csv, json, SubscriptionImportIssue, .id, SubscriptionImportParser (+10 more)
 
 ### Community 16 - "SubscriptionRepository"
-Cohesion: 0.11
-Nodes (15): SpendDisplayCurrency, brl, .code, usd, SubscriptionRepository, SubscriptionStorePreferences, Bool, Decimal (+7 more)
+Cohesion: 0.07
+Nodes (27): CloudSyncState, failed, localOnly, synced, syncing, unavailable, waitingToRetry, SpendDisplayCurrency (+19 more)
 
 ### Community 17 - ".testSerialTransportWaitsForHandshakeThenPublishes"
-Cohesion: 0.25
-Nodes (7): Duration, DeskConnectionStateRecorder, .last, .telemetrySamples, Data, DeskFrame, Int32
+Cohesion: 0.21
+Nodes (8): ContinuousClock, Duration, DeskFrameStreamDecoder, DeskConnectionStateRecorder, .last, Data, DeskFrame, Int32
 
 ### Community 18 - "Claude Quota Probe"
 Cohesion: 0.11
@@ -371,36 +371,36 @@ Cohesion: 0.06
 Nodes (33): NotchAgent 3.1.0 Beta 1, Isolated Per-Account Portal Sessions, Sanitized API Monitoring Diagnostics, Desk Onboarding QR Code, Notarized Desk Distribution Contract, Evidence-Bound Procurement Gate, Desk Beta 1 Verified Core BOM, NotchAgent Desk Architecture (+25 more)
 
 ### Community 22 - "NotchAgentDeskCoordinator"
-Cohesion: 0.26
-Nodes (7): NotchAgentDeskSoakRecorder, NotchAgentDeskCoordinator, Bool, Never, Task, UsageStore, Void
+Cohesion: 0.32
+Nodes (5): NotchAgentDeskSoakRecorder, NotchAgentDeskCoordinator, Bool, Task, UsageStore
 
 ### Community 23 - "AISubscription"
-Cohesion: 0.10
-Nodes (14): AISubscription, .cycleTotalBRL, .monthlyEquivalentBRL, .projectedAnnualBRL, subscriptions, SubscriptionSummary, Bool, Calendar (+6 more)
+Cohesion: 0.13
+Nodes (15): AISubscription, .cycleTotalBRL, .monthlyEquivalentBRL, .projectedAnnualBRL, BillingCycle, .id, monthly, yearly (+7 more)
 
 ### Community 24 - "NotchAgent.Windows.Models"
-Cohesion: 0.12
-Nodes (14): NotchAgent.Windows.UI, NotchAgent.Windows.Models, NotchAgent.Windows.Providers.Shared, NotchAgent.Windows.Providers, NotchAgent.Windows.Providers.Codex, NotchAgent.Windows.Providers.Claude, NotchAgent.Windows.Services, JsonSerializerOptions (+6 more)
+Cohesion: 0.10
+Nodes (15): NotchAgent.Windows.UI, NotchAgent.Windows.Models, NotchAgent.Windows.Providers.Shared, NotchAgent.Windows.Providers, NotchAgent.Windows.Providers.Codex, NotchAgent.Windows.Providers.Claude, NotchAgent.Windows.Services, UserControl (+7 more)
 
 ### Community 25 - "Subscription"
 Cohesion: 0.09
 Nodes (15): DeskTouch, ARDUINO_ISR_ATTR, instance_, interruptPending_, lastPollAtMs_, mux_, pendingAtMicros_, pointPending_ (+7 more)
 
-### Community 26 - "SubscriptionHistoryEvent"
-Cohesion: 0.11
-Nodes (18): Calendar, FinancialHistory, MonthlyProviderSpend, .id, Calendar, Decimal, Int, String (+10 more)
+### Community 26 - "SubscriptionSyncSnapshot"
+Cohesion: 0.12
+Nodes (13): SubscriptionSyncSnapshot, UUID, Array, SubscriptionHistoryEvent, SubscriptionHistoryKind, cancelled, imported, priceChanged (+5 more)
 
 ### Community 27 - ".report"
-Cohesion: 0.16
-Nodes (17): AccountRecord, DeskRecord, ProviderRecord, SanitizedDiagnosticExporter, SanitizedDiagnosticReport, AppSettings, Bool, Bundle (+9 more)
+Cohesion: 0.11
+Nodes (23): APIAccountAuditOutcome, blocked, invalid, partial, verified, AccountRecord, DeskRecord, ProviderRecord (+15 more)
 
-### Community 28 - "Alert Moment View"
+### Community 28 - "APIServiceID"
 Cohesion: 0.05
 Nodes (36): APIServiceID, .addableCases, anthropicAPI, anthropicConsole, artificialAnalysis, brAPI, chatGPTSubscription, .credentialPlaceholder (+28 more)
 
 ### Community 29 - "XCTestCase"
-Cohesion: 0.10
-Nodes (8): AgentMeterCore, InvoiceImportTests, ProductIdentityTests, PricingTests, CostLayersTests, AppSettingsCompatibilityTests, ModelBreakdownTests, XCTestCase
+Cohesion: 0.11
+Nodes (6): PricingTests, CostLayersTests, AppSettingsCompatibilityTests, ModelBreakdownTests, ThresholdAlertsTests, XCTestCase
 
 ### Community 30 - "I Usage Provider"
 Cohesion: 0.26
@@ -419,104 +419,108 @@ Cohesion: 0.14
 Nodes (15): OpenRouterConsoleReader, OpenRouterSpendStabilizer, Bool, CheckedContinuation, Double, Error, Int, Never (+7 more)
 
 ### Community 34 - "String"
-Cohesion: 0.05
-Nodes (45): Binding, FileManager, updated, Data, CodexOnboardingAction, authenticate, createFirstSession, openInstallGuide (+37 more)
+Cohesion: 0.11
+Nodes (22): Binding, APIAccountPortalConnectionSheet, .instructions, APIAccountsSettingsSection, .body, PortalLoginRequest, .id, QuotaThresholdEditor (+14 more)
 
 ### Community 35 - "ClaudeProvider"
-Cohesion: 0.07
-Nodes (29): byte, Consumed, CostUsd, End, HourStat, ModelStat, object, ReadOnlySpan (+21 more)
+Cohesion: 0.06
+Nodes (34): byte, Consumed, CostUsd, End, HourStat, IUsageProvider, ModelStat, object (+26 more)
 
-### Community 36 - ".testPhysicalTelemetryWhenExplicitlyEnabled"
-Cohesion: 0.11
-Nodes (14): ContinuousClock, DeskReliabilityAcceptance, DeskReliabilityAssessment, DeskTouchContinuityMonitor, Bool, Double, Self, String (+6 more)
+### Community 36 - "DeskDeviceTelemetry"
+Cohesion: 0.09
+Nodes (18): DeskDeviceTelemetry, Bool, DeskReliabilityAcceptance, DeskReliabilityAssessment, DeskTouchContinuityMonitor, Bool, Double, Self (+10 more)
 
 ### Community 37 - "DeskFirmwarePackage"
-Cohesion: 0.18
-Nodes (11): ClosedRange, DeskFirmwareManifest, DeskFirmwarePackage, Bool, Int, Int32, Int64, String (+3 more)
+Cohesion: 0.05
+Nodes (43): ClosedRange, CryptoKit, Darwin, Manifest, sha256(), String, UInt32, LocalizedError (+35 more)
 
 ### Community 38 - "Settings View"
 Cohesion: 0.15
 Nodes (13): CodingKey, CodingKeys, basePriceBRL, billingCycle, history, id, isActive, nextRenewalDate (+5 more)
 
-### Community 39 - "AnthropicAPIConsoleReader"
-Cohesion: 0.08
-Nodes (24): RestoreMoment, .message, AttentionLevel, Bool, Double, Int, Set, String (+16 more)
+### Community 39 - ".normalized"
+Cohesion: 0.19
+Nodes (11): RestoreMoment, .message, AttentionLevel, Bool, Double, Int, Set, String (+3 more)
 
 ### Community 40 - "NotchAgentDeskTests"
-Cohesion: 0.11
-Nodes (14): NotchAgentDeskSetupStatus, .canEnableMirroring, .hasLocalProvider, .hasProviderError, .isReady, StepState, actionRequired, ready (+6 more)
+Cohesion: 0.09
+Nodes (18): PreferencesStore, .settings, AppSettings, UserDefaults, NotchAgentDeskSetupStatus, .canEnableMirroring, .hasLocalProvider, .hasProviderError (+10 more)
 
-### Community 41 - "FrameType"
-Cohesion: 0.33
-Nodes (6): FrameType, deviceTelemetry, heartbeat, hello, helloAcknowledgement, snapshot
+### Community 41 - "FloatingBarWindow"
+Cohesion: 0.15
+Nodes (8): PointerPressedEventArgs, Window, Action, bool, CancellationTokenSource, DispatcherTimer, RoutedEventArgs, FloatingBarWindow
 
 ### Community 42 - "AppSettings"
-Cohesion: 0.17
-Nodes (8): AppSettings, apiAccountIdentifiers, apiAccounts, Bool, Decoder, Double, Int, Set
+Cohesion: 0.15
+Nodes (7): AppSettings, apiAccountIdentifiers, Bool, Decoder, Double, Int, Set
 
 ### Community 43 - "ClaudeQuotaProbe"
-Cohesion: 0.10
-Nodes (21): QuotaStatus, Security, ClaudeQuota, ClaudeQuotaProbe, ClaudeTokenLocator, Bool, Data, Date (+13 more)
+Cohesion: 0.11
+Nodes (20): QuotaStatus, ClaudeQuota, ClaudeQuotaProbe, ClaudeTokenLocator, Bool, Data, Date, Double (+12 more)
 
 ### Community 44 - "CodingKeys"
 Cohesion: 0.09
-Nodes (22): CodingKeys, apiAccountMonitoringEnabled, claudeQuotaProbeConsentVersion, claudeQuotaProbeEnabled, claudeSessionTokenBudget, claudeWeeklyTokenBudget, criticalThresholdPercent, fallbackPillEnabled (+14 more)
+Nodes (23): CodingKeys, apiAccountMonitoringEnabled, apiAccounts, claudeQuotaProbeConsentVersion, claudeQuotaProbeEnabled, claudeSessionTokenBudget, claudeWeeklyTokenBudget, criticalThresholdPercent (+15 more)
 
 ### Community 45 - "GoogleAIStudioConsoleReader"
 Cohesion: 0.17
 Nodes (13): GoogleAIStudioConsoleReader, CheckedContinuation, Double, Error, Int, Never, String, Task (+5 more)
 
-### Community 46 - "AIExpense"
-Cohesion: 0.13
-Nodes (12): AIExpense, SpendingEngine, Bool, Decimal, Double, String, tombstones, SubscriptionLedger (+4 more)
+### Community 46 - ".record"
+Cohesion: 0.24
+Nodes (4): subscriptions, tombstones, Bool, Int
 
-### Community 47 - "FloatingBarWindow"
-Cohesion: 0.07
-Nodes (19): Application, IClassicDesktopStyleApplicationLifetime, NativeMenuItem, PointerPressedEventArgs, TrayIcon, WindowIcon, App, bool (+11 more)
+### Community 47 - "App"
+Cohesion: 0.10
+Nodes (15): Application, IClassicDesktopStyleApplicationLifetime, JsonSerializerOptions, NativeMenuItem, TrayIcon, WindowIcon, App, bool (+7 more)
 
 ### Community 48 - "APIAccountUsage"
-Cohesion: 0.06
-Nodes (46): Hashable, APIAccount, APIAccountDataOrigin, derivedFromOfficial, manual, officialAPI, officialPortal, APIAccountFieldOrigins (+38 more)
+Cohesion: 0.05
+Nodes (46): Hashable, APIAccount, APIAccountFieldOrigins, APIAccountMoneyKind, balance, remaining, spend, APIAccountSpendPeriod (+38 more)
 
 ### Community 49 - "APIAccountProvider.swift"
-Cohesion: 0.16
-Nodes (5): APIAccountCredentialStore, APIAccountOfficialComparator, GoogleCloudCredentialProvider, Bool, Decimal
+Cohesion: 0.25
+Nodes (3): APIAccountOfficialComparator, GoogleCloudCredentialProvider, Decimal
+
+### Community 50 - "XCTest"
+Cohesion: 0.11
+Nodes (5): AgentMeterCore, NotchAgent, InvoiceImportTests, ProductIdentityTests, XCTest
 
 ### Community 51 - "TwitterAPIIOConsoleReader"
 Cohesion: 0.14
 Nodes (14): Any, CheckedContinuation, Data, Double, Error, Int, Never, Task (+6 more)
 
-### Community 52 - "RhythmChartView"
-Cohesion: 0.27
-Nodes (11): PagerDots, .body, RhythmChartView, .body, CGFloat, CGRect, CGSize, Color (+3 more)
+### Community 52 - "APIAccountDataOrigin"
+Cohesion: 0.15
+Nodes (9): APIAccountDataOrigin, derivedFromOfficial, manual, officialAPI, officialPortal, APIAccountSpendWindow, Calendar, DateInterval (+1 more)
 
 ### Community 53 - "RunnerControl"
 Cohesion: 0.19
 Nodes (11): DateTime, Size, Typeface, Color, DateTimeOffset, DispatcherTimer, double, DrawingContext (+3 more)
 
-### Community 54 - "APIAccountDisplayConfidence"
-Cohesion: 0.06
-Nodes (25): APIAccountBilling, APIAccountDashboardRow, .id, APIAccountDisplayConfidence, derived, .label, manual, officialAPI (+17 more)
+### Community 54 - "APIAccountAuditItem"
+Cohesion: 0.27
+Nodes (7): APIAccountAuditItem, APIAccountAuditTolerance, APIAccountIntegrityAuditor, Decimal, Double, TimeInterval, UUID
 
-### Community 55 - "Twitter A P I I O Console Reader"
-Cohesion: 0.10
-Nodes (17): INotifyPropertyChanged, DateTimeOffset, Format, Failure, Idle, Refreshing, RefreshState, Success (+9 more)
+### Community 55 - ".Update"
+Cohesion: 0.09
+Nodes (18): INotifyPropertyChanged, GaugeMetric, DateTimeOffset, Format, Failure, Idle, Refreshing, RefreshState (+10 more)
 
 ### Community 56 - "AppEnvironment"
-Cohesion: 0.18
-Nodes (12): AppEnvironment, Never, PreferencesStore, RefreshScheduler, SnapshotStore, UsageStore, Void, NotificationService (+4 more)
+Cohesion: 0.13
+Nodes (15): Notification, AppEnvironment, Bool, Never, PreferencesStore, RefreshScheduler, SnapshotStore, Task (+7 more)
 
 ### Community 57 - ".encode"
-Cohesion: 0.21
-Nodes (9): CRC32, DeskFrame, DeskFrameCodec, Data, Int, Result, UInt32, UInt8 (+1 more)
+Cohesion: 0.16
+Nodes (15): CRC32, DeskFrame, DeskFrameCodec, DeskFrameCodecError, incompatibleProtocol, invalidChecksum, invalidCOBS, invalidHeader (+7 more)
 
-### Community 58 - "HistoryStore"
-Cohesion: 0.20
-Nodes (5): HistoryStore, Int, TimeInterval, URL, UsageSnapshot
+### Community 58 - ".advise"
+Cohesion: 0.17
+Nodes (11): Int, DecisionAdvice, .id, DecisionAdvisor, Severity, critical, normal, warning (+3 more)
 
 ### Community 59 - "Page"
-Cohesion: 0.29
-Nodes (7): Page, burn, .index, models, now, rhythm, Int
+Cohesion: 0.15
+Nodes (11): DeskAmbientRecommendation, NotchAgentDeskAmbientIntelligence, Page, burn, .index, models, now, rhythm (+3 more)
 
 ### Community 60 - "NotchViewModel"
 Cohesion: 0.11
@@ -524,127 +528,127 @@ Nodes (21): Edge, NotchGeometry, Mode, compact, expanded, NotchViewModel, .compa
 
 ### Community 61 - "View"
 Cohesion: 0.09
-Nodes (26): AlertMomentView, .headline, .message, .pulseSpeed, .severityColor, Color, Double, String (+18 more)
+Nodes (26): NamedQuota, ClaudeMascot, .body, OpenAIGlyph, .body, Color, Int, SegmentedMeter (+18 more)
 
 ### Community 62 - "ProviderIntegrationTests"
-Cohesion: 0.24
-Nodes (3): ProviderIntegrationTests, String, URL
+Cohesion: 0.13
+Nodes (8): GeminiProvider, AppSettings, ProviderInstallation, URL, UsageSnapshot, ProviderIntegrationTests, String, URL
 
 ### Community 63 - "AnthropicConsoleReader"
 Cohesion: 0.16
 Nodes (12): AnthropicConsoleReader, CheckedContinuation, Decimal, Error, Int, Never, String, Task (+4 more)
 
-### Community 64 - "NotchAgentDeskUpdater.swift"
-Cohesion: 0.17
-Nodes (9): DeskFirmwareRecoveryEligibility, NotchAgentDeskFirmwareUpdater, NotchAgentDeskUpdateState, failed, ready, succeeded, unavailable, updating (+1 more)
+### Community 64 - ".preview"
+Cohesion: 0.29
+Nodes (5): InvoiceImportParser, InvoiceImportPreview, Data, Decimal, String
 
-### Community 65 - "Notch Runner View"
-Cohesion: 0.28
-Nodes (5): SnapshotStore, JSONDecoder, JSONEncoder, URL, UsageSnapshot
+### Community 65 - "Decodable"
+Cohesion: 0.36
+Nodes (11): Decodable, Event, Info, Payload, RateLimits, Double, Int, String (+3 more)
 
-### Community 66 - "SubscriptionSyncSnapshot"
-Cohesion: 0.22
-Nodes (7): CKContainer, CKDatabase, CKRecord, CloudSubscriptionSync, String, SubscriptionSyncSnapshot, .syncSnapshot
+### Community 66 - "CloudSubscriptionSync"
+Cohesion: 0.36
+Nodes (5): CKContainer, CKDatabase, CKRecord, CloudSubscriptionSync, String
 
 ### Community 67 - "NotchWindowController"
-Cohesion: 0.14
-Nodes (11): NSPanel, NSScreen, Bool, Task, NotchPanel, .canBecomeKey, .canBecomeMain, Bool (+3 more)
+Cohesion: 0.11
+Nodes (15): NSHostingView, NSPanel, NSPoint, NSRect, NSView, NotchHitTestView, NotchPanel, .canBecomeKey (+7 more)
 
-### Community 68 - "APIAccountCardDropDelegate"
-Cohesion: 0.21
-Nodes (6): DropDelegate, DropInfo, DropProposal, APIAccountCardDropDelegate, UniformTypeIdentifiers, UUID
+### Community 68 - ".body"
+Cohesion: 0.11
+Nodes (15): Bool, BurnRate, DropDelegate, DropInfo, DropProposal, APIAccountCardDropDelegate, APIServiceLogo, .body (+7 more)
 
 ### Community 69 - "ProviderID"
-Cohesion: 0.14
-Nodes (12): ProviderID, apiAccounts, claudeCode, codex, .displayName, geminiCLI, .id, .shortName (+4 more)
+Cohesion: 0.11
+Nodes (15): ProviderID, apiAccounts, claudeCode, codex, .displayName, geminiCLI, .id, .shortName (+7 more)
 
-### Community 70 - "APIAccountProvider"
-Cohesion: 0.14
-Nodes (10): OptionSet, ProviderCapabilities, Int, APIAccountProvider, APIAccountSnapshotCache, AppSettings, ProviderInstallation, TimeInterval (+2 more)
+### Community 70 - "APIAccountReadStatus"
+Cohesion: 0.13
+Nodes (14): APIAccountReadStatus, needsCredential, needsLogin, partial, stale, unavailable, updated, APIAccountProvider (+6 more)
 
-### Community 71 - "RefreshGenerationTracker"
-Cohesion: 0.38
-Nodes (4): RefreshGenerationTracker, UInt64, UUID, RefreshSchedulerTests
+### Community 71 - "AlertMomentView"
+Cohesion: 0.18
+Nodes (10): AlertMomentView, .headline, .message, .pulseSpeed, .severityColor, Color, Double, String (+2 more)
 
 ### Community 72 - "DeepSeekConsoleReader"
-Cohesion: 0.22
-Nodes (10): DeepSeekConsoleReader, CheckedContinuation, Error, Int, Never, Task, UUID, Void (+2 more)
+Cohesion: 0.15
+Nodes (12): DeepSeekConsoleReader, CheckedContinuation, Double, Error, Int, Never, String, Task (+4 more)
 
 ### Community 73 - "System Integration"
 Cohesion: 0.19
 Nodes (16): Desktop NOW Panel Screenshot, Carousel Pagination Dots, Expanded Status Panel, Refresh Pause Dashboard Settings Controls, Segmented Quota Meter, Service Quota Card, Compact Notch Bar Screenshot, Compact Notch Bar (+8 more)
 
-### Community 74 - "Burn Chart Rendering"
-Cohesion: 0.12
-Nodes (16): Bindable, MenuBarContentView, .costs, .header, .overview, .tabPicker, PreferencesStore, Self (+8 more)
+### Community 74 - "MenuBarContentView"
+Cohesion: 0.13
+Nodes (15): Bindable, MenuBarContentView, .header, .overview, .tabPicker, PreferencesStore, Self, UsageSnapshot (+7 more)
 
-### Community 75 - "A P I Account Provider"
-Cohesion: 0.18
-Nodes (9): BurnRate, PercentSample, Projection, Double, String, TimeInterval, BurnRateTests, Double (+1 more)
+### Community 75 - ".project"
+Cohesion: 0.23
+Nodes (6): BurnRate, String, TimeInterval, BurnRateTests, Double, PercentSample
 
-### Community 76 - "Decision Advisor"
-Cohesion: 0.25
-Nodes (9): DllImport, IntPtr, MonitorInfo, Rect, uint, int, FullscreenDetector, MonitorInfo (+1 more)
+### Community 76 - "FullscreenDetector"
+Cohesion: 0.15
+Nodes (12): DllImport, IntPtr, MonitorInfo, Rect, uint, int, FullscreenDetector, MonitorInfo (+4 more)
 
 ### Community 77 - "Foundation"
-Cohesion: 0.18
-Nodes (4): Combine, Foundation, SwiftUI, WebKit
+Cohesion: 0.23
+Nodes (3): Foundation, SwiftUI, WebKit
 
 ### Community 78 - "SettingsWindow"
-Cohesion: 0.20
-Nodes (8): NumericUpDownValueChangedEventArgs, RangeBaseValueChangedEventArgs, SelectionChangedEventArgs, Window, Action, bool, RoutedEventArgs, SettingsWindow
+Cohesion: 0.22
+Nodes (7): NumericUpDownValueChangedEventArgs, RangeBaseValueChangedEventArgs, SelectionChangedEventArgs, Action, bool, RoutedEventArgs, SettingsWindow
 
 ### Community 79 - "Notch Expanded View"
 Cohesion: 0.22
 Nodes (13): append32(), cobsDecode(), cobsEncode(), crc32(), decodeFrame(), FrameView, payload, payloadLength (+5 more)
 
-### Community 80 - ".body"
-Cohesion: 0.23
-Nodes (10): APIServiceID, APIServiceLogo, .body, .monogram, .url, .anthropicAPIPlaceholder, .burnPage, .rhythmPage (+2 more)
-
 ### Community 81 - "CodexProvider"
 Cohesion: 0.12
-Nodes (14): IUsageProvider, Regex, CancellationToken, DateTimeOffset, Dictionary, ProviderInstallation, string, Task (+6 more)
+Nodes (13): Regex, CancellationToken, DateTimeOffset, Dictionary, ProviderInstallation, string, Task, TimeSpan (+5 more)
 
-### Community 82 - "A P I Account Portal Session"
-Cohesion: 0.14
-Nodes (18): long, DateTimeOffset, List, CostEstimate, DailyTotal, GaugeMetric, HourlyTotal, ModelUsage (+10 more)
+### Community 82 - "UsageSnapshot"
+Cohesion: 0.17
+Nodes (18): long, ProviderHealth, ProviderHealthExtensions, QuotaStatus, DateTimeOffset, List, CostEstimate, DailyTotal (+10 more)
 
 ### Community 83 - "CodexProvider"
 Cohesion: 0.12
 Nodes (8): CodexProvider, ProviderInstallation, TimeInterval, URL, CurrentWindowParityTests, URL, StaleWindowTests, URL
 
 ### Community 84 - "WindowRouter"
-Cohesion: 0.32
-Nodes (8): NSRect, NSSize, NSWindow, AnyView, String, WindowRouter, .body, .footer
+Cohesion: 0.41
+Nodes (7): NSSize, NSWindow, AnyView, String, WindowRouter, .body, .footer
 
 ### Community 85 - "Deep Seek Console Reader"
 Cohesion: 0.24
 Nodes (8): ServiceManagement, BundleContext, .isBundledApp, LoginItem, .isAvailable, .isEnabled, Bool, UserNotifications
 
 ### Community 86 - "BurnChartView"
-Cohesion: 0.19
-Nodes (18): CGPoint, ModelProjection, PercentSample, BurnChartView, .body, .span, .visibleSamples, ScrubSeries (+10 more)
+Cohesion: 0.11
+Nodes (30): CGPoint, ModelProjection, PercentSample, BurnChartView, .body, .span, .visibleSamples, ScrubSeries (+22 more)
 
 ### Community 87 - "ScrollPagingTests"
-Cohesion: 0.23
+Cohesion: 0.24
 Nodes (3): NSEvent, .body, ScrollPagingTests
 
-### Community 88 - "ThemeMode"
-Cohesion: 0.17
-Nodes (12): ColorScheme, InterfaceLanguage, en, .label, ptBR, ThemeMode, auto, dark (+4 more)
+### Community 88 - "CaseIterable"
+Cohesion: 0.13
+Nodes (14): CaseIterable, Kind, apiUsage, other, tokenPurchase, usageCredits, Source, localEstimate (+6 more)
+
+### Community 89 - ".forEachLine"
+Cohesion: 0.24
+Nodes (7): JSONLReader, Bool, Data, Int, UInt64, URL, Void
 
 ### Community 90 - ".parseISO8601"
-Cohesion: 0.14
+Cohesion: 0.15
 Nodes (5): Timestamps, FormatTests, ClaudeParserTests, .fixtureURL, URL
 
 ### Community 91 - "NotchGeometry"
-Cohesion: 0.18
-Nodes (8): PreviewData, Bool, NotchGeometry, Bool, CGFloat, CGRect, CGSize, GeometryTests
+Cohesion: 0.15
+Nodes (9): NSScreen, PreviewData, Bool, NotchGeometry, Bool, CGFloat, CGRect, CGSize (+1 more)
 
 ### Community 92 - "ClaudeProvider"
-Cohesion: 0.13
-Nodes (12): ClaudeFileStat, ClaudeProvider, .paidProbeAllowed, Bool, ClaudeQuota, ClaudeQuotaProbe, Double, ProviderInstallation (+4 more)
+Cohesion: 0.18
+Nodes (9): ClaudeProvider, .paidProbeAllowed, Bool, ClaudeQuota, ClaudeQuotaProbe, ProviderInstallation, String, TimeInterval (+1 more)
 
 ### Community 93 - "Desk Protocol"
 Cohesion: 0.42
@@ -654,37 +658,37 @@ Nodes (5): ModelPricing, PricingTable, Double, String, TokenUsage
 Cohesion: 0.33
 Nodes (4): Double, UsageSnapshot, UsageStore, ThresholdLifecycleTests
 
-### Community 95 - "Spending Engine"
-Cohesion: 0.23
+### Community 95 - ".configuration"
+Cohesion: 0.22
 Nodes (8): Context, NSViewRepresentable, APIAccountPortalLoginView, APIAccountPortalSession, UUID, WKWebView, .body, WKWebViewConfiguration
 
-### Community 96 - "Provider"
-Cohesion: 0.39
-Nodes (3): string, Log, Logger
+### Community 96 - "ProviderCapabilities"
+Cohesion: 0.29
+Nodes (6): OptionSet, ProviderCapabilities, ProviderInstallation, installed, notInstalled, Int
 
-### Community 97 - "Decodable"
-Cohesion: 0.10
-Nodes (28): Decodable, Incident, Payload, StatusPageService, String, TimeInterval, CodexRateWindow, CodexRolloutParser (+20 more)
+### Community 97 - "CodexTokenInfo"
+Cohesion: 0.21
+Nodes (8): CodexRolloutParser, CodexTokenInfo, .sessionWindow, .weeklyWindow, JSONDecoder, TokenUsage, URL, CodexWindowClassificationTests
 
 ### Community 98 - "Subscription"
 Cohesion: 0.29
 Nodes (4): StatusAggregatorTests, Double, ProviderHealth, UsageSnapshot
 
-### Community 99 - "Notch Expanded View"
-Cohesion: 0.11
-Nodes (13): FileHandle, JSONLReader, Bool, Data, Int, UInt64, URL, Void (+5 more)
+### Community 99 - "IncrementalParseTests"
+Cohesion: 0.20
+Nodes (6): FileHandle, URL, IncrementalParseTests, Int, String, URL
 
-### Community 100 - "ThresholdAlerts"
-Cohesion: 0.18
-Nodes (6): AttentionLevel, double, HashSet, int, ThresholdAlert, ThresholdAlerts
+### Community 100 - ".fromSnapshots"
+Cohesion: 0.38
+Nodes (5): Double, UsageSnapshot, .spendingSummary, .costs, .estimateMetric
 
 ### Community 101 - "Scroll Paging Tests"
 Cohesion: 0.33
 Nodes (9): assert_beta_status_invalid(), assert_bom_rejected(), assert_factory_rejected(), assert_matrix_rejected(), assert_pilot_rejected(), make_factory_telemetry(), make_factory_visual(), make_sample_report() (+1 more)
 
-### Community 102 - "DeskFirmwareUpdateError"
-Cohesion: 0.18
-Nodes (11): LocalizedError, DeskFirmwareUpdateError, .errorDescription, flashFailed, flashTimedOut, integrityFailure, invalidApplicationSignature, invalidDevice (+3 more)
+### Community 102 - "StatusPageService"
+Cohesion: 0.38
+Nodes (5): Incident, Payload, StatusPageService, String, TimeInterval
 
 ### Community 103 - "Format"
 Cohesion: 0.35
@@ -694,16 +698,16 @@ Nodes (4): Format, Double, Int, String
 Cohesion: 0.15
 Nodes (15): Charts, DashboardView, .body, .controls, .eventLog, .filteredEvents, .filteredPoints, .historyChart (+7 more)
 
-### Community 105 - "Sendable"
+### Community 105 - "NotchAgentDeskConnectionState"
 Cohesion: 0.11
-Nodes (43): AttentionLevel, Codable, DeskAmbientRecommendation, Equatable, ModelProbeStatus, ProviderHealth, Sendable, Point (+35 more)
+Nodes (23): DeskHello, DeskHelloAcknowledgement, FrameType, deviceTelemetry, heartbeat, hello, helloAcknowledgement, snapshot (+15 more)
 
 ### Community 106 - "AccountQuota"
 Cohesion: 0.14
 Nodes (10): AccountQuota, APIAccountProbe, Any, Data, DateInterval, Double, Int, String (+2 more)
 
 ### Community 107 - "ClaudeQuotaProbe"
-Cohesion: 0.17
+Cohesion: 0.16
 Nodes (11): HttpClient, IReadOnlyDictionary, bool, CancellationToken, DateTimeOffset, Task, TimeSpan, ClaudeQuota (+3 more)
 
 ### Community 109 - "ProviderHealth"
@@ -718,13 +722,13 @@ Nodes (9): ReadOnlyMemory, DateTimeOffset, JsonElement, CodexRateWindow, CodexRo
 Cohesion: 0.15
 Nodes (22): alertColor(), alertHeadline(), alertMessage(), alertTouchEvent(), clearData(), dismissDeskAlert(), evaluateDeskAlerts(), handleFrame() (+14 more)
 
-### Community 112 - "Codex Rollout Parser"
-Cohesion: 0.09
-Nodes (24): EventKind, Guid, DateTimeOffset, EventKind, ProviderAlert, RestoreMoment, ThresholdAlert, UsageEvent (+16 more)
+### Community 112 - "UsageStore"
+Cohesion: 0.07
+Nodes (26): EventKind, Guid, DateTimeOffset, EventKind, ProviderAlert, RestoreMoment, ThresholdAlert, UsageEvent (+18 more)
 
 ### Community 113 - "NotchAgentDeskBridge.swift"
-Cohesion: 0.27
-Nodes (8): Darwin, IOKit, IOKit.serial, deskPaths(), registryInteger(), Int, io_service_t, String
+Cohesion: 0.31
+Nodes (7): IOKit, IOKit.serial, deskPaths(), registryInteger(), Int, io_service_t, String
 
 ### Community 114 - "Desk ProviderState Struct"
 Cohesion: 0.52
@@ -747,60 +751,56 @@ Cohesion: 0.27
 Nodes (4): PrecisionCalibrationTests, Int, String, URL
 
 ### Community 120 - "NSObject"
-Cohesion: 0.22
-Nodes (6): Notification, NSApplication, NSApplicationDelegate, NSObject, AppDelegate, Bool
-
-### Community 121 - "MetricProvenance"
-Cohesion: 0.27
-Nodes (7): AgentMeterProduct, MetricProvenance, MetricSource, macSync, manual, officialImport, Double
-
-### Community 122 - ".apply"
-Cohesion: 0.23
-Nodes (7): PercentSample, RefreshState, Set, String, TimeInterval, UsageEvent, UUID
-
-### Community 123 - "SpendingView.swift"
 Cohesion: 0.29
-Nodes (7): AIExpense.Kind, .label, AIExpense.Source, .label, BRLFormat, Decimal, String
+Nodes (5): NSApplication, NSApplicationDelegate, NSObject, AppDelegate, Bool
+
+### Community 121 - "Date"
+Cohesion: 0.11
+Nodes (23): ClaudeFileStat, Sendable, AgentMeterProduct, MetricProvenance, MetricSource, macSync, manual, officialImport (+15 more)
+
+### Community 122 - "HourStat"
+Cohesion: 0.40
+Nodes (6): HourStat, ModelStat, Double, Int, TokenUsage, Usage
+
+### Community 123 - "SpendingView"
+Cohesion: 0.14
+Nodes (15): AIExpense.Kind, .label, AIExpense.Source, .label, BRLFormat, ExpenseEditor, .body, PlanEditor (+7 more)
 
 ### Community 124 - "NotchShape"
 Cohesion: 0.29
 Nodes (6): AnimatablePair, Shape, NotchShape, .animatableData, CGFloat, CGRect
 
 ### Community 125 - "CodexParserTests"
-Cohesion: 0.15
-Nodes (6): URL, CodexParserTests, .fixtureURL, GeminiParserTests, .fixtureURL, URL
+Cohesion: 0.12
+Nodes (9): Entry, GeminiLogParser, String, URL, CodexParserTests, .fixtureURL, GeminiParserTests, .fixtureURL (+1 more)
 
 ### Community 126 - "Pricing Table"
 Cohesion: 0.25
 Nodes (7): net8.0, Avalonia (11.2.5), Avalonia.Desktop (11.2.5), Avalonia.Diagnostics (11.2.5), Avalonia.Fonts.Inter (11.2.5), Avalonia.Themes.Fluent (11.2.5), Microsoft.NET.Sdk
 
-### Community 128 - "GeminiProvider"
-Cohesion: 0.28
-Nodes (5): GeminiProvider, AppSettings, ProviderInstallation, URL, UsageSnapshot
-
 ### Community 129 - "Notch Agent. Windows"
 Cohesion: 0.24
 Nodes (6): BRLExchangeRateService, Calendar, Data, Decimal, URL, URLSession
 
-### Community 130 - "FileStamp"
-Cohesion: 0.29
-Nodes (6): AppPaths, .appSupport, .home, FileStamp, Int, URL
+### Community 130 - "recentFiles"
+Cohesion: 0.27
+Nodes (8): AppPaths, .appSupport, .home, FileStamp, recentFiles(), Int, String, URL
 
 ### Community 131 - "Threshold And Model Tests"
 Cohesion: 0.25
 Nodes (8): AlertTracker, firedMask, id, initialized, lowestRemaining, observed, resetEpochMs, window
 
 ### Community 132 - "GaugeLabel"
-Cohesion: 0.09
-Nodes (30): Font, NSColor, .body, .runnerGame, PixelGlyph, .body, Color, Double (+22 more)
+Cohesion: 0.06
+Nodes (37): APIAccountMoneyPresentation, ColorScheme, Font, ThemeMode, auto, dark, light, .body (+29 more)
 
 ### Community 134 - "Segmented Meter"
 Cohesion: 0.33
 Nodes (4): AppBuilder, NotchAgent.Windows, STAThread, Program
 
 ### Community 135 - "ClaudeFileStat"
-Cohesion: 0.13
-Nodes (22): ClaudeFileStat, ClaudeScanCache, ClaudeTranscriptParser, Entry, HourStat, Line, Message, ModelStat (+14 more)
+Cohesion: 0.16
+Nodes (16): ClaudeFileStat, ClaudeScanCache, ClaudeTranscriptParser, Entry, Line, Message, SessionBlocks, Bool (+8 more)
 
 ### Community 136 - "Desk UI Construction"
 Cohesion: 0.33
@@ -810,45 +810,21 @@ Nodes (7): Desk Beta 1 Reliability Gates, Firmware 0.6.16 Beta Candidate, Paid P
 Cohesion: 0.22
 Nodes (6): header, recorder, recorderStates, recorderTabs, reveals, year
 
-### Community 138 - "NotchHitTestView"
-Cohesion: 0.25
-Nodes (6): NSHostingView, NSPoint, NSView, NotchHitTestView, AnyView, CGRect
-
-### Community 140 - "IUsageProvider.cs"
-Cohesion: 0.29
-Nodes (5): CancellationToken, Task, IUsageProvider, ProviderInstallation, ProviderInstallationKind
-
-### Community 141 - "CloudSyncState"
-Cohesion: 0.22
-Nodes (8): CloudKit, CloudSyncState, failed, localOnly, synced, syncing, unavailable, waitingToRetry
-
-### Community 143 - "DeskFrameCodecError"
-Cohesion: 0.29
-Nodes (7): DeskFrameCodecError, incompatibleProtocol, invalidChecksum, invalidCOBS, invalidHeader, invalidLength, payloadTooLarge
+### Community 141 - "CodexOnboardingStatus"
+Cohesion: 0.07
+Nodes (28): CloudKit, Error, FileManager, CloudSyncFailure, accountUnavailable, CodexOnboardingAction, authenticate, createFirstSession (+20 more)
 
 ### Community 144 - "Verify Toolchain"
 Cohesion: 0.50
 Nodes (3): ARDUINO_DIRECTORIES_USER, require_version(), verify-toolchain.sh script
 
-### Community 145 - "package_manifest.swift"
-Cohesion: 0.40
-Nodes (5): CryptoKit, Manifest, sha256(), String, UInt32
-
 ### Community 146 - "Audit Public Release"
 Cohesion: 0.70
 Nodes (4): scan_current(), scan_history(), scan_new_personal_history(), audit-public-release.sh script
 
-### Community 147 - "SegmentedMeter"
-Cohesion: 0.09
-Nodes (22): ModelUsage, NamedQuota, ClaudeMascot, .body, .grid, OpenAIGlyph, .body, Style (+14 more)
-
 ### Community 149 - "Package Release"
 Cohesion: 0.40
 Nodes (5): ModelState, latency, name, status, tokens
-
-### Community 151 - "DeskFirmwareVerification"
-Cohesion: 0.33
-Nodes (5): DeskFirmwareVerification, installed, versionMismatch, waiting, Self
 
 ### Community 154 - "N O T C H A G E N T D E S K P I L O T"
 Cohesion: 0.67
@@ -875,12 +851,8 @@ Cohesion: 0.20
 Nodes (8): Scene, NotchAgentApp, .body, MenuBarLabelView, .body, .summaryText, .symbolName, String
 
 ### Community 204 - "AgentMeterProvider"
-Cohesion: 0.08
-Nodes (28): CaseIterable, Kind, apiUsage, other, tokenPurchase, usageCredits, Source, localEstimate (+20 more)
-
-### Community 205 - ".defaultCandidatePaths"
-Cohesion: 0.32
-Nodes (3): io_service_t, Int, String
+Cohesion: 0.10
+Nodes (21): Identifiable, FinancialHistory, MonthlyProviderSpend, .id, Calendar, Decimal, Int, String (+13 more)
 
 ### Community 207 - ".requiredURL"
 Cohesion: 0.40
@@ -903,38 +875,36 @@ Cohesion: 0.40
 Nodes (4): Beta scope, Highlights, Installation, NotchAgent 3.1.1 — Desk Beta 1
 
 ## Knowledge Gaps
-- **498 isolated node(s):** `hello`, `helloAcknowledgement`, `snapshot`, `heartbeat`, `deviceTelemetry` (+493 more)
+- **498 isolated node(s):** `.body`, `.body`, `.distress`, `.updatedText`, `.apiUsage` (+493 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **73 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **80 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Work-memory lessons
 
 **Preferred sources** — corroborated by past sessions; start here.
-- `GeminiProvider` (3× useful, score=1.472444241)
-- `CloudSubscriptionSync` (2× useful, score=1.2630337)
-- `AIExpense` (2× useful, score=1.2630337)
-- `MonthlyBudgetStatus` (2× useful, score=1.2630337)
-- `AISubscription` (2× useful, score=1.2630337)
-- `SubscriptionHistoryEvent` (2× useful, score=1.2630337)
-- `SubscriptionStore` (2× useful, score=1.2630337)
-- `DashboardView` (2× useful, score=1.2630337)
-- `SpendingView` (2× useful, score=1.2630337)
-- `BurnRate` (2× useful, score=0.981684129)
+- `GeminiProvider` (3× useful, score=1.446407522)
+- `CloudSubscriptionSync` (2× useful, score=1.240699914)
+- `AIExpense` (2× useful, score=1.240699914)
+- `MonthlyBudgetStatus` (2× useful, score=1.240699914)
+- `AISubscription` (2× useful, score=1.240699914)
+- `SubscriptionHistoryEvent` (2× useful, score=1.240699914)
+- `DashboardView` (2× useful, score=1.240699914)
+- `SpendingView` (2× useful, score=1.240699914)
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Date` connect `Date` to `Notch Agent. Windows`, `FileStamp`, `.make`, `NotchRunnerView`, `APIAccountProviderTests`, `ProviderCardView`, `ClaudeFileStat`, `SessionUsage`, `Program`, `UsageStore`, `Anthropic Usage Quota Reader`, `CloudSyncState`, `AnthropicUsageQuotaReader`, `SubscriptionImportIssue`, `SubscriptionRepository`, `Claude Quota Probe`, `XDeveloperConsoleReader`, `AISubscription`, `SubscriptionHistoryEvent`, `.report`, `Touch`, `String`, `AnthropicAPIConsoleReader`, `GoogleAIStudioConsoleReader`, `AIExpense`, `APIAccountUsage`, `TwitterAPIIOConsoleReader`, `ProviderIntegrationTests`, `SubscriptionSyncSnapshot`, `APIAccountProvider`, `A P I Account Provider`, `AgentMeterProvider`, `CodexProvider`, `.parseISO8601`, `ClaudeProvider`, `Decodable`, `Format`, `Sendable`, `AccountQuota`, `App Update Controller`, `MetricProvenance`, `.apply`?**
-  _High betweenness centrality (0.133) - this node is a cross-community bridge._
-- **Why does `AccountQuota` connect `AccountQuota` to `OpenAIConsoleReader`, `Touch`, `APIAccountProviderTests`, `APIAccountProvider`, `AnthropicAPIConsoleReader`, `DeepSeekConsoleReader`, `Sendable`, `Date`, `GoogleAIStudioConsoleReader`, `R E A D M E`, `APIAccountUsage`, `APIAccountProvider.swift`, `Claude Quota Probe`, `TwitterAPIIOConsoleReader`, `XDeveloperConsoleReader`, `ChatGPTSubscriptionReader`, `Alert Moment View`, `AnthropicConsoleReader`?**
-  _High betweenness centrality (0.129) - this node is a cross-community bridge._
-- **Why does `App` connect `FloatingBarWindow` to `A P I A C C O U N T M O N I T O R I N G`, `SettingsWindow`, `Codex Rollout Parser`, `NotchAgent.Windows.Models`, `I Usage Provider`?**
-  _High betweenness centrality (0.096) - this node is a cross-community bridge._
+- **Why does `AccountQuota` connect `AccountQuota` to `APIAccountProviderTests`, `Equatable`, `AnthropicUsageQuotaReader`, `Claude Quota Probe`, `XDeveloperConsoleReader`, `ChatGPTSubscriptionReader`, `APIServiceID`, `R E A D M E`, `OpenAIConsoleReader`, `Touch`, `GoogleAIStudioConsoleReader`, `APIAccountUsage`, `APIAccountProvider.swift`, `TwitterAPIIOConsoleReader`, `APIAccountDataOrigin`, `APIAccountAuditItem`, `AnthropicConsoleReader`, `APIAccountReadStatus`, `DeepSeekConsoleReader`, `Date`?**
+  _High betweenness centrality (0.135) - this node is a cross-community bridge._
+- **Why does `Date` connect `Date` to `Notch Agent. Windows`, `recentFiles`, `NotchRunnerView`, `RefreshScheduler`, `APIAccountProviderTests`, `ProviderCardView`, `SubscriptionStore`, `Equatable`, `ClaudeFileStat`, `UsageStore`, `AttentionLevel`, `AIExpense`, `CodexOnboardingStatus`, `AnthropicUsageQuotaReader`, `SubscriptionImportIssue`, `SubscriptionRepository`, `Claude Quota Probe`, `XDeveloperConsoleReader`, `AISubscription`, `SubscriptionSyncSnapshot`, `.report`, `Program`, `Anthropic Usage Quota Reader`, `Touch`, `.normalized`, `GoogleAIStudioConsoleReader`, `.record`, `APIAccountUsage`, `TwitterAPIIOConsoleReader`, `APIAccountDataOrigin`, `APIAccountAuditItem`, `Page`, `ProviderIntegrationTests`, `.preview`, `APIAccountReadStatus`, `DeepSeekConsoleReader`, `.project`, `AgentMeterProvider`, `CodexProvider`, `.parseISO8601`, `CodexTokenInfo`, `Format`, `AccountQuota`, `App Update Controller`?**
+  _High betweenness centrality (0.123) - this node is a cross-community bridge._
+- **Why does `App` connect `App` to `FloatingBarWindow`, `A P I A C C O U N T M O N I T O R I N G`, `SettingsWindow`, `UsageStore`, `NotchAgent.Windows.Models`, `I Usage Provider`?**
+  _High betweenness centrality (0.090) - this node is a cross-community bridge._
 - **Are the 10 inferred relationships involving `AccountQuota` (e.g. with `APIAccountFieldOrigins` and `.testDeepSeekMergePrefersConsoleSpendAndAPIBalance()`) actually correct?**
   _`AccountQuota` has 10 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `hello`, `helloAcknowledgement`, `snapshot` to the rest of the system?**
+- **What connects `.body`, `.body`, `.distress` to the rest of the system?**
   _498 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `NotchExpandedView` be split into smaller, more focused modules?**
-  _Cohesion score 0.08646616541353383 - nodes in this community are weakly interconnected._
-- **Should `.make` be split into smaller, more focused modules?**
-  _Cohesion score 0.10416666666666667 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0649692712906058 - nodes in this community are weakly interconnected._
+- **Should `RefreshScheduler` be split into smaller, more focused modules?**
+  _Cohesion score 0.08925979680696662 - nodes in this community are weakly interconnected._

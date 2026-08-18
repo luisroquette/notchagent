@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.4.2 — 2026-08-18
+
+### Changed
+
+- Claude mascots are now extracted verbatim from the approved V7 mockup —
+  one PNG sprite per family, shipped in `Resources/Mascots`, no procedural
+  interpretation. Same for the OpenAI glyph.
+
 ## 3.4.1 — 2026-08-18
 
 ### Changed

@@ -92,6 +92,10 @@ echo "▸ assembling bundle"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/NotchAgent "$APP/Contents/MacOS/NotchAgent"
 
+echo "▸ bundling mascot sprites"
+mkdir -p "$APP/Contents/Resources/Mascots"
+cp Resources/Mascots/*.png "$APP/Contents/Resources/Mascots/"
+
 SPARKLE_FRAMEWORK=$(find .build/artifacts -path '*/macos-*/Sparkle.framework' -type d -print -quit 2>/dev/null || true)
 [[ -n "$SPARKLE_FRAMEWORK" && -d "$SPARKLE_FRAMEWORK" ]] || {
     echo "FAIL: Sparkle.framework was not produced by SwiftPM." >&2
