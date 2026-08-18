@@ -37,9 +37,14 @@ enum ClaudeTranscriptParser {
                 let cacheCreationInputTokens: Int?
                 let cacheReadInputTokens: Int?
             }
+            struct ContentBlock: Decodable {
+                let type: String?
+                let name: String?
+            }
             let id: String?
             let model: String?
             let usage: Usage?
+            let content: [ContentBlock]?
         }
         let type: String?
         let timestamp: String?
@@ -122,6 +127,37 @@ enum ClaudeTranscriptParser {
             stat.usageLineCount += 1
         }
         return (stat, consumed)
+    }
+
+    /// Registros por mensagem para o motor de insights (formato neutro do
+    /// PayloadBuilder). Só linhas assistant com usage contam; `toolNames`
+    /// preserva a ordem dos blocos tool_use de message.content.
+    static func parseMessages(at url: URL, from offset: UInt64 = 0) throws -> [PayloadBuilder.MessageRecord] {
+        var records: [PayloadBuilder.MessageRecord] = []
+        _ = try JSONLReader.forEachLine(at: url, startingAt: offset) { data, _ in
+            guard quickMatch(data),
+                  let line = try? decoder.decode(Line.self, from: data),
+                  line.type == "assistant",
+                  let usage = line.message?.usage,
+                  let timestampString = line.timestamp,
+                  let timestamp = Timestamps.parseISO8601(timestampString)
+            else { return }
+
+            let tokens = TokenUsage(
+                input: usage.inputTokens ?? 0,
+                output: usage.outputTokens ?? 0,
+                cacheWrite: usage.cacheCreationInputTokens ?? 0,
+                cacheRead: usage.cacheReadInputTokens ?? 0
+            )
+            records.append(PayloadBuilder.MessageRecord(
+                timestamp: timestamp,
+                requestId: line.requestId ?? line.message?.id ?? "",
+                model: line.message?.model,
+                tokens: tokens,
+                toolNames: (line.message?.content ?? []).compactMap { $0.type == "tool_use" ? $0.name : nil }
+            ))
+        }
+        return records
     }
 }
 
