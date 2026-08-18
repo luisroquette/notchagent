@@ -68,4 +68,13 @@ public enum BurnRate {
         }
         return "\(rate) · safe until reset"
     }
+
+    /// The burn window: official reset when the provider reports one, else a
+    /// synthesized 5h horizon from `now` (Codex Pro has no official 5h
+    /// window, but the same "will it last 5h?" question still applies).
+    static func window(startedAt: Date?, resetsAt: Date?, now: Date = Date()) -> (start: Date, end: Date) {
+        let end = resetsAt ?? now.addingTimeInterval(5 * 3600)
+        let start = startedAt ?? end.addingTimeInterval(-5 * 3600)
+        return (start, end)
+    }
 }

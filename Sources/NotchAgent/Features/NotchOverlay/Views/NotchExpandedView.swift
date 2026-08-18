@@ -985,15 +985,21 @@ struct NotchExpandedView: View {
         )
     }
 
-    /// Answers ONE question: "will I run out before the reset?"
+    /// Answers ONE question per provider: "will I run out before the reset?"
+    /// Claude and Codex side by side — same structure, same mechanics.
     private var burnPage: some View {
-        let focus = viewModel.focusProvider
-        let snapshot = store.snapshots[focus]
+        HStack(alignment: .top, spacing: 12) {
+            burnPanel(for: .claudeCode)
+            burnPanel(for: .codex)
+        }
+    }
+
+    private func burnPanel(for provider: ProviderID) -> some View {
+        let snapshot = store.snapshots[provider]
         let session = snapshot?.session
-        let end = session?.resetsAt ?? Date()
-        let start = session?.startedAt ?? end.addingTimeInterval(-5 * 3600)
-        let samples = store.percentHistory[focus] ?? []
-        let projection = store.burnProjection(for: focus)
+        let window = BurnRate.window(startedAt: session?.startedAt, resetsAt: session?.resetsAt)
+        let samples = store.percentHistory[provider] ?? []
+        let projection = store.burnProjection(for: provider)
         let used = session?.usedPercent
         let verdict = burnVerdict(projection: projection, hasSamples: !samples.isEmpty)
         let dominantModel = session?.usedPercentIsFromQuota == true
@@ -1007,10 +1013,13 @@ struct NotchExpandedView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
-                    GaugeLabel(text: "BURN · WILL THE 5H SESSION LAST?", color: Theme.textSecondary, size: 9)
+                    HStack(spacing: 5) {
+                        burnGlyph(provider)
+                        GaugeLabel(text: "BURN · WILL THE 5H SESSION LAST?", color: Theme.textSecondary, size: 9)
+                    }
                     if let used {
                         HStack(alignment: .firstTextBaseline, spacing: 5) {
-                            Text("\(Int((100 - used).rounded()))%")
+                            Text("\(snapshot.map(ProviderCardView.sessionPercentPrefix) ?? "")\(Int((100 - used).rounded()))%")
                                 .font(Theme.numeral(24))
                                 .monospacedDigit()
                                 .foregroundStyle(Theme.riskTint(
@@ -1031,13 +1040,6 @@ struct NotchExpandedView: View {
                     }
                 }
                 Spacer()
-                HStack(spacing: 6) {
-                    ForEach(burnProviders) { provider in
-                        selectorChip(provider.shortName, active: provider == focus) {
-                            viewModel.focusProvider = provider
-                        }
-                    }
-                }
             }
 
             Text(verdict.text)
@@ -1049,8 +1051,8 @@ struct NotchExpandedView: View {
             BurnChartView(
                 samples: samples,
                 projection: projection,
-                windowStart: start,
-                windowEnd: end,
+                windowStart: window.start,
+                windowEnd: window.end,
                 dominantModelShortName: dominantModelShortName,
                 alternates: alternates
             )
@@ -1061,6 +1063,21 @@ struct NotchExpandedView: View {
                 color: Theme.textFaint,
                 size: 7
             )
+        }
+        .frame(maxWidth: .infinity, alignment: .top)
+    }
+
+    @ViewBuilder
+    private func burnGlyph(_ provider: ProviderID) -> some View {
+        switch provider {
+        case .claudeCode:
+            ClaudeMascot(name: ProviderCardView.mascotName(for: store.snapshots[provider]?.activeModel))
+                .frame(width: 20, height: 20)
+        case .codex:
+            OpenAIGlyph()
+                .frame(width: 20, height: 20)
+        default:
+            EmptyView()
         }
     }
 
@@ -1075,11 +1092,6 @@ struct NotchExpandedView: View {
             return ("No burn right now — safe until the reset.", Theme.ok)
         }
         return ("Collecting samples — verdict appears after a few minutes of use.", Theme.textDim)
-    }
-
-    private var burnProviders: [ProviderID] {
-        let withSamples = ProviderID.allCases.filter { !(store.percentHistory[$0] ?? []).isEmpty }
-        return withSamples.isEmpty ? [.claudeCode] : withSamples
     }
 
     /// Answers ONE question: "when do I burn the most?"

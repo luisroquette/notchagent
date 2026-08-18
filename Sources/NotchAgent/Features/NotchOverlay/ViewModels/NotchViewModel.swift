@@ -33,8 +33,6 @@ final class NotchViewModel {
     var expandedPage: Int = 0
     /// Which edge the incoming page slides from (drives the transition).
     var pageDirection: Edge = .trailing
-    /// Provider highlighted on the Burn page.
-    var focusProvider: ProviderID = .claudeCode
 
     private let wingWidth: CGFloat = 150
     @ObservationIgnored private var hoverTask: Task<Void, Never>?

@@ -314,3 +314,28 @@ final class AppSettingsCompatibilityTests: XCTestCase {
         XCTAssertTrue(restored.claudeQuotaProbeEnabled)
     }
 }
+
+// MARK: - Burn window synthesis (Codex has no official reset)
+
+extension BurnRateTests {
+    func testBurnWindowUsesResetsAtWhenPresent() {
+        let reset = Date(timeIntervalSince1970: 1_700_000_000)
+        let started = reset.addingTimeInterval(-3 * 3600)
+        let w = BurnRate.window(startedAt: started, resetsAt: reset, now: reset.addingTimeInterval(-3600))
+        XCTAssertEqual(w.end, reset)
+        XCTAssertEqual(w.start, started)
+    }
+
+    func testBurnWindowSynthesizesFiveHourHorizonWhenNoReset() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let w = BurnRate.window(startedAt: nil, resetsAt: nil, now: now)
+        XCTAssertEqual(w.end, now.addingTimeInterval(5 * 3600))
+        XCTAssertEqual(w.start, now)
+    }
+
+    func testBurnWindowStartFallsBackToEndMinusFiveHours() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let w = BurnRate.window(startedAt: nil, resetsAt: now.addingTimeInterval(2 * 3600), now: now)
+        XCTAssertEqual(w.start, w.end.addingTimeInterval(-5 * 3600))
+    }
+}
