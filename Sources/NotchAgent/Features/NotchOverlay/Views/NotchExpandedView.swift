@@ -29,11 +29,12 @@ struct NotchExpandedView: View {
                 ZStack {
                     Group {
                         switch viewModel.expandedPage {
-                        case 1: burnPage
-                        case 2: rhythmPage
-                        case 3: modelsPage
-                        case 4: gptModelsPage
-                        case 5: apiAccountsPage
+                        case 1: burnPage(for: .claudeCode)
+                        case 2: burnPage(for: .codex)
+                        case 3: rhythmPage
+                        case 4: modelsPage
+                        case 5: gptModelsPage
+                        case 6: apiAccountsPage
                         default: nowPage
                         }
                     }
@@ -985,13 +986,11 @@ struct NotchExpandedView: View {
         )
     }
 
-    /// Answers ONE question per provider: "will I run out before the reset?"
-    /// Claude and Codex side by side — same structure, same mechanics.
-    private var burnPage: some View {
-        HStack(alignment: .top, spacing: 12) {
-            burnPanel(for: .claudeCode)
-            burnPanel(for: .codex)
-        }
+    /// Answers ONE question: "will I run out before the reset?" One page per
+    /// provider — Claude on page 1, Codex on page 2 — same structure and
+    /// mechanics in both.
+    private func burnPage(for provider: ProviderID) -> some View {
+        burnPanel(for: provider)
     }
 
     private func burnPanel(for provider: ProviderID) -> some View {

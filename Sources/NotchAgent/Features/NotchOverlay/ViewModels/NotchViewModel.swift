@@ -25,10 +25,10 @@ final class NotchViewModel {
     /// While a threshold takeover is on screen, paging gestures are ignored.
     var isAlertPresented = false
     var geometry: NotchGeometry
-    static let pageCount = 6
+    static let pageCount = 7
 
     /// Current page of the expanded pager
-    /// (0 Now, 1 Burn, 2 Rhythm, 3 Claude Models, 4 OpenAI Models, 5 API Accounts).
+    /// (0 Now, 1 Burn Claude, 2 Burn Codex, 3 Rhythm, 4 Claude Models, 5 OpenAI Models, 6 API Accounts).
     /// Persists across hover-expands so users return to where they were.
     var expandedPage: Int = 0
     /// Which edge the incoming page slides from (drives the transition).
