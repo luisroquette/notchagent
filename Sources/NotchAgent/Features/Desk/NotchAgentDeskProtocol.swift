@@ -122,6 +122,13 @@ struct DeskSnapshot: Codable, Sendable, Equatable {
     var providers: [Provider]
     var burnHistory: [BurnPoint]
     var rhythm: [RhythmPoint]
+    /// Local hour-of-day `rhythm` is still accumulating into (same
+    /// `Calendar.current` as `aggregateRhythm`, so the two always agree on
+    /// what "now" means) and how far into that hour `generatedAt` is —
+    /// lets the Desk mark that one bar as still-filling instead of drawing
+    /// it as if the hour had already finished.
+    var currentHour: Int?
+    var currentHourElapsedFraction: Double?
     var models: [Model]
     var dominantModelShortName: String?
     var modelAlternates: [ModelAlternate]?
@@ -160,6 +167,10 @@ enum DeskSnapshotFactory {
         let burnHistory = aggregateBurnHistory(store: store, now: now)
         let models = aggregateModels(store.snapshots.values)
         let (dominantModelShortName, modelAlternates) = modelBurnAlternates(store: store)
+        // Same Calendar.current as aggregateRhythm's own hour bucketing, so
+        // this always names the bucket rhythm is still filling in, never a
+        // different hour due to a mismatched calendar/timezone read.
+        let calendar = Calendar.current
         return DeskSnapshot(
             product: NotchAgentDeskProtocol.product,
             protocolMajor: NotchAgentDeskProtocol.protocolMajor,
@@ -170,6 +181,8 @@ enum DeskSnapshotFactory {
             providers: Array(providers.prefix(8)),
             burnHistory: burnHistory,
             rhythm: rhythm,
+            currentHour: calendar.component(.hour, from: now),
+            currentHourElapsedFraction: Double(calendar.component(.minute, from: now)) / 60.0,
             models: models,
             dominantModelShortName: dominantModelShortName,
             modelAlternates: modelAlternates,

@@ -129,7 +129,10 @@ final class NotchViewModel {
         let clamped = min(max(page, 0), Self.pageCount - 1)
         guard clamped != expandedPage else { return }
         pageDirection = clamped > expandedPage ? .trailing : .leading
-        withAnimation(.spring(duration: 0.32, bounce: 0.14)) {
+        // Slower and near-zero bounce reads as a deliberate glide, not a
+        // springy snap — the snap was fine for drag/drop feedback elsewhere
+        // in this file, but a page swap isn't an interactive rubber-band.
+        withAnimation(.spring(duration: 0.4, bounce: 0.05)) {
             expandedPage = clamped
         }
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)

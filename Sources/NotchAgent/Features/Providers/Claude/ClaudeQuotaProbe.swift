@@ -146,7 +146,7 @@ actor ClaudeQuotaProbe {
 
         let startedAt = Date()
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (body, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse else { return cache }
             recordHealth(model: model, statusCode: http.statusCode, startedAt: startedAt)
 
@@ -166,7 +166,15 @@ actor ClaudeQuotaProbe {
                 }
                 Log.providers.debug("claude probe ok (\(model, privacy: .public), http \(http.statusCode, privacy: .public))")
             } else {
-                Log.providers.error("claude probe: no rate-limit headers (http \(http.statusCode, privacy: .public))")
+                // Was previously discarding `body` entirely on this path —
+                // "no rate-limit headers" alone doesn't say WHY (a real
+                // rejection body, a proxy/edge block, an empty body). Log
+                // up to 300 chars so the next 429 tells us the real reason
+                // instead of us guessing at one.
+                let bodyPreview = String(data: body, encoding: .utf8)?.prefix(300) ?? "<non-utf8 body>"
+                Log.providers.error(
+                    "claude probe: no rate-limit headers (http \(http.statusCode, privacy: .public), model \(model, privacy: .public)) body: \(bodyPreview, privacy: .public)"
+                )
             }
             return cache
         } catch {

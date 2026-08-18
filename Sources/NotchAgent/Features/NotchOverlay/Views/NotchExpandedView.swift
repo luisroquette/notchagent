@@ -1140,19 +1140,35 @@ struct NotchExpandedView: View {
         // pool the headline gauge shows — its own % only lives here.
         let fableQuota = snapshot?.weekly?.namedQuotas?.first { $0.name == "Claude Fable 5" }
 
+        let totalTokens = max(breakdown.reduce(0) { $0 + $1.tokens }, 1)
+
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 GaugeLabel(text: "CLAUDE MODELS", color: Theme.textSecondary, size: 9)
                 Spacer()
                 GaugeLabel(text: "LIVE PROBE · 1 MODEL / CYCLE", color: Theme.textFaint, size: 7)
             }
-            HStack(spacing: 10) {
+            if let top = breakdown.first {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text(top.model)
+                        .font(Theme.numeral(17))
+                        .foregroundStyle(Theme.coral)
+                        .lineLimit(1)
+                    GaugeLabel(
+                        text: "TOP MODEL · \(Int(Double(top.tokens) / Double(totalTokens) * 100))% OF TOKENS",
+                        color: Theme.textDim,
+                        size: 8
+                    )
+                }
+            }
+            VStack(spacing: 6) {
                 ForEach(Self.modelFamilies, id: \.key) { family in
-                    modelCard(
+                    modelRow(
                         family: family,
                         health: health.first { $0.model.contains(family.key) },
                         usage: familyUsage(family.key, breakdown: breakdown),
-                        quota: family.key == "fable" ? fableQuota : nil
+                        quota: family.key == "fable" ? fableQuota : nil,
+                        share: Double(familyUsage(family.key, breakdown: breakdown)?.tokens ?? 0) / Double(totalTokens)
                     )
                 }
             }
@@ -1173,43 +1189,62 @@ struct NotchExpandedView: View {
         return (matches.reduce(0) { $0 + $1.tokens }, matches.reduce(0) { $0 + $1.costUSD })
     }
 
-    private func modelCard(
+    /// One row per model family: faithful mascot, name + status, 8-bit quota
+    /// bar (Fable has its own weekly pool) or token-share bar, tokens + cost.
+    private func modelRow(
         family: (key: String, name: String),
         health: ModelHealth?,
         usage: (tokens: Int, cost: Double)?,
-        quota: NamedQuota? = nil
+        quota: NamedQuota? = nil,
+        share: Double
     ) -> some View {
-        VStack(spacing: 7) {
-            PixelGlyph(
-                tint: health?.status == .error ? Theme.textDim : Theme.coral,
-                distress: health?.status == .limited ? 0.7 : 0
-            )
-            .frame(width: 46, height: 36)
-            Text(family.name)
-                .font(Theme.body(12, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
-            modelStatusPill(health)
-            if let quota {
-                GaugeLabel(
-                    text: "\(Int(max(0, 100 - quota.usedPercent).rounded()))% WEEKLY LEFT",
-                    color: riskColor(quota.usedPercent),
-                    size: 7.5
-                )
+        HStack(spacing: 10) {
+            ClaudeMascot(style: family.key == "haiku" || family.key == "fable" ? .dots : .dash)
+                .frame(width: 42, height: 40)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(family.name)
+                    .font(Theme.body(12, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                modelStatusPill(health)
             }
-            if let usage {
-                GaugeLabel(
-                    text: "\(Format.tokens(usage.tokens))\(usage.cost >= 0.01 ? " · ~" + Format.usd(usage.cost) : "")",
-                    color: Theme.textDim,
-                    size: 7.5
+            .frame(width: 78, alignment: .leading)
+            if let quota {
+                SegmentedMeter(
+                    percent: max(0, 100 - quota.usedPercent),
+                    segments: 16,
+                    tint: Theme.coral,
+                    height: 10
                 )
             } else {
-                GaugeLabel(text: "NO RECENT USE", color: Theme.textFaint, size: 7.5)
+                SegmentedMeter(
+                    percent: share * 100,
+                    segments: 16,
+                    tint: Theme.coral.opacity(0.85),
+                    height: 10
+                )
             }
+            VStack(alignment: .trailing, spacing: 3) {
+                if let quota {
+                    GaugeLabel(
+                        text: "\(Int(max(0, 100 - quota.usedPercent).rounded()))% LEFT",
+                        color: riskColor(quota.usedPercent),
+                        size: 8
+                    )
+                } else if let usage {
+                    GaugeLabel(text: Format.tokens(usage.tokens), color: Theme.textDim, size: 8)
+                } else {
+                    GaugeLabel(text: "NO RECENT USE", color: Theme.textFaint, size: 8)
+                }
+                if let usage, usage.cost >= 0.01 {
+                    GaugeLabel(text: "~" + Format.usd(usage.cost), color: Theme.textDim, size: 7.5)
+                }
+            }
+            .frame(width: 110, alignment: .trailing)
         }
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(Theme.surface)
         )
     }
@@ -1300,6 +1335,8 @@ struct NotchExpandedView: View {
     private func namedQuotaRow(_ quota: NamedQuota) -> some View {
         let remaining = max(0, 100 - quota.usedPercent)
         return HStack(spacing: 10) {
+            OpenAIGlyph()
+                .frame(width: 26, height: 26)
             Text(quota.name)
                 .font(Theme.body(11, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
@@ -1323,6 +1360,8 @@ struct NotchExpandedView: View {
 
     private func modelUsageRow(_ usage: ModelUsage, share: Double) -> some View {
         HStack(spacing: 10) {
+            OpenAIGlyph()
+                .frame(width: 26, height: 26)
             Text(usage.model)
                 .font(Theme.body(11, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)

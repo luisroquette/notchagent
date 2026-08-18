@@ -1,9 +1,23 @@
 # Changelog
 
-## Unreleased
+## 3.4.0 — 2026-08-18
+
+### Added
+
+- Model pages mascot system: faithful Anthropic-style pixel mascots per
+  family (Haiku/Fable happy dot-eyes, Sonnet/Opus neutral dash-eyes) and a
+  single OpenAI knot glyph on every OpenAI model row.
+- "TOP MODEL" callout on the Claude Models page.
 
 ### Changed
 
+- Claude Models page: four cards replaced by compact rows — mascot, name,
+  status, 8-bit segmented quota/token-share meter, tokens and cost.
+- Desk snapshot now carries current-hour progress (`currentHour` +
+  `currentHourElapsedFraction`) so the Desk can render the still-filling bar.
+- Page-swap animation is a slower glide instead of a spring snap.
+- Claude probe logs up to 300 chars of the error body when rate-limit
+  headers are missing, so rejected probes explain themselves.
 - Separated the NotchAgent desktop software from the physical NotchAgent Desk
   product. Hardware, firmware, protocol, compatibility, and factory work now
   lives in `luisroquette/notchagent-desk`.

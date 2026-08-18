@@ -16,7 +16,7 @@ struct BurnChartView: View {
     /// against the dominant model. Empty hides the alternate lines.
     let alternates: [ModelProjection.Alternate]
 
-    @State private var hoverX: CGFloat?
+    @State private var hoverPoint: CGPoint?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -24,8 +24,8 @@ struct BurnChartView: View {
                 chart(in: proxy.size)
                     .onContinuousHover(coordinateSpace: .local) { phase in
                         switch phase {
-                        case .active(let point): hoverX = point.x
-                        case .ended: hoverX = nil
+                        case .active(let point): hoverPoint = point
+                        case .ended: hoverPoint = nil
                         }
                     }
             }
@@ -129,6 +129,27 @@ struct BurnChartView: View {
             return (a.percent + (b.percent - a.percent) * fraction, b.projected)
         }
         return points.last.map { ($0.percent, $0.projected) }
+    }
+
+    /// One line the scrubber can lock onto: the dominant history/projection
+    /// line plus each alternate-model "what if" line. Built once per redraw
+    /// (see `chart(in:)`) and threaded into `drawScrubber` so it can pick
+    /// whichever line the pointer is actually nearest to, instead of always
+    /// reporting the dominant model regardless of where the pointer sits.
+    private struct ScrubSeries {
+        let name: String
+        let color: Color
+        let points: [(date: Date, percent: Double)]
+    }
+
+    private func interpolate(at date: Date, in points: [(date: Date, percent: Double)]) -> Double? {
+        guard let first = points.first else { return nil }
+        if date <= first.date { return first.percent }
+        for (a, b) in zip(points, points.dropFirst()) where date <= b.date {
+            let fraction = date.timeIntervalSince(a.date) / max(b.date.timeIntervalSince(a.date), 1)
+            return a.percent + (b.percent - a.percent) * fraction
+        }
+        return points.last?.percent
     }
 
     // MARK: Drawing
@@ -287,6 +308,13 @@ struct BurnChartView: View {
             // alternate's label.
             var placedLabelYs: [CGFloat] = [nowLabelY]
             if let emptyMarkerLabelY { placedLabelYs.append(emptyMarkerLabelY) }
+            // Fed to the scrubber below — the dominant line first, then each
+            // alternate as its own line the pointer can lock onto.
+            var scrubSeries = [ScrubSeries(
+                name: dominantModelShortName ?? "NOW",
+                color: Theme.coral,
+                points: points.map { ($0.date, $0.percent) }
+            )]
             for (alternate, altPoints) in alternatesWithPoints {
                 var altPath = Path()
                 altPath.move(to: CGPoint(x: x(altPoints[0].0), y: y(altPoints[0].1)))
@@ -310,6 +338,10 @@ struct BurnChartView: View {
                     )
                     labelPositions.append(CGPoint(x: dotX, y: labelY))
                 }
+                scrubSeries.append(ScrubSeries(
+                    name: alternate.shortName, color: color,
+                    points: altPoints.map { ($0.0, $0.1) }
+                ))
             }
 
             // "Now": vertical hairline + white dot, label above the dot.
@@ -334,7 +366,7 @@ struct BurnChartView: View {
 
             drawScrubber(
                 context: context, size: canvasSize, x: x, y: y,
-                polyline: points, labelPositions: labelPositions
+                series: scrubSeries, nowDate: last.date, labelPositions: labelPositions
             )
         }
         .background(
@@ -400,30 +432,52 @@ struct BurnChartView: View {
         }
     }
 
-    /// Crosshair + value bubble following the pointer.
+    /// Crosshair + value bubble following the pointer. Picks whichever
+    /// series (dominant model or an alternate) is vertically closest to the
+    /// pointer at the hovered x, and re-picks it on every redraw — so
+    /// dragging the pointer up onto the Opus line reports Opus, then
+    /// reporting flips to Sonnet/Haiku as the pointer crosses onto their
+    /// lines, instead of always reporting the dominant line regardless of
+    /// where the pointer actually is (the bug this replaces).
     private func drawScrubber(
         context: GraphicsContext, size: CGSize,
         x: (Date) -> CGFloat, y: (Double) -> CGFloat,
-        polyline points: [(date: Date, percent: Double, projected: Bool)],
+        series: [ScrubSeries], nowDate: Date,
         labelPositions: [CGPoint]
     ) {
-        guard let hoverX, hoverX >= 0, hoverX <= size.width, !points.isEmpty else { return }
+        guard let hoverPoint, hoverPoint.x >= 0, hoverPoint.x <= size.width, !series.isEmpty else { return }
+        let hoverX = hoverPoint.x
         let date = windowStart.addingTimeInterval(span * Double(hoverX / size.width))
-        guard let value = interpolate(at: date, in: points) else { return }
+
+        var closest: (series: ScrubSeries, percent: Double)?
+        var closestDistance = CGFloat.greatestFiniteMagnitude
+        for candidate in series {
+            guard let percent = interpolate(at: date, in: candidate.points) else { continue }
+            let distance = abs(y(percent) - hoverPoint.y)
+            if distance < closestDistance {
+                closestDistance = distance
+                closest = (candidate, percent)
+            }
+        }
+        guard let closest else { return }
+        let projected = date > nowDate
 
         var crosshair = Path()
         crosshair.move(to: CGPoint(x: hoverX, y: 0))
         crosshair.addLine(to: CGPoint(x: hoverX, y: size.height))
         context.stroke(crosshair, with: .color(Theme.gridStrong), lineWidth: 1)
 
-        let dotY = y(value.percent)
+        let dotY = y(closest.percent)
         context.stroke(
             Path(ellipseIn: CGRect(x: hoverX - 4, y: dotY - 4, width: 8, height: 8)),
-            with: .color(value.projected ? Theme.coralDim : Theme.marker),
+            with: .color(closest.series.color),
             lineWidth: 1.5
         )
 
-        let label = Text("\(Format.time(date)) · \(Int(value.percent.rounded()))% used\(value.projected ? " · proj" : "")")
+        let label = Text(
+            "\(closest.series.name.uppercased()) · \(Format.time(date)) · " +
+            "\(Int(closest.percent.rounded()))% used\(projected ? " · proj" : "")"
+        )
             .font(Theme.label(8))
             .foregroundStyle(Theme.textPrimary)
         let resolved = context.resolve(label)

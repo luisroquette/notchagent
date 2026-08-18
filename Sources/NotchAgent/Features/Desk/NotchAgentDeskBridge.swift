@@ -476,7 +476,9 @@ final class NotchAgentDeskCoordinator {
             protocolMajor: NotchAgentDeskProtocol.protocolMajor,
             protocolMinor: NotchAgentDeskProtocol.protocolMinor,
             generatedAt: Date(), overallAttention: .normal, isPaused: true,
-            providers: [], burnHistory: [], rhythm: [], models: [],
+            providers: [], burnHistory: [], rhythm: [],
+            currentHour: Calendar.current.component(.hour, from: Date()), currentHourElapsedFraction: 0,
+            models: [],
             alertThresholds: ThresholdAlerts.defaultLevels, runnerEnabled: false,
             ambientRecommendation: .init(
                 page: .now, reason: "Usage mirroring disabled", severity: .normal

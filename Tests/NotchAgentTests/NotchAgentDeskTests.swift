@@ -384,6 +384,8 @@ final class NotchAgentDeskTests: XCTestCase {
             providers: [],
             burnHistory: [],
             rhythm: [],
+            currentHour: 0,
+            currentHourElapsedFraction: 0,
             models: []
         )
         await transport.publish(snapshot)
