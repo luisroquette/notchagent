@@ -1166,10 +1166,12 @@ struct NotchExpandedView: View {
            // legacy snapshot or a local budget estimate must never read as
            // a real block.
            session.usedPercentIsFromQuota == true,
-           percent >= 99.5 {
+           percent >= GaugeMetric.exhaustionThreshold {
             return true
         }
-        if let weekly = snapshot.weekly?.usedPercent, weekly >= 99.5 { return true }
+        if let weekly = snapshot.weekly?.usedPercent, weekly >= GaugeMetric.exhaustionThreshold {
+            return true
+        }
         return false
     }
 

@@ -228,6 +228,11 @@ public struct GaugeMetric: Sendable, Equatable {
         self.isWeekly = isWeekly
     }
 
+    /// Weekly/session percents at or above this read as exhausted (0% left)
+    /// everywhere — a small margin so 99.7 from a probe never paints a calm
+    /// green "1% left" that contradicts a BLOCKED state.
+    public static let exhaustionThreshold: Double = 99.5
+
     public static func from(_ snapshot: UsageSnapshot?) -> GaugeMetric? {
         // The API's "rejected" status is more authoritative than any percent
         // math: if the account is blocked, the gauge must show empty — never
@@ -239,6 +244,15 @@ public struct GaugeMetric: Sendable, Equatable {
             return GaugeMetric(used: 100, isWeekly: isWeekly)
         }
         if let percent = snapshot?.session?.usedPercent {
+            // A budget-estimated session percent (nil/false on
+            // usedPercentIsFromQuota) must never mask an exhausted official
+            // weekly cap: "0% OF WEEKLY LIMIT LEFT" blocks every model,
+            // whatever the local 5B-token budget estimate says.
+            let sessionIsEstimated = snapshot?.session?.usedPercentIsFromQuota != true
+            let weeklyExhausted = (snapshot?.weekly?.usedPercent ?? 0) >= exhaustionThreshold
+            if sessionIsEstimated && weeklyExhausted {
+                return GaugeMetric(used: 100, isWeekly: true)
+            }
             return GaugeMetric(used: percent, isWeekly: false)
         }
         if let percent = snapshot?.weekly?.usedPercent {

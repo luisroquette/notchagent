@@ -135,11 +135,14 @@ struct ProviderCardView: View {
 
         VStack(alignment: .leading, spacing: 7) {
             if let metric = GaugeMetric.from(snapshot) {
-                if metric.isWeekly, let sessionPrimary = Self.sessionPrimaryLayout(snapshot) {
-                    // Weekly-only plan: the current session's real tokens take
-                    // the headline (same "current window" concept as Claude's
-                    // 5h percent, without fabricating one), and the weekly cap
-                    // drops to the secondary block below.
+                if metric.isWeekly, metric.remaining > 0, let sessionPrimary = Self.sessionPrimaryLayout(snapshot) {
+                    // Weekly-only plan with headroom left: the current
+                    // session's real tokens take the headline (same "current
+                    // window" concept as Claude's 5h percent, without
+                    // fabricating one), and the weekly cap drops to the
+                    // secondary block below. When the weekly cap is exhausted
+                    // (remaining == 0) the percent headline below takes over —
+                    // a red "0% OF WEEKLY LIMIT LEFT" beats a token count.
                     Text(Format.tokens(sessionPrimary.tokens.total))
                         .font(Theme.numeral(24))
                         .monospacedDigit()
@@ -163,7 +166,10 @@ struct ProviderCardView: View {
                         warningAt: settings.warningThresholdPercent,
                         criticalAt: settings.criticalThresholdPercent
                     )
-                    Text("\(Self.sessionPercentPrefix(snapshot))\(Int(metric.remaining.rounded()))%")
+                    // "~" marks a budget estimate; a weekly headline is
+                    // official, so it never gets the tilde.
+                    let prefix = metric.isWeekly ? "" : Self.sessionPercentPrefix(snapshot)
+                    Text("\(prefix)\(Int(metric.remaining.rounded()))%")
                         .font(Theme.numeral(30))
                         .monospacedDigit()
                         .foregroundStyle(tint)
