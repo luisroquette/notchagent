@@ -20,9 +20,15 @@ enum WeatherFormat {
         case .clear: "sun.max.fill"
         case .partlyCloudy: "cloud.sun.fill"
         case .cloudy: "cloud.fill"
+        case .fog: "cloud.fog.fill"
+        case .drizzle: "cloud.drizzle.fill"
         case .rain: "cloud.rain.fill"
-        case .storm: "cloud.bolt.rain.fill"
+        case .heavyRain: "cloud.heavyrain.fill"
+        case .freezingRain: "cloud.sleet.fill"
         case .snow: "cloud.snow.fill"
+        case .heavySnow: "snowflake"
+        case .thunderstorm: "cloud.bolt.rain.fill"
+        case .severeThunderstorm: "cloud.bolt.fill"
         }
     }
 }

@@ -31,7 +31,8 @@ actor WeatherService: WeatherFetching {
         components?.queryItems = [
             URLQueryItem(name: "latitude", value: String(lat)),
             URLQueryItem(name: "longitude", value: String(lon)),
-            URLQueryItem(name: "current", value: "temperature_2m,weather_code,is_day"),
+            URLQueryItem(name: "current", value: "temperature_2m,weather_code,is_day,wind_speed_10m"),
+            URLQueryItem(name: "daily", value: "sunrise,sunset"),
             URLQueryItem(name: "timezone", value: "auto"),
         ]
         guard let url = components?.url else { throw WeatherError.invalidURL }
@@ -88,7 +89,34 @@ actor WeatherService: WeatherFetching {
               let condition = WeatherCondition.from(wmoCode: code)
         else { return nil }
         let isDay = (current["is_day"] as? Int ?? 1) == 1
-        return WeatherSnapshot(condition: condition, temperatureC: temperature, isDay: isDay, city: city, capturedAt: now)
+        let wind = current["wind_speed_10m"] as? Double ?? 0
+        let timezone = (root["timezone"] as? String)
+            .flatMap { TimeZone(identifier: $0) } ?? .current
+        let daily = root["daily"] as? [String: Any]
+        let sunrise = (daily?["sunrise"] as? [String])?.first
+            .flatMap { Self.dayDate($0, timeZone: timezone) }
+        let sunset = (daily?["sunset"] as? [String])?.first
+            .flatMap { Self.dayDate($0, timeZone: timezone) }
+        return WeatherSnapshot(
+            condition: condition,
+            temperatureC: temperature,
+            isDay: isDay,
+            city: city,
+            capturedAt: now,
+            windSpeedKmh: wind,
+            sunrise: sunrise,
+            sunset: sunset
+        )
+    }
+
+    /// Parses Open-Meteo's local ISO day time ("2026-08-18T06:20") in the
+    /// timezone the response reports.
+    static func dayDate(_ string: String, timeZone: TimeZone) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
+        return formatter.date(from: string)
     }
 
     static func place(fromGeocoding data: Data) -> (Double, Double, String)? {

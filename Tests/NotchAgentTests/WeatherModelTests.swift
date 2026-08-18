@@ -13,34 +13,73 @@ final class WeatherModelTests: XCTestCase {
         XCTAssertEqual(WeatherCondition.from(wmoCode: 2), .partlyCloudy)
     }
 
-    func testWMOMappingCloudyAndFog() {
+    func testWMOMappingCloudy() {
         XCTAssertEqual(WeatherCondition.from(wmoCode: 3), .cloudy)
-        // Fog/rimé reads as cloudy — no dedicated fog effect.
-        XCTAssertEqual(WeatherCondition.from(wmoCode: 45), .cloudy)
-        XCTAssertEqual(WeatherCondition.from(wmoCode: 48), .cloudy)
+    }
+
+    func testWMOMappingFog() {
+        XCTAssertEqual(WeatherCondition.from(wmoCode: 45), .fog)
+        XCTAssertEqual(WeatherCondition.from(wmoCode: 48), .fog)
+    }
+
+    func testWMOMappingDrizzle() {
+        for code in [51, 53, 55] {
+            XCTAssertEqual(WeatherCondition.from(wmoCode: code), .drizzle, "code \(code)")
+        }
     }
 
     func testWMOMappingRain() {
-        for code in [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82] {
+        for code in [61, 63, 80] {
             XCTAssertEqual(WeatherCondition.from(wmoCode: code), .rain, "code \(code)")
         }
     }
 
+    func testWMOMappingHeavyRain() {
+        for code in [65, 81, 82] {
+            XCTAssertEqual(WeatherCondition.from(wmoCode: code), .heavyRain, "code \(code)")
+        }
+    }
+
+    func testWMOMappingFreezingRain() {
+        for code in [56, 57, 66, 67] {
+            XCTAssertEqual(WeatherCondition.from(wmoCode: code), .freezingRain, "code \(code)")
+        }
+    }
+
     func testWMOMappingSnow() {
-        for code in [71, 73, 75, 77, 85, 86] {
+        for code in [71, 73, 77, 85] {
             XCTAssertEqual(WeatherCondition.from(wmoCode: code), .snow, "code \(code)")
         }
     }
 
-    func testWMOMappingStorm() {
-        for code in [95, 96, 99] {
-            XCTAssertEqual(WeatherCondition.from(wmoCode: code), .storm, "code \(code)")
+    func testWMOMappingHeavySnow() {
+        for code in [75, 86] {
+            XCTAssertEqual(WeatherCondition.from(wmoCode: code), .heavySnow, "code \(code)")
+        }
+    }
+
+    func testWMOMappingThunderstorm() {
+        XCTAssertEqual(WeatherCondition.from(wmoCode: 95), .thunderstorm)
+    }
+
+    func testWMOMappingSevereThunderstorm() {
+        for code in [96, 99] {
+            XCTAssertEqual(WeatherCondition.from(wmoCode: code), .severeThunderstorm, "code \(code)")
         }
     }
 
     func testWMOUnknownCodeIsNil() {
         XCTAssertNil(WeatherCondition.from(wmoCode: 999))
         XCTAssertNil(WeatherCondition.from(wmoCode: -1))
+    }
+
+    func testIsPrecipitationAndDimsSky() {
+        XCTAssertTrue(WeatherCondition.heavyRain.isPrecipitation)
+        XCTAssertTrue(WeatherCondition.drizzle.isPrecipitation)
+        XCTAssertFalse(WeatherCondition.cloudy.isPrecipitation)
+        XCTAssertTrue(WeatherCondition.fog.dimsSky)
+        XCTAssertTrue(WeatherCondition.snow.dimsSky)
+        XCTAssertFalse(WeatherCondition.clear.dimsSky)
     }
 
     // MARK: Snapshot round-trip

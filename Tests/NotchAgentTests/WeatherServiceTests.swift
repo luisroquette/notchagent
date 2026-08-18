@@ -3,7 +3,9 @@ import XCTest
 
 final class WeatherServiceTests: XCTestCase {
     private let openMeteoPayload = Data("""
-    {"current":{"time":"2026-08-18T19:00","temperature_2m":24.3,"weather_code":3,"is_day":0}}
+    {"timezone":"America/Sao_Paulo",
+     "current":{"time":"2026-08-18T19:00","temperature_2m":24.3,"weather_code":65,"is_day":0,"wind_speed_10m":22.5},
+     "daily":{"sunrise":["2026-08-18T06:20"],"sunset":["2026-08-18T17:55"]}}
     """.utf8)
 
     private let geocodingPayload = Data("""
@@ -17,11 +19,23 @@ final class WeatherServiceTests: XCTestCase {
     func testOpenMeteoParseHappyPath() {
         let now = Date(timeIntervalSince1970: 1_756_000_000)
         let snap = WeatherService.snapshot(fromOpenMeteo: openMeteoPayload, city: "São Paulo, BR", now: now)
-        XCTAssertEqual(snap?.condition, .cloudy)
+        XCTAssertEqual(snap?.condition, .heavyRain)
         XCTAssertEqual(snap?.temperatureC, 24.3)
         XCTAssertEqual(snap?.isDay, false)
         XCTAssertEqual(snap?.city, "São Paulo, BR")
         XCTAssertEqual(snap?.capturedAt, now)
+        XCTAssertEqual(snap?.windSpeedKmh, 22.5)
+        XCTAssertNotNil(snap?.sunrise, "sunrise must parse in the reported timezone")
+        XCTAssertNotNil(snap?.sunset)
+    }
+
+    func testDayDateParsesInReportedTimezone() {
+        let tz = TimeZone(identifier: "America/Sao_Paulo")!
+        let date = WeatherService.dayDate("2026-08-18T06:20", timeZone: tz)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = tz
+        let hour = date.map { calendar.component(.hour, from: $0) }
+        XCTAssertEqual(hour, 6)
     }
 
     func testOpenMeteoParseUnknownCodeIsNil() {

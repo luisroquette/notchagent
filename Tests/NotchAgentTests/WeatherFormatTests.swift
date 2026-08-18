@@ -22,8 +22,14 @@ final class WeatherFormatTests: XCTestCase {
         XCTAssertEqual(WeatherFormat.symbol(for: .clear), "sun.max.fill")
         XCTAssertEqual(WeatherFormat.symbol(for: .partlyCloudy), "cloud.sun.fill")
         XCTAssertEqual(WeatherFormat.symbol(for: .cloudy), "cloud.fill")
+        XCTAssertEqual(WeatherFormat.symbol(for: .fog), "cloud.fog.fill")
+        XCTAssertEqual(WeatherFormat.symbol(for: .drizzle), "cloud.drizzle.fill")
         XCTAssertEqual(WeatherFormat.symbol(for: .rain), "cloud.rain.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .storm), "cloud.bolt.rain.fill")
+        XCTAssertEqual(WeatherFormat.symbol(for: .heavyRain), "cloud.heavyrain.fill")
+        XCTAssertEqual(WeatherFormat.symbol(for: .freezingRain), "cloud.sleet.fill")
         XCTAssertEqual(WeatherFormat.symbol(for: .snow), "cloud.snow.fill")
+        XCTAssertEqual(WeatherFormat.symbol(for: .heavySnow), "snowflake")
+        XCTAssertEqual(WeatherFormat.symbol(for: .thunderstorm), "cloud.bolt.rain.fill")
+        XCTAssertEqual(WeatherFormat.symbol(for: .severeThunderstorm), "cloud.bolt.fill")
     }
 }

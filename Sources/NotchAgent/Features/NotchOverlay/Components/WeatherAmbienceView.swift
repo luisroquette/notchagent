@@ -25,10 +25,15 @@ struct WeatherSkyView: View {
             switch phase {
             case .fresh(let snapshot):
                 switch snapshot.condition {
-                case .rain, .storm:
+                case .rain, .drizzle, .heavyRain, .freezingRain,
+                     .thunderstorm, .severeThunderstorm:
                     rainWash
                 case .snow:
                     snowWash
+                case .heavySnow:
+                    snowWash.opacity(1.6)
+                case .fog:
+                    fogWash
                 case .cloudy:
                     ZStack {
                         cloudVeil
@@ -93,6 +98,19 @@ struct WeatherSkyView: View {
         Color.white.opacity(0.06)
     }
 
+    /// Fog washes the whole panel into a soft grey — no hard edges left.
+    private var fogWash: some View {
+        LinearGradient(
+            colors: [
+                Color(white: 0.68).opacity(0.20),
+                Color(white: 0.60).opacity(0.12),
+                Color(white: 0.55).opacity(0.06),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
     /// A grey overcast wash falling from the top — reads as "closed sky"
     /// against the dark panel without dimming the numbers.
     private var cloudVeil: some View {
@@ -151,13 +169,15 @@ struct WeatherForegroundOverlay: View {
             switch phase {
             case .fresh(let snapshot):
                 switch snapshot.condition {
-                case .rain, .storm, .snow:
+                case .rain, .drizzle, .heavyRain, .freezingRain, .snow,
+                     .heavySnow, .thunderstorm, .severeThunderstorm:
                     if reduceMotion {
                         Color.clear
                     } else {
                         ParticleField(
                             condition: snapshot.condition,
                             isDay: snapshot.isDay,
+                            windSpeedKmh: snapshot.windSpeedKmh,
                             alphaScale: 0.55
                         )
                     }
@@ -181,7 +201,7 @@ struct WeatherForegroundOverlay: View {
                     } else {
                         Color.clear
                     }
-                case .cloudy:
+                case .cloudy, .fog:
                     Color.clear
                 }
             case .unavailable:
@@ -357,6 +377,8 @@ private struct MoonView: View {
 private struct ParticleField: View {
     let condition: WeatherCondition
     let isDay: Bool
+    /// Wind speed in km/h — leans the falling particles sideways.
+    let windSpeedKmh: Double
     /// Multiplier for drop alpha — foreground drops sit on top of text and
     /// need to be quieter than background ones.
     let alphaScale: Double
@@ -366,33 +388,47 @@ private struct ParticleField: View {
             Canvas { context, size in
                 let t = timeline.date.timeIntervalSinceReferenceDate
                 let count = Self.count(for: condition)
+                // Wind pushes particles sideways: ~1.2 px/s per km/h.
+                let windDrift = windSpeedKmh * 1.2
+
                 for index in 0..<count {
                     let seed = Double(index) * 1.61803398875
                     let speed = Self.speed(for: condition, seed: seed)
-                    let x = (seed * 97.0).truncatingRemainder(dividingBy: max(size.width, 1))
+                    let baseX = (seed * 97.0).truncatingRemainder(dividingBy: max(size.width, 1))
+                    let spanX = max(size.width + 80, 1)
+                    let x = (baseX + t * windDrift).truncatingRemainder(dividingBy: spanX) - 40
                     let y = (seed * 173.0 + t * speed).truncatingRemainder(dividingBy: max(size.height + 40, 1)) - 20
                     let length = Self.length(for: condition, seed: seed)
                     let alpha = Self.alpha(for: condition, seed: seed) * alphaScale
-                    let color: Color = condition == .snow
-                        ? Color.white.opacity(alpha)
-                        : Color(red: 0.70, green: 0.79, blue: 0.98).opacity(alpha)
 
-                    if condition == .rain || condition == .storm {
+                    switch Self.kind(for: condition, seed: seed) {
+                    case .drop:
+                        let color = Color(red: 0.70, green: 0.79, blue: 0.98).opacity(alpha)
                         var path = Path()
                         path.move(to: CGPoint(x: x, y: y))
-                        path.addLine(to: CGPoint(x: x - length * 0.3, y: y + length))
+                        // Lean with the wind plus a fixed slant.
+                        let lean = length * 0.3 + windDrift * 0.35
+                        path.addLine(to: CGPoint(x: x - lean, y: y + length))
                         context.stroke(
                             path,
                             with: .color(color),
                             style: StrokeStyle(lineWidth: Self.strokeWidth(for: condition, seed: seed), lineCap: .round)
                         )
-                    } else {
-                        let side = 3.2 + seed.truncatingRemainder(dividingBy: 1) * 1.6
+                    case .flake:
+                        let color = Color.white.opacity(alpha)
+                        let side = Self.flakeSize(for: condition, seed: seed)
+                        let rect = CGRect(x: x, y: y, width: side, height: side)
+                        context.fill(Path(ellipseIn: rect), with: .color(color))
+                    case .pellet:
+                        // Freezing rain's ice nodules: bright core, soft edge.
+                        let color = Color(red: 0.92, green: 0.97, blue: 1.0).opacity(alpha)
+                        let side = 2.4 + seed.truncatingRemainder(dividingBy: 1) * 1.4
                         let rect = CGRect(x: x, y: y, width: side, height: side)
                         context.fill(Path(ellipseIn: rect), with: .color(color))
                     }
                 }
-                if condition == .storm {
+
+                if condition == .thunderstorm || condition == .severeThunderstorm {
                     let flashCycle = t.truncatingRemainder(dividingBy: 5)
                     if flashCycle < 0.25 {
                         context.fill(
@@ -405,32 +441,84 @@ private struct ParticleField: View {
         }
     }
 
+    private enum ParticleKind {
+        case drop
+        case flake
+        case pellet
+    }
+
+    private static func kind(for condition: WeatherCondition, seed: Double) -> ParticleKind {
+        switch condition {
+        case .snow, .heavySnow: .flake
+        case .freezingRain:
+            // Chaotic mix: half fast rain lines, half bright ice nodules.
+            seed.truncatingRemainder(dividingBy: 1) < 0.5 ? .drop : .pellet
+        default: .drop
+        }
+    }
+
     private static func count(for condition: WeatherCondition) -> Int {
         switch condition {
-        case .storm: 36
+        case .drizzle: 34
+        case .heavyRain, .severeThunderstorm: 42
+        case .heavySnow: 34
+        case .thunderstorm: 36
         case .snow: 26
         default: 30
         }
     }
 
     private static func speed(for condition: WeatherCondition, seed: Double) -> Double {
-        let base: Double = condition == .snow ? 16 : 90
+        let base: Double
+        switch condition {
+        case .snow: base = 16
+        case .heavySnow: base = 34
+        case .drizzle: base = 55
+        case .heavyRain, .severeThunderstorm: base = 150
+        default: base = 90
+        }
         return base + seed.truncatingRemainder(dividingBy: 1) * 40
     }
 
     private static func length(for condition: WeatherCondition, seed: Double) -> Double {
-        let base: Double = condition == .snow ? 0 : 14
-        return base + seed.truncatingRemainder(dividingBy: 1) * 12
+        let base: Double
+        switch condition {
+        case .snow, .heavySnow: base = 0
+        case .drizzle: base = 6
+        case .heavyRain, .severeThunderstorm: base = 20
+        default: base = 14
+        }
+        let span: Double = condition == .drizzle ? 5 : 12
+        return base + seed.truncatingRemainder(dividingBy: 1) * span
     }
 
     private static func strokeWidth(for condition: WeatherCondition, seed: Double) -> Double {
-        let base: Double = condition == .storm ? 1.6 : 1.3
+        let base: Double
+        switch condition {
+        case .drizzle: base = 0.8
+        case .heavyRain, .severeThunderstorm: base = 2.2
+        case .thunderstorm: base = 1.6
+        default: base = 1.3
+        }
         return base + seed.truncatingRemainder(dividingBy: 1) * 0.6
     }
 
+    private static func flakeSize(for condition: WeatherCondition, seed: Double) -> Double {
+        let base: Double = condition == .heavySnow ? 4.2 : 3.2
+        return base + seed.truncatingRemainder(dividingBy: 1) * 1.6
+    }
+
     private static func alpha(for condition: WeatherCondition, seed: Double) -> Double {
-        let floor: Double = condition == .storm ? 0.26 : 0.22
-        return min(0.38, floor + seed.truncatingRemainder(dividingBy: 1) * 0.10)
+        let floor: Double
+        switch condition {
+        case .drizzle: floor = 0.14
+        case .heavyRain, .severeThunderstorm: floor = 0.30
+        case .heavySnow: floor = 0.30
+        case .thunderstorm: floor = 0.26
+        case .freezingRain: floor = 0.22
+        default: floor = 0.22
+        }
+        return min(0.44, floor + seed.truncatingRemainder(dividingBy: 1) * 0.10)
     }
 }
 
