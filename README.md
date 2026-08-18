@@ -11,11 +11,11 @@
 <p align="center">
   <a href="https://luisroquette.github.io/notchagent/"><img src="https://img.shields.io/badge/website-live-FF654F?style=flat-square" alt="NotchAgent website" /></a>
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.4.2-38D6C7?style=flat-square" alt="Version v3.4.2" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.4.3-38D6C7?style=flat-square" alt="Version v3.4.3" /></a>
   <a href="#install"><img src="https://img.shields.io/badge/install-notarized%20DMG-F3B85A?style=flat-square" alt="Install the notarized DMG" /></a>
 </p>
 
-**Current version: 3.4.2** · Beta 1 · Model mascots + Desk hour progress · released 2026-08-18 · [version history](CHANGELOG.md)
+**Current version: 3.4.3** · Beta 1 · Model mascots + Desk hour progress · released 2026-08-18 · [version history](CHANGELOG.md)
 
 A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
 financial monitoring of external API accounts. It shows provider-reported
@@ -68,7 +68,7 @@ and [compatibility matrix](https://github.com/luisroquette/notchagent-desk/blob/
 
 **Notarized DMG** (recommended, no Terminal):
 
-> The notarized DMG below is still the 3.1.2 build. The current 3.4.2 ships
+> The notarized DMG below is still the 3.1.2 build. The current 3.4.3 ships
 > as the locally-signed ZIP (see below).
 
 1. Download [`NotchAgent-Desk-Beta1-3.1.2.dmg`](https://github.com/luisroquette/notchagent/releases/download/v3.1.2/NotchAgent-Desk-Beta1-3.1.2.dmg).
@@ -86,14 +86,14 @@ brew install --cask luisroquette/tap/notchagent
 open /Applications/NotchAgent.app
 ```
 
-**Or download the signed ZIP** from [v3.4.2](../../releases/tag/v3.4.2), unzip it,
+**Or download the signed ZIP** from [v3.4.3](../../releases/tag/v3.4.3), unzip it,
 and move `NotchAgent.app` to `/Applications`:
 
 ```bash
 open /Applications/NotchAgent.app
 ```
 
-The 3.4.2 ZIP is signed with a local Apple Development identity (not
+The 3.4.3 ZIP is signed with a local Apple Development identity (not
 notarized). On first open, Gatekeeper may warn — right-click the app in
 Finder and choose **Open**.
 
