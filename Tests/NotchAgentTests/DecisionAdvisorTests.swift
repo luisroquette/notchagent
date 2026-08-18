@@ -33,4 +33,26 @@ final class DecisionAdvisorTests: XCTestCase {
         let advice = DecisionAdvisor.advise(snapshots: [.claudeCode: snapshot], budget: nil)
         XCTAssertFalse(advice.contains { $0.title == "Sessão fria de cache" })
     }
+
+    // REGRESSÃO: modelo mais caro ≥ 40% da sessão gera conselho; dominância
+    // de modelo barato não gera.
+    func testDominantExpensiveModelTriggersAdvice() {
+        let session = SessionUsage(modelTokens: [
+            "claude-opus-5": TokenUsage(input: 80_000, output: 20_000, cacheWrite: 0, cacheRead: 0),
+            "claude-sonnet-5": TokenUsage(input: 25_000, output: 0, cacheWrite: 0, cacheRead: 0),
+        ])
+        let snapshot = UsageSnapshot(provider: .claudeCode, health: .ok, session: session)
+        let advice = DecisionAdvisor.advise(snapshots: [.claudeCode: snapshot], budget: nil)
+        XCTAssertTrue(advice.contains { $0.title == "Modelo mais caro dominando" })
+    }
+
+    func testBalancedModelsDoesNotTriggerAdvice() {
+        let session = SessionUsage(modelTokens: [
+            "claude-opus-5": TokenUsage(input: 10_000, output: 2_000, cacheWrite: 0, cacheRead: 0),
+            "claude-sonnet-5": TokenUsage(input: 90_000, output: 5_000, cacheWrite: 0, cacheRead: 0),
+        ])
+        let snapshot = UsageSnapshot(provider: .claudeCode, health: .ok, session: session)
+        let advice = DecisionAdvisor.advise(snapshots: [.claudeCode: snapshot], budget: nil)
+        XCTAssertFalse(advice.contains { $0.title == "Modelo mais caro dominando" })
+    }
 }

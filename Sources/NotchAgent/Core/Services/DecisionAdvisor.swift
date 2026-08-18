@@ -11,6 +11,7 @@ struct DecisionAdvice: Identifiable, Equatable {
 
 enum DecisionAdvisor {
     static let cacheShareMin = 0.25
+    static let modelDominanceShare = 0.40
     static let minTokensForAdvice = 50_000
 
     static func advise(snapshots: [ProviderID: UsageSnapshot], budget: MonthlyBudgetStatus?) -> [DecisionAdvice] {
@@ -28,6 +29,7 @@ enum DecisionAdvisor {
         }
         for provider in ProviderID.allCases {
             if let coldCache = coldCacheAdvice(snapshots[provider]) { advice.append(coldCache) }
+            if let expensiveModel = dominantExpensiveModelAdvice(snapshots[provider]) { advice.append(expensiveModel) }
             guard let gauge = GaugeMetric.from(snapshots[provider]), gauge.remaining <= 20 else { continue }
             advice.append(.init(title: "Poupe \(provider.shortName)", detail: "Restam \(Int(gauge.remaining.rounded()))% da quota atual.", severity: .warning))
         }
@@ -53,6 +55,31 @@ enum DecisionAdvisor {
             title: "Sessão fria de cache",
             detail: "Apenas \(pct)% dos tokens desta sessão são leitura de cache; manter a sessão ativa reutiliza contexto (cache expira em 1h).",
             severity: .warning
+        )
+    }
+
+    /// O modelo mais caro da sessão domina (≥ 40% dos tokens) enquanto um
+    /// mais barato também foi usado — comparação de preço via PricingTable,
+    /// sempre rotulada como estimativa local.
+    private static func dominantExpensiveModelAdvice(_ snapshot: UsageSnapshot?) -> DecisionAdvice? {
+        guard let modelTokens = snapshot?.session?.modelTokens else { return nil }
+        let total = modelTokens.values.reduce(0) { $0 + $1.total }
+        guard total >= minTokensForAdvice else { return nil }
+        let priced = modelTokens.keys.compactMap { model -> (String, Double)? in
+            guard let pricing = PricingTable.pricing(forModel: model) else { return nil }
+            return (model, pricing.inputPerMTok)
+        }
+        guard let expensive = priced.max(by: { $0.1 < $1.1 }),
+              let cheaper = priced.min(by: { $0.1 < $1.1 }),
+              cheaper.0 != expensive.0 else { return nil }
+        let share = Double(modelTokens[expensive.0]?.total ?? 0) / Double(max(total, 1))
+        guard share >= modelDominanceShare else { return nil }
+        let pct = Int((share * 100).rounded())
+        let ratio = Int((expensive.1 / max(cheaper.1, 0.0001) * 100).rounded())
+        return DecisionAdvice(
+            title: "Modelo mais caro dominando",
+            detail: "\(expensive.0) é \(pct)% da sessão; \(cheaper.0) tem preço ~\(ratio)% menor (estimativa local).",
+            severity: .normal
         )
     }
 }
