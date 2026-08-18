@@ -1152,6 +1152,34 @@ struct NotchExpandedView: View {
         ("haiku", "Haiku"), ("sonnet", "Sonnet"), ("opus", "Opus"), ("fable", "Fable"),
     ]
 
+    /// True when the provider's shared quota window is exhausted. There is
+    /// no per-model separation: once the window (5h Claude) or the weekly
+    /// cap (Claude / Codex) is blown, EVERY model in the shared pool is
+    /// unusable — whatever a rotating availability probe reported for one
+    /// of them. Models with their own separate quota (Fable 5,
+    /// GPT-5.3-Codex-Spark) are exempt and never covered by this rule.
+    static func sharedPoolExhausted(_ snapshot: UsageSnapshot) -> Bool {
+        if snapshot.quotaStatus == .blocked { return true }
+        if let session = snapshot.session,
+           let percent = session.usedPercent,
+           // nil decodes as "not quota-backed" (Usage.swift contract): a
+           // legacy snapshot or a local budget estimate must never read as
+           // a real block.
+           session.usedPercentIsFromQuota == true,
+           percent >= 99.5 {
+            return true
+        }
+        if let weekly = snapshot.weekly?.usedPercent, weekly >= 99.5 { return true }
+        return false
+    }
+
+    /// A model with its own named quota (reported separately from the
+    /// provider aggregate) survives shared-pool exhaustion.
+    static func modelHasOwnQuota(_ model: String, namedQuotas: [NamedQuota]) -> Bool {
+        let needle = model.lowercased()
+        return namedQuotas.contains { $0.name.lowercased().contains(needle) }
+    }
+
     private var modelsPage: some View {
         let snapshot = store.snapshots[.claudeCode]
         let health = snapshot?.modelHealth ?? []
@@ -1159,6 +1187,9 @@ struct NotchExpandedView: View {
         // Fable 5 is metered separately from the shared Haiku/Sonnet/Opus
         // pool the headline gauge shows — its own % only lives here.
         let fableQuota = snapshot?.weekly?.namedQuotas?.first { $0.name == "Claude Fable 5" }
+        // Window blown in one model = blown in all of them. A probe that
+        // happened to answer OK for Haiku must not read as "Haiku usable".
+        let exhausted = snapshot.map(Self.sharedPoolExhausted) ?? false
 
         let totalTokens = max(breakdown.reduce(0) { $0 + $1.tokens }, 1)
 
@@ -1167,6 +1198,9 @@ struct NotchExpandedView: View {
                 GaugeLabel(text: "CLAUDE MODELS", color: Theme.textSecondary, size: 9)
                 Spacer()
                 GaugeLabel(text: "LIVE PROBE · 1 MODEL / CYCLE", color: Theme.textFaint, size: 7)
+            }
+            if exhausted {
+                exhaustedBanner("SHARED LIMIT EXHAUSTED · ALL MODELS BLOCKED (FABLE 5 HAS OWN POOL)")
             }
             if let top = breakdown.first {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
@@ -1188,6 +1222,7 @@ struct NotchExpandedView: View {
                         health: health.first { $0.model.contains(family.key) },
                         usage: familyUsage(family.key, breakdown: breakdown),
                         quota: family.key == "fable" ? fableQuota : nil,
+                        blocked: exhausted && family.key != "fable",
                         share: Double(familyUsage(family.key, breakdown: breakdown)?.tokens ?? 0) / Double(totalTokens)
                     )
                 }
@@ -1216,6 +1251,7 @@ struct NotchExpandedView: View {
         health: ModelHealth?,
         usage: (tokens: Int, cost: Double)?,
         quota: NamedQuota? = nil,
+        blocked: Bool = false,
         share: Double
     ) -> some View {
         HStack(spacing: 10) {
@@ -1225,7 +1261,7 @@ struct NotchExpandedView: View {
                 Text(family.name)
                     .font(Theme.body(12, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
-                modelStatusPill(health)
+                modelStatusPill(health, blocked: blocked)
             }
             .frame(width: 78, alignment: .leading)
             if let quota {
@@ -1239,7 +1275,7 @@ struct NotchExpandedView: View {
                 SegmentedMeter(
                     percent: share * 100,
                     segments: 16,
-                    tint: Theme.coral.opacity(0.85),
+                    tint: blocked ? Theme.danger.opacity(0.35) : Theme.coral.opacity(0.85),
                     height: 10
                 )
             }
@@ -1270,19 +1306,25 @@ struct NotchExpandedView: View {
     }
 
     @ViewBuilder
-    private func modelStatusPill(_ health: ModelHealth?) -> some View {
-        switch health?.status {
-        case .ok:
-            StatusPill(
-                text: health?.latencyMs.map { String(format: "OK %.1fs", Double($0) / 1000) } ?? "OK",
-                color: Theme.ok
-            )
-        case .limited:
-            StatusPill(text: "Limited", color: Theme.caution)
-        case .error:
-            StatusPill(text: "Error", color: Theme.danger)
-        case nil:
-            StatusPill(text: "N/D", color: Theme.textDim)
+    private func modelStatusPill(_ health: ModelHealth?, blocked: Bool = false) -> some View {
+        if blocked {
+            // The shared window is blown: whatever the rotating probe said
+            // about this one model, it is NOT usable right now.
+            StatusPill(text: "BLOCKED", color: Theme.danger)
+        } else {
+            switch health?.status {
+            case .ok:
+                StatusPill(
+                    text: health?.latencyMs.map { String(format: "OK %.1fs", Double($0) / 1000) } ?? "OK",
+                    color: Theme.ok
+                )
+            case .limited:
+                StatusPill(text: "Limited", color: Theme.caution)
+            case .error:
+                StatusPill(text: "Error", color: Theme.danger)
+            case nil:
+                StatusPill(text: "N/D", color: Theme.textDim)
+            }
         }
     }
 
@@ -1296,6 +1338,10 @@ struct NotchExpandedView: View {
         let snapshot = store.snapshots[.codex]
         let breakdown = snapshot?.modelBreakdown ?? []
         let namedQuotas = snapshot?.weekly?.namedQuotas ?? []
+        // OpenAI: "usage is shared across Codex, Work, Workspace Agents and
+        // ChatGPT for Excel". Weekly cap at 0% = no model in the shared
+        // pool is usable; models with their own named quota survive.
+        let exhausted = snapshot.map(Self.sharedPoolExhausted) ?? false
         let totalTokens = max(breakdown.reduce(0) { $0 + $1.tokens }, 1)
 
         return VStack(alignment: .leading, spacing: 8) {
@@ -1326,6 +1372,10 @@ struct NotchExpandedView: View {
                 }
             }
 
+            if exhausted {
+                exhaustedBanner("SHARED WEEKLY LIMIT EXHAUSTED · ALL MODELS BLOCKED (SPARK HAS OWN POOL)")
+            }
+
             if !namedQuotas.isEmpty {
                 GaugeLabel(text: "WEEKLY QUOTA BY MODEL", color: Theme.textSecondary, size: 8)
                 VStack(spacing: 6) {
@@ -1337,7 +1387,11 @@ struct NotchExpandedView: View {
 
             VStack(spacing: 6) {
                 ForEach(breakdown.prefix(5)) { usage in
-                    modelUsageRow(usage, share: Double(usage.tokens) / Double(totalTokens))
+                    modelUsageRow(
+                        usage,
+                        share: Double(usage.tokens) / Double(totalTokens),
+                        blocked: exhausted && !Self.modelHasOwnQuota(usage.model, namedQuotas: namedQuotas)
+                    )
                 }
             }
             .frame(maxHeight: .infinity, alignment: .top)
@@ -1378,20 +1432,27 @@ struct NotchExpandedView: View {
         )
     }
 
-    private func modelUsageRow(_ usage: ModelUsage, share: Double) -> some View {
+    private func modelUsageRow(_ usage: ModelUsage, share: Double, blocked: Bool = false) -> some View {
         HStack(spacing: 10) {
             OpenAIGlyph()
                 .frame(width: 26, height: 26)
             Text(usage.model)
                 .font(Theme.body(11, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
+                .foregroundStyle(blocked ? Theme.textDim : Theme.textPrimary)
                 .lineLimit(1)
                 .frame(width: 150, alignment: .leading)
-            SegmentedMeter(percent: share * 100, segments: 16, tint: Theme.textPrimary.opacity(0.85), height: 6)
-            Text("\(Format.tokens(usage.tokens))\(usage.costUSD >= 0.01 ? " · ~" + Format.usd(usage.costUSD) : "")")
-                .font(Theme.body(9.5))
+            SegmentedMeter(
+                percent: blocked ? 0 : share * 100,
+                segments: 16,
+                tint: blocked ? Theme.danger.opacity(0.5) : Theme.textPrimary.opacity(0.85),
+                height: 6
+            )
+            Text(blocked
+                ? "BLOCKED"
+                : "\(Format.tokens(usage.tokens))\(usage.costUSD >= 0.01 ? " · ~" + Format.usd(usage.costUSD) : "")")
+                .font(Theme.body(9.5, weight: blocked ? .bold : .regular))
                 .monospacedDigit()
-                .foregroundStyle(Theme.textDim)
+                .foregroundStyle(blocked ? Theme.danger : Theme.textDim)
                 .frame(width: 118, alignment: .trailing)
                 .lineLimit(1)
         }
@@ -1400,6 +1461,26 @@ struct NotchExpandedView: View {
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(Theme.surface)
+        )
+    }
+
+    /// Red strip shown when the shared pool is exhausted — the reason why
+    /// every (shared) model below reads BLOCKED.
+    private func exhaustedBanner(_ text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.octagon.fill")
+                .font(.system(size: 10, weight: .semibold))
+            Text(text)
+                .font(Theme.body(9, weight: .bold))
+                .lineLimit(1)
+        }
+        .foregroundStyle(Theme.danger)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Theme.danger.opacity(0.12))
         )
     }
 
