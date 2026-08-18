@@ -81,11 +81,28 @@ struct ProviderCardView: View {
             : "OF 5H SESSION LEFT"
     }
 
+    /// True when the official weekly cap is blocking the number that would
+    /// otherwise headline this card — the weekly is exhausted while the
+    /// session percent is only a local budget estimate. Official session
+    /// percents (Claude) and BLOCKED statuses keep their own treatment and
+    /// never light this badge.
+    static func weeklyOverridesHeadline(_ snapshot: UsageSnapshot) -> Bool {
+        guard snapshot.quotaStatus != .blocked,
+              snapshot.session?.usedPercent != nil,
+              snapshot.session?.usedPercentIsFromQuota != true,
+              let weekly = snapshot.weekly?.usedPercent,
+              weekly >= GaugeMetric.exhaustionThreshold else { return false }
+        return true
+    }
+
     private var header: some View {
         HStack(spacing: 5) {
             providerGlyph
             GaugeLabel(text: provider.shortName, color: Theme.textSecondary, size: 9)
             Spacer()
+            if let snapshot, Self.weeklyOverridesHeadline(snapshot) {
+                PulsingBadge(text: "WEEKLY LIMIT OVERRIDE")
+            }
             if let chip = quotaChip {
                 StatusPill(text: chip.text, color: chip.color)
             }
@@ -393,6 +410,36 @@ struct ProviderCardView: View {
         case .stale(let date): "stale \(Format.relative(date))"
         case .failure(let date, _): "failed \(Format.relative(date))"
         case .idle: ""
+        }
+    }
+}
+
+/// Pulsing red badge in the card header — the weekly cap overrode the
+/// number below, so this is the only place that still blinks for attention.
+/// Respects Reduce Motion (static when accessibility asks for calm).
+private struct PulsingBadge: View {
+    let text: String
+    @State private var pulsing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 8, weight: .bold))
+            Text(text)
+                .font(Theme.body(8.5, weight: .bold))
+        }
+        .foregroundStyle(Theme.danger)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(Theme.danger.opacity(0.15)))
+        .overlay(Capsule().strokeBorder(Theme.danger.opacity(0.55), lineWidth: 1))
+        .opacity(pulsing ? 0.4 : 1)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                pulsing = true
+            }
         }
     }
 }

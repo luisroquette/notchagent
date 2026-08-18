@@ -126,3 +126,64 @@ extension ProviderCardViewTests {
         XCTAssertEqual(ProviderCardView.mascotName(for: "gpt-5.3-codex-spark"), "claude-sonnet")
     }
 }
+
+// MARK: - Weekly override badge
+
+extension ProviderCardViewTests {
+    private func overrideSnapshot(
+        sessionPercent: Double?,
+        sessionFromQuota: Bool?,
+        weeklyPercent: Double?,
+        quotaStatus: QuotaStatus? = nil
+    ) -> UsageSnapshot {
+        UsageSnapshot(
+            provider: .codex,
+            health: .ok,
+            session: sessionPercent.map {
+                SessionUsage(usedPercent: $0, usedPercentIsFromQuota: sessionFromQuota)
+            },
+            weekly: weeklyPercent.map { WeeklyUsage(usedPercent: $0) },
+            quotaStatus: quotaStatus
+        )
+    }
+
+    func testOverrideTrueWhenWeeklyExhaustedBlocksEstimate() {
+        // Caso real: estimativa verde de budget + semanal oficial a 0% left.
+        XCTAssertTrue(ProviderCardView.weeklyOverridesHeadline(
+            overrideSnapshot(sessionPercent: 0.14, sessionFromQuota: false, weeklyPercent: 100)
+        ))
+    }
+
+    func testOverrideFalseWhenWeeklyHasHeadroom() {
+        XCTAssertFalse(ProviderCardView.weeklyOverridesHeadline(
+            overrideSnapshot(sessionPercent: 5, sessionFromQuota: false, weeklyPercent: 25)
+        ))
+    }
+
+    func testOverrideFalseWhenSessionPercentIsOfficial() {
+        // Claude: percent oficial da janela não é "bloqueado" pelo semanal.
+        XCTAssertFalse(ProviderCardView.weeklyOverridesHeadline(
+            overrideSnapshot(sessionPercent: 50, sessionFromQuota: true, weeklyPercent: 100)
+        ))
+    }
+
+    func testOverrideFalseWhenQuotaStatusBlocked() {
+        // BLOCKED já tem seu próprio chip no header — badge seria redundante.
+        XCTAssertFalse(ProviderCardView.weeklyOverridesHeadline(
+            overrideSnapshot(sessionPercent: 0.14, sessionFromQuota: false, weeklyPercent: 100, quotaStatus: .blocked)
+        ))
+    }
+
+    func testOverrideFalseWhenNoSessionPercent() {
+        // Headline já é o weekly — nada sendo sobrescrito.
+        XCTAssertFalse(ProviderCardView.weeklyOverridesHeadline(
+            overrideSnapshot(sessionPercent: nil, sessionFromQuota: nil, weeklyPercent: 100)
+        ))
+    }
+
+    func testOverrideFalseWhenNoWeeklyPercent() {
+        XCTAssertFalse(ProviderCardView.weeklyOverridesHeadline(
+            overrideSnapshot(sessionPercent: 0.14, sessionFromQuota: false, weeklyPercent: nil)
+        ))
+    }
+}
