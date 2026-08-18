@@ -263,6 +263,15 @@ final class RefreshScheduler {
         }
 
         await snapshotStore.save(store.snapshots)
+
+        // Insights da sessão ativa: um payload por provider, computado uma vez
+        // por tick — as views só renderizam (nunca recalculam).
+        let payloads = await SessionInsightsEngine.refresh(
+            snapshots: store.snapshots,
+            dataProvider: LiveSessionDataProvider()
+        )
+        store.setPayloads(payloads)
+
         await historyStore.flush()
         await updateSparklines()
         store.setIncident(await statusPage.activeIncident())

@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-18T12:00:00.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":400000,"cached_input_tokens":100000,"output_tokens":72504,"total_tokens":572504}},"rate_limits":{"primary":{"used_percent":12.5,"window_minutes":10080,"resets_at":1789171200.0},"secondary":null,"plan_type":"prolite"}}}
+{"timestamp":"2026-08-18T12:00:10.000Z","type":"turn_context","payload":{"model":"gpt-5"}}
