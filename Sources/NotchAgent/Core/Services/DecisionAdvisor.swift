@@ -49,6 +49,16 @@ enum DecisionAdvisor {
         return Array(advice.prefix(5))
     }
 
+    /// Resumo da sessão ativa para o painel: share de cache lido (0...1) e
+    /// modelo dominante. nil quando não há sessão relevante.
+    static func cacheSummary(_ session: SessionUsage?) -> (share: Double, dominantModel: String?)? {
+        guard let session, session.tokens.total >= minTokensForAdvice else { return nil }
+        let share = Double(session.tokens.cacheRead) / Double(max(session.tokens.total, 1))
+        let dominant = session.modelTokens?
+            .max(by: { $0.value.total < $1.value.total })?.key
+        return (share, dominant)
+    }
+
     /// Um modelo respondeu 429 agora há pouco (o probe lê headers até em 429).
     private static func limitedModelAdvice(_ snapshot: UsageSnapshot?, now: Date = Date()) -> DecisionAdvice? {
         guard let limited = snapshot?.modelHealth?.first(where: {

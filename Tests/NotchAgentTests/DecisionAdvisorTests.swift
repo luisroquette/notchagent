@@ -100,4 +100,19 @@ final class DecisionAdvisorTests: XCTestCase {
         XCTAssertTrue(advice.contains { $0.title == "Sessão apertada" })
         XCTAssertTrue(advice.contains { $0.detail.contains("às") })
     }
+
+    // REGRESSÃO: resumo de cache da sessão ativa — share e modelo dominante.
+    func testCacheSummaryComputesShareAndDominantModel() {
+        let session = SessionUsage(
+            tokens: TokenUsage(input: 30_000, output: 10_000, cacheWrite: 5_000, cacheRead: 55_000),
+            modelTokens: ["claude-opus-5": TokenUsage(input: 70_000, output: 0, cacheWrite: 0, cacheRead: 0)])
+        let summary = DecisionAdvisor.cacheSummary(session)
+        XCTAssertEqual(summary?.share ?? 0, 0.55, accuracy: 0.001)
+        XCTAssertEqual(summary?.dominantModel, "claude-opus-5")
+    }
+
+    func testCacheSummaryNilForTinyOrMissingSession() {
+        XCTAssertNil(DecisionAdvisor.cacheSummary(nil))
+        XCTAssertNil(DecisionAdvisor.cacheSummary(SessionUsage(tokens: TokenUsage(input: 100, output: 0, cacheWrite: 0, cacheRead: 0))))
+    }
 }

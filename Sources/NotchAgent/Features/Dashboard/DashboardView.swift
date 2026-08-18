@@ -17,6 +17,7 @@ struct DashboardView: View {
                 controls
                 spendingSummary
                 decisionMode
+                activeSessionSection
                 historyChart
                 hourlyRhythm
                 providerBreakdown
@@ -75,6 +76,28 @@ struct DashboardView: View {
                             Text(item.detail).font(.caption).foregroundStyle(.secondary)
                         }
                     }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var activeSessionSection: some View {
+        ForEach([ProviderID.claudeCode, .codex], id: \.self) { provider in
+            if let session = store.snapshots[provider]?.session,
+               let summary = DecisionAdvisor.cacheSummary(session) {
+                GroupBox("Sessão ativa — \(provider.shortName)") {
+                    HStack(spacing: 12) {
+                        SegmentedMeter(percent: summary.share * 100, segments: 14, tint: Theme.coral, height: 9, spacing: 2)
+                            .frame(maxWidth: 200)
+                        Text("\(Int((summary.share * 100).rounded()))% cache lido")
+                            .font(.caption)
+                        if let model = summary.dominantModel {
+                            Text("Modelo dominante: \(model)")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
                 }
             }
         }
