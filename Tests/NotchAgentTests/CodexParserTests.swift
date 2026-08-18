@@ -55,3 +55,21 @@ final class GeminiParserTests: XCTestCase {
         XCTAssertEqual(stat.lastActivity, Timestamps.parseISO8601("2026-07-11T09:00:00.000Z"))
     }
 }
+
+// MARK: - Session percent estimate (5h budget fallback)
+
+final class CodexSessionBudgetTests: XCTestCase {
+    func testEstimatedSessionPercentNilWithoutBudget() {
+        XCTAssertNil(CodexProvider.estimatedSessionPercent(tokens: 1_000, budget: nil))
+        XCTAssertNil(CodexProvider.estimatedSessionPercent(tokens: 1_000, budget: 0))
+    }
+
+    func testEstimatedSessionPercentBasics() {
+        XCTAssertEqual(CodexProvider.estimatedSessionPercent(tokens: 250, budget: 1_000), 25)
+        XCTAssertEqual(CodexProvider.estimatedSessionPercent(tokens: 2_000, budget: 1_000), 100)
+    }
+
+    func testEstimatedSessionPercentZeroTokens() {
+        XCTAssertEqual(CodexProvider.estimatedSessionPercent(tokens: 0, budget: 1_000), 0)
+    }
+}

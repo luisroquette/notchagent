@@ -58,6 +58,9 @@ public struct AppSettings: Codable, Sendable, Equatable {
     /// Optional user-set budgets used only when the API probe is unavailable.
     public var claudeSessionTokenBudget: Int?
     public var claudeWeeklyTokenBudget: Int?
+    /// Codex Pro rollouts never report a 5h window, so the session percent is
+    /// estimated from this user-set budget (nil = keep showing session tokens).
+    public var codexSessionTokenBudget: Int?
     /// One-time migration that creates independent web-only subscription
     /// slots. Removing one later remains a user decision.
     var webSubscriptionAccountsInitialized: Bool = false
@@ -90,6 +93,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         case notificationsEnabled
         case claudeSessionTokenBudget
         case claudeWeeklyTokenBudget
+        case codexSessionTokenBudget
         case webSubscriptionAccountsInitialized
         case firecrawlSubscriptionAccountInitialized
     }
@@ -140,6 +144,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         notificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .notificationsEnabled) ?? true
         claudeSessionTokenBudget = try container.decodeIfPresent(Int.self, forKey: .claudeSessionTokenBudget)
         claudeWeeklyTokenBudget = try container.decodeIfPresent(Int.self, forKey: .claudeWeeklyTokenBudget)
+        codexSessionTokenBudget = try container.decodeIfPresent(Int.self, forKey: .codexSessionTokenBudget)
         webSubscriptionAccountsInitialized = try container.decodeIfPresent(
             Bool.self,
             forKey: .webSubscriptionAccountsInitialized

@@ -18,6 +18,16 @@ struct CodexProvider: UsageProvider {
         self.root = root
     }
 
+    /// 5h used-percent fallback for plans whose rollouts never report a
+    /// short window (measured: Codex Pro only carries the 7-day cap). Pure
+    /// token/budget ratio, same rule as Claude's budget fallback — only
+    /// shown when the user sets a session budget in Settings, never
+    /// fabricated from a hardcoded cap.
+    static func estimatedSessionPercent(tokens: Int, budget: Int?) -> Double? {
+        guard let budget, budget > 0 else { return nil }
+        return min(100, Double(tokens) / Double(budget) * 100)
+    }
+
     /// "rollout-2026-07-13T14-04-44-<uuid>.jsonl" → local start date.
     static func rolloutStart(from url: URL) -> Date? {
         let name = url.lastPathComponent
@@ -135,6 +145,8 @@ struct CodexProvider: UsageProvider {
             startedAt: sessionWindow == nil ? latestEntry.start : nil,
             resetsAt: sessionWindow?.resetsAt,
             usedPercent: sessionWindow?.usedPercent
+                ?? Self.estimatedSessionPercent(tokens: sessionTokens.total, budget: settings.codexSessionTokenBudget),
+            usedPercentIsFromQuota: sessionWindow?.usedPercent != nil
         )
 
         // Weekly tokens/cost: sum of each rollout's final totals in the window.

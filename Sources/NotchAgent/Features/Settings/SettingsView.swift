@@ -316,6 +316,19 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Section {
+                budgetField(
+                    "Session budget (tokens)",
+                    value: $preferences.settings.codexSessionTokenBudget
+                )
+            } header: {
+                Text(pt ? "Quota do Codex" : "Codex quota")
+            } footer: {
+                Text("Codex Pro rollouts only report the 7-day cap, so the 5h percent is estimated from this budget (marked with ~ in the panel). Leave empty to keep showing session tokens instead.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             }
 
             } else {

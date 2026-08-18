@@ -68,6 +68,19 @@ struct ProviderCardView: View {
         return SessionPrimary(tokens: session.tokens, startedAt: session.startedAt)
     }
 
+    /// "~" prefix when the 5h percent is a local budget estimate, not the
+    /// provider's authoritative quota.
+    static func sessionPercentPrefix(_ snapshot: UsageSnapshot) -> String {
+        snapshot.session?.usedPercentIsFromQuota == false ? "~" : ""
+    }
+
+    static func sessionLabel(_ snapshot: UsageSnapshot, metric: GaugeMetric) -> String {
+        guard !metric.isWeekly else { return "OF WEEKLY LIMIT LEFT" }
+        return snapshot.session?.usedPercentIsFromQuota == false
+            ? "OF 5H SESSION LEFT · ESTIMATED"
+            : "OF 5H SESSION LEFT"
+    }
+
     private var header: some View {
         HStack(spacing: 5) {
             Image(systemName: provider.symbolName)
@@ -123,12 +136,12 @@ struct ProviderCardView: View {
                         warningAt: settings.warningThresholdPercent,
                         criticalAt: settings.criticalThresholdPercent
                     )
-                    Text("\(Int(metric.remaining.rounded()))%")
+                    Text("\(Self.sessionPercentPrefix(snapshot))\(Int(metric.remaining.rounded()))%")
                         .font(Theme.numeral(30))
                         .monospacedDigit()
                         .foregroundStyle(tint)
                         .contentTransition(.numericText())
-                    GaugeLabel(text: metric.isWeekly ? "OF WEEKLY LIMIT LEFT" : "OF 5H SESSION LEFT")
+                    GaugeLabel(text: Self.sessionLabel(snapshot, metric: metric))
                     SegmentedMeter(percent: metric.remaining, segments: 12, tint: tint, height: 8)
 
                     if let resets = resetDate(snapshot, metric: metric) {

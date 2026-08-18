@@ -80,3 +80,33 @@ extension ProviderCardViewTests {
         XCTAssertNil(ProviderCardView.sessionPrimaryLayout(snap))
     }
 }
+
+// MARK: - Session percent estimate labeling (budget fallback)
+
+extension ProviderCardViewTests {
+    private func snapshotWithSessionOrigin(_ fromQuota: Bool?) -> UsageSnapshot {
+        var session = SessionUsage(resetsAt: Date(), usedPercent: 40)
+        session.usedPercentIsFromQuota = fromQuota
+        return UsageSnapshot(provider: .claudeCode, health: .ok, session: session)
+    }
+
+    func testSessionPercentPrefixEmptyWhenOfficialOrUnknown() {
+        XCTAssertEqual(ProviderCardView.sessionPercentPrefix(snapshotWithSessionOrigin(true)), "")
+        XCTAssertEqual(ProviderCardView.sessionPercentPrefix(snapshotWithSessionOrigin(nil)), "")
+    }
+
+    func testSessionPercentPrefixTildeWhenEstimated() {
+        XCTAssertEqual(ProviderCardView.sessionPercentPrefix(snapshotWithSessionOrigin(false)), "~")
+    }
+
+    func testSessionLabelMarksEstimate() {
+        let metric = GaugeMetric(used: 40, isWeekly: false)
+        XCTAssertEqual(ProviderCardView.sessionLabel(snapshotWithSessionOrigin(false), metric: metric), "OF 5H SESSION LEFT · ESTIMATED")
+        XCTAssertEqual(ProviderCardView.sessionLabel(snapshotWithSessionOrigin(true), metric: metric), "OF 5H SESSION LEFT")
+    }
+
+    func testSessionLabelWeeklyNeverMarked() {
+        let metric = GaugeMetric(used: 40, isWeekly: true)
+        XCTAssertEqual(ProviderCardView.sessionLabel(snapshotWithSessionOrigin(false), metric: metric), "OF WEEKLY LIMIT LEFT")
+    }
+}
