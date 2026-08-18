@@ -168,9 +168,18 @@ struct NotchExpandedView: View {
 
     /// Claude Code and Codex always keep equal, detailed cards. A temporary
     /// quota-probe failure must not collapse Claude into a status strip.
+    static let panelCardProviders: [ProviderID] = [.claudeCode, .codex]
+
+    /// Thin strips under the two detail cards. Gemini CLI is excluded from
+    /// the panel (unused, permanent "NOT INSTALLED" noise) — the provider
+    /// itself keeps running for settings/snapshots.
+    static let panelStripProviders: [ProviderID] = ProviderID.allCases.filter {
+        !panelCardProviders.contains($0) && $0 != .geminiCLI
+    }
+
     private var nowPage: some View {
-        let cardProviders: [ProviderID] = [.claudeCode, .codex]
-        let stripProviders = ProviderID.allCases.filter { !cardProviders.contains($0) }
+        let cardProviders = Self.panelCardProviders
+        let stripProviders = Self.panelStripProviders
 
         return VStack(spacing: 8) {
             HStack(spacing: 10) {
