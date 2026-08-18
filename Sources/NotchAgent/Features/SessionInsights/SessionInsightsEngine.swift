@@ -34,6 +34,7 @@ enum SessionInsightsEngine {
     static func refresh(
         snapshots: [ProviderID: UsageSnapshot],
         dataProvider: any SessionDataProvider = EmptySessionDataProvider(),
+        burnout: [ProviderID: SessionInsightsPayload.BurnoutSignal] = [:],
         now: Date = Date()
     ) async -> [ProviderID: SessionInsightsPayload] {
         var payloads: [ProviderID: SessionInsightsPayload] = [:]
@@ -44,7 +45,7 @@ enum SessionInsightsEngine {
             let agentSplit = await dataProvider.agentSplit(provider: provider)
             payloads[provider] = PayloadBuilder.build(
                 provider: provider, window: window, records: records,
-                agentSplit: agentSplit, generatedAt: now)
+                agentSplit: agentSplit, burnout: burnout[provider], generatedAt: now)
         }
         return payloads
     }

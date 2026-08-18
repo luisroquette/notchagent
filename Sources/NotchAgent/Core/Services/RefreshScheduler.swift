@@ -265,12 +265,28 @@ final class RefreshScheduler {
         await snapshotStore.save(store.snapshots)
 
         // Insights da sessão ativa: um payload por provider, computado uma vez
-        // por tick — as views só renderizam (nunca recalculam).
+        // por tick — as views só renderizam (nunca recalculam). O sinal CALMA AÍ
+        // entra no mesmo payload e dispara notificação com cooldown de 6h.
+        let burnoutSignals = BurnoutAlerter.signals(
+            snapshots: store.snapshots, percentHistory: store.percentHistory)
         let payloads = await SessionInsightsEngine.refresh(
             snapshots: store.snapshots,
-            dataProvider: LiveSessionDataProvider()
+            dataProvider: LiveSessionDataProvider(),
+            burnout: burnoutSignals
         )
         store.setPayloads(payloads)
+
+        if store.settings.notificationsEnabled {
+            let defaults = UserDefaults.standard
+            for (provider, signal) in burnoutSignals {
+                let key = BurnoutNotifier.lastNotifiedKey(for: provider)
+                let last = defaults.object(forKey: key) as? Date
+                if let fired = BurnoutNotifier.evaluate(
+                    signal: signal, gate: UNNotificationGate.shared, lastNotifiedAt: last) {
+                    defaults.set(fired, forKey: key)
+                }
+            }
+        }
 
         await historyStore.flush()
         await updateSparklines()
