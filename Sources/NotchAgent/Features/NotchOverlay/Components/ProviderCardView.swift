@@ -99,10 +99,10 @@ struct ProviderCardView: View {
         switch provider {
         case .claudeCode:
             ClaudeMascot(name: Self.mascotName(for: snapshot?.activeModel))
-                .frame(width: 24, height: 24)
+                .frame(width: 48, height: 48)
         case .codex:
             OpenAIGlyph()
-                .frame(width: 24, height: 24)
+                .frame(width: 48, height: 48)
         default:
             Image(systemName: provider.symbolName)
                 .font(.system(size: 9, weight: .bold))
