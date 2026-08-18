@@ -1,11 +1,18 @@
 import SwiftUI
 
-/// The ambient background of the Now page. Presence is the contract:
-/// the effect must read at a glance (like the iOS lock-screen weather),
-/// without ever competing with the cards on top. The whole view only
-/// exists while the Now page is mounted (the pager unmounts it on every
-/// other page), so the TimelineViews cost zero CPU anywhere else.
-struct WeatherAmbienceView: View {
+/// The ambience is TWO layers, mounted by NotchContainerView:
+/// - `WeatherSkyView` sits BEHIND the content and above the black notch
+///   cap, so the night veil, stars and moon mix into the cap itself.
+/// - `WeatherForegroundOverlay` sits ABOVE everything (cards, mascots,
+///   buttons) — rain and snow fall ON the UI, like the iOS lock screen.
+///   It never intercepts hits.
+///
+/// Both only exist while the panel is expanded on page 0 (Now), so their
+/// TimelineViews cost zero CPU anywhere else.
+
+// MARK: - Sky (behind the content, over the notch cap)
+
+struct WeatherSkyView: View {
     let phase: WeatherStore.Phase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -14,12 +21,10 @@ struct WeatherAmbienceView: View {
             switch phase {
             case .fresh(let snapshot):
                 switch snapshot.condition {
-                case .rain, .storm, .snow:
-                    if reduceMotion {
-                        staticVeil(snapshot)
-                    } else {
-                        ParticleField(condition: snapshot.condition, isDay: snapshot.isDay)
-                    }
+                case .rain, .storm:
+                    rainWash
+                case .snow:
+                    snowWash
                 case .cloudy:
                     cloudVeil
                 case .partlyCloudy:
@@ -42,8 +47,6 @@ struct WeatherAmbienceView: View {
                         ZStack(alignment: .topTrailing) {
                             nightVeil
                             if reduceMotion {
-                                // No-motion night: static star dust instead
-                                // of the twinkle loop.
                                 StarDust(density: 1.0)
                             } else {
                                 StarField(density: 1.0)
@@ -59,16 +62,14 @@ struct WeatherAmbienceView: View {
         .allowsHitTesting(false)
     }
 
-    /// No-motion fallback for precipitation: a visible tint instead of
-    /// falling particles.
-    @ViewBuilder
-    private func staticVeil(_ snapshot: WeatherSnapshot) -> some View {
-        switch snapshot.condition {
-        case .snow:
-            Color.white.opacity(0.07)
-        default:
-            Color(red: 0.62, green: 0.72, blue: 0.95).opacity(0.08)
-        }
+    /// Rain also tints the whole panel: the wet-glass wash lives in the
+    /// sky layer so the cap gets it too.
+    private var rainWash: some View {
+        Color(red: 0.45, green: 0.6, blue: 0.9).opacity(0.07)
+    }
+
+    private var snowWash: some View {
+        Color.white.opacity(0.06)
     }
 
     /// A grey overcast wash falling from the top — reads as "closed sky"
@@ -134,6 +135,41 @@ struct WeatherAmbienceView: View {
     }
 }
 
+// MARK: - Foreground (above the content)
+
+/// Precipitation that falls ON the UI — cards, mascots, everything. Alpha
+/// is scaled down versus the old background-only version so numbers stay
+/// readable through the drops.
+struct WeatherForegroundOverlay: View {
+    let phase: WeatherStore.Phase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Group {
+            switch phase {
+            case .fresh(let snapshot):
+                switch snapshot.condition {
+                case .rain, .storm, .snow:
+                    if reduceMotion {
+                        Color.clear
+                    } else {
+                        ParticleField(
+                            condition: snapshot.condition,
+                            isDay: snapshot.isDay,
+                            alphaScale: 0.55
+                        )
+                    }
+                case .clear, .partlyCloudy, .cloudy:
+                    Color.clear
+                }
+            case .unavailable:
+                Color.clear
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
 /// Canvas rain/storm/snow. Deterministic per-particle pseudo-randomness
 /// (golden-ratio seed per index) — no RNG in the render loop, so the
 /// animation stays stable across frame rates. Rain drops are rounded
@@ -141,21 +177,14 @@ struct WeatherAmbienceView: View {
 private struct ParticleField: View {
     let condition: WeatherCondition
     let isDay: Bool
+    /// Multiplier for drop alpha — foreground drops sit on top of text and
+    /// need to be quieter than background ones.
+    let alphaScale: Double
 
     var body: some View {
         TimelineView(.animation) { timeline in
             Canvas { context, size in
                 let t = timeline.date.timeIntervalSinceReferenceDate
-
-                // Wet-glass wash under the drops: a faint cool tint that
-                // makes the whole panel read as "rain", not just streaks.
-                if condition == .rain || condition == .storm {
-                    context.fill(
-                        Path(CGRect(origin: .zero, size: size)),
-                        with: .color(Color(red: 0.45, green: 0.6, blue: 0.9).opacity(0.07))
-                    )
-                }
-
                 let count = Self.count(for: condition)
                 for index in 0..<count {
                     let seed = Double(index) * 1.61803398875
@@ -163,7 +192,7 @@ private struct ParticleField: View {
                     let x = (seed * 97.0).truncatingRemainder(dividingBy: max(size.width, 1))
                     let y = (seed * 173.0 + t * speed).truncatingRemainder(dividingBy: max(size.height + 40, 1)) - 20
                     let length = Self.length(for: condition, seed: seed)
-                    let alpha = Self.alpha(for: condition, seed: seed)
+                    let alpha = Self.alpha(for: condition, seed: seed) * alphaScale
                     let color: Color = condition == .snow
                         ? Color.white.opacity(alpha)
                         : Color(red: 0.70, green: 0.79, blue: 0.98).opacity(alpha)
@@ -188,7 +217,7 @@ private struct ParticleField: View {
                     if flashCycle < 0.25 {
                         context.fill(
                             Path(CGRect(origin: .zero, size: size)),
-                            with: .color(Color.white.opacity(0.09))
+                            with: .color(Color.white.opacity(0.06))
                         )
                     }
                 }

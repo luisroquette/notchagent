@@ -204,11 +204,9 @@ struct NotchExpandedView: View {
                 providerStrip(provider)
             }
         }
-        .background {
-            if preferences.settings.weatherEnabled {
-                WeatherAmbienceView(phase: weather.phase)
-            }
-        }
+        // The weather sky and precipitation layers live in
+        // NotchContainerView, where they can cover the whole panel (notch
+        // cap included) and fall ON the cards, not behind them.
     }
 
     private func providerStrip(_ provider: ProviderID) -> some View {

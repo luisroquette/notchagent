@@ -5,18 +5,32 @@ import SwiftUI
 struct NotchContainerView: View {
     @Environment(NotchViewModel.self) private var viewModel
     @Environment(UsageStore.self) private var store
+    @Environment(WeatherStore.self) private var weather
+    @Environment(PreferencesStore.self) private var preferences
+
+    /// Weather ambience only lives on the Now page — every other page (and
+    /// the compact bar) stays untouched.
+    private var ambienceActive: Bool {
+        viewModel.isExpanded
+            && viewModel.expandedPage == 0
+            && preferences.settings.weatherEnabled
+    }
+
+    private var panelShape: NotchShape {
+        NotchShape(
+            bottomRadius: viewModel.isExpanded ? 22 : 10,
+            topRadius: viewModel.geometry.hasNotch ? 0 : 12
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             Color.clear.frame(height: viewModel.topOffset)
 
             ZStack(alignment: .top) {
-                NotchShape(
-                    bottomRadius: viewModel.isExpanded ? 22 : 10,
-                    topRadius: viewModel.geometry.hasNotch ? 0 : 12
-                )
-                .fill(viewModel.isExpanded ? Theme.panel : Color.black)
-                .shadow(color: .black.opacity(viewModel.isExpanded ? 0.45 : 0.2), radius: viewModel.isExpanded ? 14 : 4, y: 4)
+                panelShape
+                    .fill(viewModel.isExpanded ? Theme.panel : Color.black)
+                    .shadow(color: .black.opacity(viewModel.isExpanded ? 0.45 : 0.2), radius: viewModel.isExpanded ? 14 : 4, y: 4)
 
                 // Light mode: keep a black cap hugging the physical camera
                 // housing — a light surface around black hardware reads broken.
@@ -29,7 +43,25 @@ struct NotchContainerView: View {
                         )
                 }
 
+                // Sky BEHIND the content but ABOVE the black cap: the night
+                // veil, stars and moon mix into the cap instead of leaving
+                // it a dead black bar.
+                if ambienceActive {
+                    WeatherSkyView(phase: weather.phase)
+                        .clipShape(panelShape)
+                        .transition(.opacity)
+                }
+
                 content
+
+                // Precipitation ABOVE everything — rain falls ON the cards
+                // and mascots, like the iOS lock screen. Hit-testing is off,
+                // so the layer is pure visual.
+                if ambienceActive {
+                    WeatherForegroundOverlay(phase: weather.phase)
+                        .clipShape(panelShape)
+                        .transition(.opacity)
+                }
             }
             .frame(width: viewModel.currentSize.width, height: viewModel.currentSize.height)
             .onHover { hovering in
