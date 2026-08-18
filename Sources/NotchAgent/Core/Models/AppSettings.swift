@@ -63,6 +63,15 @@ public struct AppSettings: Codable, Sendable, Equatable {
     /// Defaults to 5B tokens so the estimated percent is visible out of the
     /// box; adjust in Settings — the card always marks it with ~.
     public var codexSessionTokenBudget: Int?
+    /// Weather ambience (Now page): feature switch + location resolution.
+    public var weatherEnabled: Bool = true
+    /// Manual city override; nil = automatic resolution.
+    public var weatherCity: String?
+    /// Persisted after the FIRST successful resolution (geo-IP runs once
+    /// in the app's lifetime).
+    public var weatherLat: Double?
+    public var weatherLon: Double?
+    public var weatherCityResolved: String?
     /// One-time migration that creates independent web-only subscription
     /// slots. Removing one later remains a user decision.
     var webSubscriptionAccountsInitialized: Bool = false
@@ -96,6 +105,11 @@ public struct AppSettings: Codable, Sendable, Equatable {
         case claudeSessionTokenBudget
         case claudeWeeklyTokenBudget
         case codexSessionTokenBudget
+        case weatherEnabled
+        case weatherCity
+        case weatherLat
+        case weatherLon
+        case weatherCityResolved
         case webSubscriptionAccountsInitialized
         case firecrawlSubscriptionAccountInitialized
     }
@@ -147,6 +161,11 @@ public struct AppSettings: Codable, Sendable, Equatable {
         claudeSessionTokenBudget = try container.decodeIfPresent(Int.self, forKey: .claudeSessionTokenBudget)
         claudeWeeklyTokenBudget = try container.decodeIfPresent(Int.self, forKey: .claudeWeeklyTokenBudget)
         codexSessionTokenBudget = try container.decodeIfPresent(Int.self, forKey: .codexSessionTokenBudget) ?? 5_000_000_000
+        weatherEnabled = try container.decodeIfPresent(Bool.self, forKey: .weatherEnabled) ?? true
+        weatherCity = try container.decodeIfPresent(String.self, forKey: .weatherCity)
+        weatherLat = try container.decodeIfPresent(Double.self, forKey: .weatherLat)
+        weatherLon = try container.decodeIfPresent(Double.self, forKey: .weatherLon)
+        weatherCityResolved = try container.decodeIfPresent(String.self, forKey: .weatherCityResolved)
         webSubscriptionAccountsInitialized = try container.decodeIfPresent(
             Bool.self,
             forKey: .webSubscriptionAccountsInitialized
