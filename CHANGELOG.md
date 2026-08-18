@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.4.1 — 2026-08-18
+
+### Changed
+
+- Model mascots redrawn to the approved V7 design: smooth bean/egg body with
+  two big round eyes, no mouth, no arms — one shape for every family.
+- OpenAI glyph reworked: thin interlocking loops instead of the blocky petals
+  that read as a gear at row size.
+
 ## 3.4.0 — 2026-08-18
 
 ### Added

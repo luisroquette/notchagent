@@ -1199,8 +1199,8 @@ struct NotchExpandedView: View {
         share: Double
     ) -> some View {
         HStack(spacing: 10) {
-            ClaudeMascot(style: family.key == "haiku" || family.key == "fable" ? .dots : .dash)
-                .frame(width: 42, height: 40)
+            ClaudeMascot()
+                .frame(width: 44, height: 26)
             VStack(alignment: .leading, spacing: 3) {
                 Text(family.name)
                     .font(Theme.body(12, weight: .semibold))
