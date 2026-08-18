@@ -70,4 +70,34 @@ final class DecisionAdvisorTests: XCTestCase {
         let advice = DecisionAdvisor.advise(snapshots: [.claudeCode: snapshot], budget: nil)
         XCTAssertFalse(advice.contains { $0.title == "Fable 5: cota própria" })
     }
+
+    // REGRESSÃO: 429 recente (≤ 30 min) vira conselho crítico; 429 velho, não.
+    func testLimitedModelRecentTriggersAdvice() {
+        let recent = Date()
+        let snapshot = UsageSnapshot(
+            provider: .claudeCode, health: .ok,
+            modelHealth: [ModelHealth(model: "claude-sonnet-5", status: .limited, latencyMs: nil, checkedAt: recent.addingTimeInterval(-60))])
+        let advice = DecisionAdvisor.advise(snapshots: [.claudeCode: snapshot], budget: nil, now: recent)
+        XCTAssertTrue(advice.contains { $0.title == "Modelo em limite (429)" })
+        XCTAssertEqual(advice.first { $0.title == "Modelo em limite (429)" }?.severity, .critical)
+    }
+
+    func testLimitedModelStaleDoesNotTriggerAdvice() {
+        let recent = Date()
+        let snapshot = UsageSnapshot(
+            provider: .claudeCode, health: .ok,
+            modelHealth: [ModelHealth(model: "claude-sonnet-5", status: .limited, latencyMs: nil, checkedAt: recent.addingTimeInterval(-3_600))])
+        let advice = DecisionAdvisor.advise(snapshots: [.claudeCode: snapshot], budget: nil, now: recent)
+        XCTAssertFalse(advice.contains { $0.title == "Modelo em limite (429)" })
+    }
+
+    // REGRESSÃO: sessão ≥ 80% com reset longe gera conselho com hora do reset.
+    func testTightSessionFarFromResetTriggersAdvice() {
+        let now = Date()
+        let session = SessionUsage(resetsAt: now.addingTimeInterval(2 * 3600), usedPercent: 88)
+        let snapshot = UsageSnapshot(provider: .claudeCode, health: .ok, session: session)
+        let advice = DecisionAdvisor.advise(snapshots: [.claudeCode: snapshot], budget: nil, now: now)
+        XCTAssertTrue(advice.contains { $0.title == "Sessão apertada" })
+        XCTAssertTrue(advice.contains { $0.detail.contains("às") })
+    }
 }

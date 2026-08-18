@@ -13,9 +13,11 @@ enum DecisionAdvisor {
     static let cacheShareMin = 0.25
     static let modelDominanceShare = 0.40
     static let fablePoolWarnPercent = 70.0
+    static let sessionTightPercent = 80.0
+    static let limitedFreshness: TimeInterval = 30 * 60
     static let minTokensForAdvice = 50_000
 
-    static func advise(snapshots: [ProviderID: UsageSnapshot], budget: MonthlyBudgetStatus?) -> [DecisionAdvice] {
+    static func advise(snapshots: [ProviderID: UsageSnapshot], budget: MonthlyBudgetStatus?, now: Date = Date()) -> [DecisionAdvice] {
         var advice: [DecisionAdvice] = []
         if let budget {
             switch budget.level {
@@ -32,6 +34,8 @@ enum DecisionAdvisor {
             if let coldCache = coldCacheAdvice(snapshots[provider]) { advice.append(coldCache) }
             if let expensiveModel = dominantExpensiveModelAdvice(snapshots[provider]) { advice.append(expensiveModel) }
             if let fablePool = fablePoolAdvice(snapshots[provider]) { advice.append(fablePool) }
+            if let limited = limitedModelAdvice(snapshots[provider], now: now) { advice.append(limited) }
+            if let tight = tightSessionAdvice(snapshots[provider], now: now) { advice.append(tight) }
             guard let gauge = GaugeMetric.from(snapshots[provider]), gauge.remaining <= 20 else { continue }
             advice.append(.init(title: "Poupe \(provider.shortName)", detail: "Restam \(Int(gauge.remaining.rounded()))% da quota atual.", severity: .warning))
         }
@@ -42,7 +46,35 @@ enum DecisionAdvisor {
         if advice.isEmpty {
             advice.append(.init(title: "Pode continuar", detail: "Sem pressão de orçamento ou quota detectada agora.", severity: .normal))
         }
-        return Array(advice.prefix(3))
+        return Array(advice.prefix(5))
+    }
+
+    /// Um modelo respondeu 429 agora há pouco (o probe lê headers até em 429).
+    private static func limitedModelAdvice(_ snapshot: UsageSnapshot?, now: Date = Date()) -> DecisionAdvice? {
+        guard let limited = snapshot?.modelHealth?.first(where: {
+            $0.status == .limited && now.timeIntervalSince($0.checkedAt) < limitedFreshness
+        }) else { return nil }
+        return DecisionAdvice(
+            title: "Modelo em limite (429)",
+            detail: "\(limited.model) respondeu 429 agora há pouco; troque de modelo ou espere o reset da janela.",
+            severity: .critical
+        )
+    }
+
+    /// Sessão ≥ 80% consumida com reset distante — modere o ritmo.
+    private static func tightSessionAdvice(_ snapshot: UsageSnapshot?, now: Date = Date()) -> DecisionAdvice? {
+        guard let session = snapshot?.session,
+              let used = session.usedPercent, used >= sessionTightPercent,
+              let resetsAt = session.resetsAt,
+              resetsAt.timeIntervalSince(now) > 3600 else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "HH:mm"
+        return DecisionAdvice(
+            title: "Sessão apertada",
+            detail: "\(Int(used.rounded()))% consumidos e o reset só às \(formatter.string(from: resetsAt)); modere nas próximas horas.",
+            severity: .warning
+        )
     }
 
     /// Sessão com pouco cache lido (releitura de contexto cara). Só dispara
