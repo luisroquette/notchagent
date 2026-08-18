@@ -84,8 +84,24 @@ struct DashboardView: View {
     @ViewBuilder
     private var activeSessionSection: some View {
         ForEach([ProviderID.claudeCode, .codex], id: \.self) { provider in
-            if let session = store.snapshots[provider]?.session,
-               let summary = DecisionAdvisor.cacheSummary(session) {
+            if let payload = store.sessionPayloads[provider] {
+                // Fonte de verdade: o payload do motor (render-only).
+                GroupBox("Sessão ativa — \(provider.shortName)") {
+                    HStack(spacing: 12) {
+                        SegmentedMeter(percent: payload.cacheShare * 100, segments: 14, tint: Theme.coral, height: 9, spacing: 2)
+                            .frame(maxWidth: 200)
+                        Text("\(Int((payload.cacheShare * 100).rounded()))% cache lido")
+                            .font(.caption)
+                        if let model = ViewBindings.panelDominantModel(payload) {
+                            Text("Modelo dominante: \(model)")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            } else if let session = store.snapshots[provider]?.session,
+                      let summary = DecisionAdvisor.cacheSummary(session) {
+                // Fallback até o motor ter fonte real (etapa 3).
                 GroupBox("Sessão ativa — \(provider.shortName)") {
                     HStack(spacing: 12) {
                         SegmentedMeter(percent: summary.share * 100, segments: 14, tint: Theme.coral, height: 9, spacing: 2)

@@ -111,6 +111,18 @@ struct NotchCompactView: View {
                     GaugeLabel(text: "SESSION", color: Theme.textFaint, size: 6.5)
                 }
             }
+
+            // Row 3: preview do motor de insights — render-only, nunca recalcula.
+            if let payload = store.sessionPayloads[provider],
+               let line = ViewBindings.notchPreviewLine(payload) {
+                let color: Color = switch payload.preview.tier {
+                case .alert: .red
+                case .watch: .orange
+                case .ok: Theme.textFaint
+                }
+                GaugeLabel(text: line, color: color, size: 7)
+                    .lineLimit(1)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilitySummary(provider: provider, metric: metric))
