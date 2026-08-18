@@ -52,6 +52,22 @@ struct ProviderCardView: View {
         return SecondaryScope(usedPercent: weekly, resetsAt: snapshot.weekly?.resetsAt)
     }
 
+    /// Plans that report only a weekly cap (Codex Pro: the rollout carries a
+    /// single 7-day window, no 5h/daily window at all) get the SAME two-block
+    /// scheme as Claude, inverted: the current session's real tokens take the
+    /// headline, and the weekly cap becomes the secondary block. No daily
+    /// percent is ever fabricated.
+    struct SessionPrimary: Equatable {
+        let tokens: TokenUsage
+        let startedAt: Date?
+    }
+
+    static func sessionPrimaryLayout(_ snapshot: UsageSnapshot) -> SessionPrimary? {
+        guard let metric = GaugeMetric.from(snapshot), metric.isWeekly,
+              let session = snapshot.session, session.tokens.total > 0 else { return nil }
+        return SessionPrimary(tokens: session.tokens, startedAt: session.startedAt)
+    }
+
     private var header: some View {
         HStack(spacing: 5) {
             Image(systemName: provider.symbolName)
@@ -79,60 +95,61 @@ struct ProviderCardView: View {
 
         VStack(alignment: .leading, spacing: 7) {
             if let metric = GaugeMetric.from(snapshot) {
-                let tint = Theme.riskTint(
-                    used: metric.used,
-                    projectedToRunOut: !metric.isWeekly && burn?.exhaustsAt != nil,
-                    warningAt: settings.warningThresholdPercent,
-                    criticalAt: settings.criticalThresholdPercent
-                )
-                Text("\(Int(metric.remaining.rounded()))%")
-                    .font(Theme.numeral(30))
-                    .monospacedDigit()
-                    .foregroundStyle(tint)
-                    .contentTransition(.numericText())
-                GaugeLabel(text: metric.isWeekly ? "OF WEEKLY LIMIT LEFT" : "OF 5H SESSION LEFT")
-                SegmentedMeter(percent: metric.remaining, segments: 12, tint: tint, height: 8)
-
-                if let resets = resetDate(snapshot, metric: metric) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        GaugeLabel(text: "RESETS • \(Format.time(resets))")
-                        Text(Format.countdown(to: resets))
-                            .font(Theme.body(15, weight: .bold))
-                            .monospacedDigit()
-                            .foregroundStyle(Theme.textPrimary)
+                if metric.isWeekly, let sessionPrimary = Self.sessionPrimaryLayout(snapshot) {
+                    // Weekly-only plan: the current session's real tokens take
+                    // the headline (same "current window" concept as Claude's
+                    // 5h percent, without fabricating one), and the weekly cap
+                    // drops to the secondary block below.
+                    Text(Format.tokens(sessionPrimary.tokens.total))
+                        .font(Theme.numeral(24))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textPrimary)
+                        .contentTransition(.numericText())
+                    GaugeLabel(text: "CURRENT SESSION · NO DAILY CAP REPORTED")
+                    if let startedAt = sessionPrimary.startedAt {
+                        GaugeLabel(text: "STARTED \(Format.relative(startedAt))", color: Theme.textFaint, size: 8)
                     }
-                }
-
-                // Secondary window: same visual pattern as the headline,
-                // smaller scale — the weekly cap under the 5h session window.
-                if !metric.isWeekly, let secondary = Self.secondaryScope(snapshot) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        let tint = Theme.riskTint(
-                            used: secondary.usedPercent,
-                            projectedToRunOut: false,
+                    if let weeklyPercent = snapshot.weekly?.usedPercent {
+                        weeklySecondaryBlock(
+                            secondary: SecondaryScope(usedPercent: weeklyPercent, resetsAt: snapshot.weekly?.resetsAt),
                             warningAt: settings.warningThresholdPercent,
                             criticalAt: settings.criticalThresholdPercent
                         )
-                        HStack(alignment: .firstTextBaseline, spacing: 5) {
-                            Text("\(Int(max(0, 100 - secondary.usedPercent).rounded()))%")
-                                .font(Theme.numeral(15))
+                    }
+                } else {
+                    let tint = Theme.riskTint(
+                        used: metric.used,
+                        projectedToRunOut: !metric.isWeekly && burn?.exhaustsAt != nil,
+                        warningAt: settings.warningThresholdPercent,
+                        criticalAt: settings.criticalThresholdPercent
+                    )
+                    Text("\(Int(metric.remaining.rounded()))%")
+                        .font(Theme.numeral(30))
+                        .monospacedDigit()
+                        .foregroundStyle(tint)
+                        .contentTransition(.numericText())
+                    GaugeLabel(text: metric.isWeekly ? "OF WEEKLY LIMIT LEFT" : "OF 5H SESSION LEFT")
+                    SegmentedMeter(percent: metric.remaining, segments: 12, tint: tint, height: 8)
+
+                    if let resets = resetDate(snapshot, metric: metric) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            GaugeLabel(text: "RESETS • \(Format.time(resets))")
+                            Text(Format.countdown(to: resets))
+                                .font(Theme.body(15, weight: .bold))
                                 .monospacedDigit()
-                                .foregroundStyle(tint)
-                            GaugeLabel(text: "OF WEEKLY LIMIT LEFT", color: Theme.textFaint, size: 8)
-                            Spacer(minLength: 0)
-                        }
-                        SegmentedMeter(percent: max(0, 100 - secondary.usedPercent), segments: 12, tint: tint, height: 4)
-                        if let resets = secondary.resetsAt {
-                            HStack(spacing: 5) {
-                                GaugeLabel(text: "RESETS • \(Format.time(resets))", color: Theme.textFaint, size: 8)
-                                Text(Format.countdown(to: resets))
-                                    .font(Theme.body(12, weight: .bold))
-                                    .monospacedDigit()
-                                    .foregroundStyle(Theme.textSecondary)
-                            }
+                                .foregroundStyle(Theme.textPrimary)
                         }
                     }
-                    .padding(.top, 1)
+
+                    // Secondary window: same visual pattern as the headline,
+                    // smaller scale — the weekly cap under the 5h session window.
+                    if !metric.isWeekly, let secondary = Self.secondaryScope(snapshot) {
+                        weeklySecondaryBlock(
+                            secondary: secondary,
+                            warningAt: settings.warningThresholdPercent,
+                            criticalAt: settings.criticalThresholdPercent
+                        )
+                    }
                 }
             } else if let tokens = fallbackTokens(snapshot) {
                 // No official quota exists for this window (e.g. Codex plans
@@ -228,6 +245,40 @@ struct ProviderCardView: View {
 
     private func resetDate(_ snapshot: UsageSnapshot, metric: GaugeMetric) -> Date? {
         metric.isWeekly ? snapshot.weekly?.resetsAt : snapshot.session?.resetsAt
+    }
+
+    /// The weekly cap rendered as a secondary block — smaller scale of the
+    /// headline pattern, shared by the Claude layout (under the 5h percent)
+    /// and the Codex layout (under the session-token headline).
+    @ViewBuilder
+    private func weeklySecondaryBlock(secondary: SecondaryScope, warningAt: Double, criticalAt: Double) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            let tint = Theme.riskTint(
+                used: secondary.usedPercent,
+                projectedToRunOut: false,
+                warningAt: warningAt,
+                criticalAt: criticalAt
+            )
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text("\(Int(max(0, 100 - secondary.usedPercent).rounded()))%")
+                    .font(Theme.numeral(15))
+                    .monospacedDigit()
+                    .foregroundStyle(tint)
+                GaugeLabel(text: "OF WEEKLY LIMIT LEFT", color: Theme.textFaint, size: 8)
+                Spacer(minLength: 0)
+            }
+            SegmentedMeter(percent: max(0, 100 - secondary.usedPercent), segments: 12, tint: tint, height: 4)
+            if let resets = secondary.resetsAt {
+                HStack(spacing: 5) {
+                    GaugeLabel(text: "RESETS • \(Format.time(resets))", color: Theme.textFaint, size: 8)
+                    Text(Format.countdown(to: resets))
+                        .font(Theme.body(12, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textSecondary)
+                }
+            }
+        }
+        .padding(.top, 1)
     }
 
     private func fallbackTokens(_ snapshot: UsageSnapshot) -> Int? {

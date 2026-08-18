@@ -42,3 +42,41 @@ final class ProviderCardViewTests: XCTestCase {
         XCTAssertNil(ProviderCardView.secondaryScope(snap))
     }
 }
+
+// MARK: - Session-primary layout (weekly-only plans, e.g. Codex Pro)
+
+extension ProviderCardViewTests {
+    private func weeklyOnlySnapshot(sessionTokens: TokenUsage, sessionPercent: Double? = nil) -> UsageSnapshot {
+        UsageSnapshot(
+            provider: .codex,
+            health: .ok,
+            session: SessionUsage(
+                tokens: sessionTokens,
+                startedAt: Date(timeIntervalSince1970: 1_700_000_100),
+                usedPercent: sessionPercent
+            ),
+            weekly: WeeklyUsage(usedPercent: 55, resetsAt: Date(timeIntervalSince1970: 1_700_000_000))
+        )
+    }
+
+    func testSessionPrimaryLayoutWhenWeeklyOnlyAndSessionTokens() {
+        let snap = weeklyOnlySnapshot(sessionTokens: TokenUsage(input: 5_000, output: 2_000))
+        let layout = ProviderCardView.sessionPrimaryLayout(snap)
+        XCTAssertEqual(layout?.tokens.total, 7_000)
+        XCTAssertEqual(layout?.startedAt, Date(timeIntervalSince1970: 1_700_000_100))
+    }
+
+    func testSessionPrimaryLayoutNilWhenSessionPercentExists() {
+        let snap = weeklyOnlySnapshot(sessionTokens: TokenUsage(input: 5_000, output: 2_000), sessionPercent: 10)
+        XCTAssertNil(ProviderCardView.sessionPrimaryLayout(snap))
+    }
+
+    func testSessionPrimaryLayoutNilWhenSessionHasNoTokens() {
+        XCTAssertNil(ProviderCardView.sessionPrimaryLayout(weeklyOnlySnapshot(sessionTokens: .zero)))
+    }
+
+    func testSessionPrimaryLayoutNilWhenNoGauge() {
+        let snap = UsageSnapshot(provider: .codex, health: .ok)
+        XCTAssertNil(ProviderCardView.sessionPrimaryLayout(snap))
+    }
+}
