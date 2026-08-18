@@ -37,6 +37,21 @@ struct ProviderCardView: View {
         )
     }
 
+    /// Secondary window shown under the headline when the provider has BOTH
+    /// a session scope and a weekly scope (e.g. Claude/Anthropic plans with a
+    /// 5h window AND a weekly cap). Nil when the headline already IS the
+    /// weekly, or when no official weekly percent exists.
+    struct SecondaryScope: Equatable {
+        let usedPercent: Double
+        let resetsAt: Date?
+    }
+
+    static func secondaryScope(_ snapshot: UsageSnapshot) -> SecondaryScope? {
+        guard snapshot.session?.usedPercent != nil,
+              let weekly = snapshot.weekly?.usedPercent else { return nil }
+        return SecondaryScope(usedPercent: weekly, resetsAt: snapshot.weekly?.resetsAt)
+    }
+
     private var header: some View {
         HStack(spacing: 5) {
             Image(systemName: provider.symbolName)
@@ -86,6 +101,38 @@ struct ProviderCardView: View {
                             .monospacedDigit()
                             .foregroundStyle(Theme.textPrimary)
                     }
+                }
+
+                // Secondary window: same visual pattern as the headline,
+                // smaller scale — the weekly cap under the 5h session window.
+                if !metric.isWeekly, let secondary = Self.secondaryScope(snapshot) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        let tint = Theme.riskTint(
+                            used: secondary.usedPercent,
+                            projectedToRunOut: false,
+                            warningAt: settings.warningThresholdPercent,
+                            criticalAt: settings.criticalThresholdPercent
+                        )
+                        HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            Text("\(Int(max(0, 100 - secondary.usedPercent).rounded()))%")
+                                .font(Theme.numeral(15))
+                                .monospacedDigit()
+                                .foregroundStyle(tint)
+                            GaugeLabel(text: "OF WEEKLY LIMIT LEFT", color: Theme.textFaint, size: 8)
+                            Spacer(minLength: 0)
+                        }
+                        SegmentedMeter(percent: max(0, 100 - secondary.usedPercent), segments: 12, tint: tint, height: 4)
+                        if let resets = secondary.resetsAt {
+                            HStack(spacing: 5) {
+                                GaugeLabel(text: "RESETS • \(Format.time(resets))", color: Theme.textFaint, size: 8)
+                                Text(Format.countdown(to: resets))
+                                    .font(Theme.body(12, weight: .bold))
+                                    .monospacedDigit()
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                        }
+                    }
+                    .padding(.top, 1)
                 }
             } else if let tokens = fallbackTokens(snapshot) {
                 // No official quota exists for this window (e.g. Codex plans
