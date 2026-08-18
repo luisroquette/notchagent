@@ -73,3 +73,20 @@ final class CodexSessionBudgetTests: XCTestCase {
         XCTAssertEqual(CodexProvider.estimatedSessionPercent(tokens: 0, budget: 1_000), 0)
     }
 }
+
+// MARK: - Default session budget
+
+final class CodexBudgetDefaultTests: XCTestCase {
+    func testDefaultSessionBudgetWhenKeyAbsent() throws {
+        let settings = try JSONDecoder().decode(AppSettings.self, from: Data("{}".utf8))
+        XCTAssertEqual(settings.codexSessionTokenBudget, 5_000_000_000)
+    }
+
+    func testExplicitBudgetWinsOverDefault() throws {
+        let settings = try JSONDecoder().decode(
+            AppSettings.self,
+            from: Data(#"{"codexSessionTokenBudget": 12345}"#.utf8)
+        )
+        XCTAssertEqual(settings.codexSessionTokenBudget, 12_345)
+    }
+}
