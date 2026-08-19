@@ -371,24 +371,28 @@ public enum MascotMindCore {
     }
 
     /// Weighted roulette over the catalog gestures for the moment, filtered
-    /// by mood affinity and never the same gesture twice in a row.
+    /// by mood affinity and never the same gesture twice in a row. The
+    /// catalog is the invariant: if the mood has no affinity for any
+    /// eligible gesture, the whole catalog is weighted equally instead —
+    /// the reaction ALWAYS belongs to its moment.
     public static func chooseGesture(
         state: MascotMindState,
         moment: DelightMoment,
         rng: inout some RandomNumberGenerator
     ) -> MascotGesture {
         let affinity = gestureAffinity(state.mood)
-        let candidates = DelightCatalog.gestures(for: moment).filter {
-            $0 != state.lastGesture && affinity[$0] != nil
-        }
-        guard !candidates.isEmpty else { return .blink }
-        let total = candidates.reduce(0.0) { $0 + (affinity[$1] ?? 0) }
+        let catalog = DelightCatalog.gestures(for: moment)
+        let eligible = catalog.filter { $0 != state.lastGesture }
+        guard !eligible.isEmpty else { return catalog.first ?? .blink }
+        let moodAligned = eligible.filter { affinity[$0] != nil }
+        let pool = moodAligned.isEmpty ? eligible : moodAligned
+        let total = pool.reduce(0.0) { $0 + (affinity[$1] ?? 0.5) }
         var roll = Double.random(in: 0..<total, using: &rng)
-        for gesture in candidates {
-            roll -= affinity[gesture] ?? 0
+        for gesture in pool {
+            roll -= affinity[gesture] ?? 0.5
             if roll <= 0 { return gesture }
         }
-        return candidates.last ?? .blink
+        return pool.last ?? catalog.first ?? .blink
     }
 
     /// Unprompted gesture: the mascot acts on its own, more when energetic.
