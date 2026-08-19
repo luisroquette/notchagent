@@ -428,6 +428,24 @@ public enum PuppetMotion {
         return 0.35 - lift / 24 * 0.15
     }
 
+    /// The ground shadow's rect inside the canvas: shrinks with the lift
+    /// scale, anchored under the sprite's feet, and clamped so it never
+    /// bleeds past the canvas bottom — in tight slots (44×28 rows) the
+    /// letterboxed sprite's feet sit at the canvas edge.
+    public static func shadowRect(
+        spriteRect: CGRect,
+        canvasSize: CGSize,
+        scale: Double
+    ) -> CGRect {
+        let height = max(1.5, spriteRect.height * 0.09 * scale)
+        return CGRect(
+            x: spriteRect.midX - spriteRect.width * 0.30 * scale,
+            y: min(spriteRect.maxY - 1.5, canvasSize.height - height),
+            width: spriteRect.width * 0.60 * scale,
+            height: height
+        )
+    }
+
     /// Interruption blend: when a new gesture cuts an in-flight one
     /// (a poke mid-bob, an alert mid-hop), the puppet crossfades over
     /// `blendDuration` from where it was to where the new sequence says
@@ -452,16 +470,19 @@ public enum PuppetMotion {
         )
     }
 
-    /// The eyes are DERIVED, not stored: blink always wins, a startle
-    /// opens wide before settling into annoyance, drowsy contexts wear
-    /// heavy lids, excited contexts open wide.
+    /// The eyes are DERIVED, not stored: blink always wins, a nuzzle
+    /// closes them in pleasure, a startle opens wide before settling
+    /// into annoyance, drowsy contexts wear heavy lids, excited
+    /// contexts open wide.
     public static func derivedEyeState(
         context: MascotContext?,
         poke: PokeVariant?,
         elapsed: Double,
-        blinking: Bool
+        blinking: Bool,
+        bob: BobVariant? = nil
     ) -> EyeState {
         if blinking { return .closed }
+        if bob == .nuzzle { return .closed }
         if let poke {
             switch poke {
             case .startleJump: return elapsed < 0.25 ? .wide : .annoyed
@@ -507,8 +528,6 @@ public struct MascotPuppetView: View {
     /// The head band: above this y a touch is "on top", below it "on the
     /// body" (caresses need the head; the crush releases past the top).
     private var headZoneTopY: Double { slotSize.height * 0.375 }
-    /// Below this y a touch comes from under the mascot.
-    private var bottomZoneY: Double { slotSize.height * 0.625 }
     /// The caress zone: the upper half of the slot.
     private var headZoneMaxY: Double { slotSize.height / 2 }
 
@@ -537,6 +556,9 @@ public struct MascotPuppetView: View {
     /// While a hard finger stays on top, the crush keeps deepening —
     /// nil when the finger lifts or leaves the head zone.
     @State private var crushingSince: Date?
+    /// The blink loop, so it can be cancelled when the view goes away —
+    /// an uncancelled loop would keep ticking on a dead view forever.
+    @State private var blinkTask: Task<Void, Never>?
     // Interruption blend: the pose where the last gesture was cut and
     // when — the new sequence crossfades in from there instead of
     // snapping.
@@ -581,11 +603,10 @@ public struct MascotPuppetView: View {
                 // and fades as the mascot lifts, and never follows the
                 // pose's rotation — contact lives on the ground.
                 let shadowScale = PuppetMotion.shadowScale(offsetY: pose.offsetY)
-                let shadowRect = CGRect(
-                    x: spriteRect.midX - spriteRect.width * 0.30 * shadowScale,
-                    y: spriteRect.maxY - 1.5,
-                    width: spriteRect.width * 0.60 * shadowScale,
-                    height: max(1.5, spriteRect.height * 0.09 * shadowScale)
+                let shadowRect = PuppetMotion.shadowRect(
+                    spriteRect: spriteRect,
+                    canvasSize: size,
+                    scale: shadowScale
                 )
                 context.fill(
                     Path(ellipseIn: shadowRect),
@@ -632,8 +653,9 @@ public struct MascotPuppetView: View {
                         context: activeContext,
                         poke: activePoke,
                         elapsed: animationStart.map { timeline.date.timeIntervalSince($0) } ?? 0,
+                        blinking: isBlinking,
                         // A nuzzle closes the eyes — pleasure, not alarm.
-                        blinking: isBlinking || (activeBob == .nuzzle && animationStart != nil)
+                        bob: animationStart != nil ? activeBob : nil
                     )
                     drawFace(state: eyes, context: layer, rect: spriteRect)
                 }
@@ -653,6 +675,11 @@ public struct MascotPuppetView: View {
             startBlinking()
             // The expand already published a contextual request; play it.
             play(mind.animationRequest)
+        }
+        .onDisappear {
+            // The loop dies with the view — no zombie blinks.
+            blinkTask?.cancel()
+            blinkTask = nil
         }
         .onChange(of: mind.animationRequest) { _, request in
             play(request)
@@ -772,6 +799,9 @@ public struct MascotPuppetView: View {
         useFollowThrough = DelightCatalog.followThrough(for: .poke)
         activeContext = .poke
         activePoke = variant
+        // A poke after a caress must not inherit the nuzzle's closed
+        // eyes — the poke owns its expression.
+        activeBob = nil
         play(
             poke: variant,
             pokeSide: fromLeft ? -1 : 1,
@@ -793,6 +823,7 @@ public struct MascotPuppetView: View {
         useFollowThrough = DelightCatalog.followThrough(for: .playful)
         activeContext = .playful
         activePoke = nil
+        activeBob = nil
         play(
             poke: .startleJump,
             pokeSide: fromLeft ? -1 : 1,
@@ -814,6 +845,7 @@ public struct MascotPuppetView: View {
         useFollowThrough = DelightCatalog.followThrough(for: .poke)
         activeContext = .poke
         activePoke = .shrinkSulk
+        activeBob = nil
         play(poke: .shrinkSulk, pokeSide: fromLeft ? -1 : 1, intensity: 1.6)
         crushingSince = now
     }
@@ -1058,8 +1090,10 @@ public struct MascotPuppetView: View {
 
     /// "Olhos piscando sempre": an irregular blink loop that runs the
     /// whole time the mascot is on screen, pausing while a bob/poke plays.
+    /// One loop per view — recycled views never stack loops.
     private func startBlinking() {
-        Task { @MainActor in
+        guard blinkTask == nil else { return }
+        blinkTask = Task { @MainActor in
             while !Task.isCancelled {
                 var rng = SystemRandomNumberGenerator()
                 let interval = PuppetMotion.blinkInterval(rng: &rng)

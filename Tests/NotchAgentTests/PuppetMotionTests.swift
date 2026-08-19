@@ -667,4 +667,54 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertEqual(steps.last?.rotationDegrees, 0)
         XCTAssertEqual(steps.last?.offsetY, 0)
     }
+
+    // MARK: Nuzzle eyes + shadow rect (lapidação L2)
+
+    // REGRESSÃO: um poke depois de um carinho herdava o activeBob .nuzzle
+    // residual e ficava de olhos fechados — a regra agora vive no estado
+    // derivado, que só fecha os olhos quando o nuzzle REALMENTE toca.
+    func testNuzzleClosesEyesOnlyWhileItPlays() {
+        XCTAssertEqual(
+            PuppetMotion.derivedEyeState(context: .calm, poke: nil, elapsed: 0, blinking: false, bob: .nuzzle),
+            .closed,
+            "a nuzzle closes the eyes in pleasure"
+        )
+        XCTAssertEqual(
+            PuppetMotion.derivedEyeState(context: .poke, poke: .annoyedWiggle, elapsed: 0.5, blinking: false, bob: nil),
+            .annoyed,
+            "a poke after a caress keeps its annoyed eyes"
+        )
+        XCTAssertEqual(
+            PuppetMotion.derivedEyeState(context: .calm, poke: nil, elapsed: 0, blinking: false, bob: .swingUpDown),
+            .open,
+            "any other gesture leaves the eyes open"
+        )
+    }
+
+    // REGRESSÃO: no slot 44×28 da página de modelos o sprite letterboxado
+    // encosta na borda do canvas e a sombra sangrava ~1pt para fora.
+    func testShadowRectStaysInsideTightCanvas() {
+        // 44×28 row: sprite rect fills the height, feet at the edge.
+        let spriteRect = CGRect(x: 1.85, y: 0, width: 40.3, height: 28)
+        let rect = PuppetMotion.shadowRect(spriteRect: spriteRect, canvasSize: CGSize(width: 44, height: 28), scale: 1)
+        XCTAssertLessThanOrEqual(rect.maxY, 28, "shadow must not bleed past the canvas bottom")
+        XCTAssertGreaterThanOrEqual(rect.minY, 0)
+    }
+
+    func testShadowRectUnchangedInRoomierCanvas() {
+        // The 64pt card keeps its original anchor: under the sprite's
+        // feet, no clamp needed.
+        let spriteRect = CGRect(x: 0, y: 9.8, width: 64, height: 44.4)
+        let rect = PuppetMotion.shadowRect(spriteRect: spriteRect, canvasSize: CGSize(width: 64, height: 64), scale: 1)
+        XCTAssertEqual(rect.minY, spriteRect.maxY - 1.5, accuracy: 0.001)
+        XCTAssertLessThanOrEqual(rect.maxY, 64)
+    }
+
+    func testShadowRectShrinksWithLiftScale() {
+        let spriteRect = CGRect(x: 0, y: 9.8, width: 64, height: 44.4)
+        let full = PuppetMotion.shadowRect(spriteRect: spriteRect, canvasSize: CGSize(width: 64, height: 64), scale: 1)
+        let lifted = PuppetMotion.shadowRect(spriteRect: spriteRect, canvasSize: CGSize(width: 64, height: 64), scale: 0.7)
+        XCTAssertLessThan(lifted.width, full.width)
+        XCTAssertEqual(lifted.midX, full.midX, accuracy: 0.001, "the shadow stays centered under the mascot")
+    }
 }
