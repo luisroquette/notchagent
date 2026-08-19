@@ -126,7 +126,9 @@ struct SettingsView: View {
 
             Section(pt ? "Ambiente" : "Ambience") {
                 Toggle(
-                    pt ? "Ambiente climático na página Now" : "Weather ambience on the Now page",
+                    pt
+                        ? "Clima de fundo no painel (desligado = fundo preto)"
+                        : "Weather background in the panel (off = plain black)",
                     isOn: $preferences.settings.weatherEnabled
                 )
                 TextField(
