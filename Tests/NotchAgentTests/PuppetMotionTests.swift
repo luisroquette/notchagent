@@ -123,12 +123,13 @@ final class PuppetMotionTests: XCTestCase {
     // MARK: Continuous eye motion (a lid that drops and rises, features that fade)
 
     func testBlinkAmountIsAContinuousCycle() {
-        // 0 = open, 1 = closed — the lid drops over 0.14s, rises over
-        // 0.14s, and is gone outside the cycle. Never a state swap.
+        // 0 = open, 1 = closed — the lid drops over 0.16s, holds shut
+        // for 0.04s, rises over 0.24s, gone outside the cycle. Never a
+        // state swap.
         XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: 0), 0, accuracy: 0.001)
         XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: -0.1), 0, accuracy: 0.001)
-        XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: 0.28), 0, accuracy: 0.001)
-        XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: 0.14), 1, accuracy: 0.001, "fully closed at mid-cycle")
+        XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: 0.18), 1, accuracy: 0.001, "shut during the hold")
+        XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: 0.44), 0, accuracy: 0.001, "open again at the cycle end")
         XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: 1.0), 0, accuracy: 0.001, "no blink after the cycle ended")
     }
 
@@ -137,7 +138,7 @@ final class PuppetMotionTests: XCTestCase {
         // small bound — the lid glides, it never teleports.
         var previous = PuppetMotion.blinkAmount(elapsed: 0)
         var t = 0.0
-        while t <= 0.28 {
+        while t <= 0.44 {
             t += 0.016
             let amount = PuppetMotion.blinkAmount(elapsed: t)
             XCTAssertLessThanOrEqual(abs(amount - previous), 0.25, "lid jumped at t=\(t)")

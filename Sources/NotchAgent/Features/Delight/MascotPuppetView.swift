@@ -88,18 +88,24 @@ public enum PuppetMotion {
     )
 
     /// A blink is a LID that drops and rises, not a state swap:
-    /// 0 = open, 1 = fully closed, back to 0 — 0.14s down, 0.14s up,
-    /// ease in-out on both legs. The view draws a body-color band of
-    /// height `eyeHeight × amount` over the embedded eye, so the lid
-    /// geometrically covers and uncovers it.
+    /// 0 = open, 1 = fully closed, back to 0. Human-like timing: a
+    /// quick drop (0.16s), a beat shut (0.04s), a slower rise (0.24s)
+    /// — the rise is what makes a blink READ at mascot size. The view
+    /// draws a body-color band of height `eyeHeight × amount` over the
+    /// embedded eye, so the lid geometrically covers and uncovers it.
     public static func blinkAmount(elapsed: Double) -> Double {
-        let down = 0.14
-        let up = 0.14
-        guard elapsed >= 0, elapsed <= down + up else { return 0 }
+        let down = 0.16
+        let hold = 0.04
+        let up = 0.24
+        let total = down + hold + up
+        guard elapsed >= 0, elapsed <= total else { return 0 }
         if elapsed < down {
             return ease(elapsed / down, profile: .standard)
         }
-        return ease(1 - (elapsed - down) / up, profile: .standard)
+        if elapsed < down + hold {
+            return 1
+        }
+        return ease(1 - (elapsed - down - hold) / up, profile: .standard)
     }
 
     /// Expression features breathe instead of snapping: opacity ramps
@@ -1191,10 +1197,12 @@ public struct MascotPuppetView: View {
                 }
                 continue
             }
-            // Replacement patch with the gesture's fade: covers the
-            // embedded eye gradually on the way in, reveals it gradually
-            // on the way out.
-            context.fill(Path(eyeRect), with: .color(patch.opacity(opacity)))
+            // Replacement patch rides a FASTER fade than the feature:
+            // a half-transparent patch would let the embedded eye ghost
+            // through it — the old 'two eyes' bug in translucent form.
+            // The patch lands in ~60ms; the feature breathes at its own
+            // pace.
+            context.fill(Path(eyeRect), with: .color(patch.opacity(min(opacity * 2.5, 1))))
 
             switch state {
             case .annoyed:
