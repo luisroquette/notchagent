@@ -59,7 +59,18 @@ struct WeatherSkyView: View {
                     case .drizzle, .rain, .heavyRain, .freezingRain:
                         if reduceMotion { StaticClouds(density: 1.2) } else { CloudDrift(density: 1.2, windKmh: snapshot.windSpeedKmh) }
                     case .snow, .heavySnow:
-                        if reduceMotion { StaticClouds(density: 1.1) } else { CloudDrift(density: 1.1, windKmh: snapshot.windSpeedKmh) }
+                        ZStack {
+                            // Blizzard: a dense white mist kills contrast,
+                            // like real whiteout.
+                            if snapshot.condition == .heavySnow {
+                                Color.white.opacity(0.10)
+                            }
+                            if reduceMotion {
+                                StaticClouds(density: 1.1)
+                            } else {
+                                CloudDrift(density: 1.1, windKmh: snapshot.windSpeedKmh)
+                            }
+                        }
                     case .thunderstorm, .severeThunderstorm:
                         StormClouds(pulsing: !reduceMotion)
                     }
@@ -179,8 +190,26 @@ struct WeatherForegroundOverlay: View {
                     } else {
                         windDust(snapshot)
                     }
-                case .cloudy, .fog:
-                    windDust(snapshot)
+                case .cloudy:
+                    // Depth: a second cloud layer slides CLOSE to the
+                    // viewer (faster, bigger, fainter) over the sky layer.
+                    if snapshot.isDay {
+                        if reduceMotion {
+                            Color.clear
+                        } else {
+                            FrontCloudDrift(windKmh: snapshot.windSpeedKmh)
+                        }
+                    } else {
+                        windDust(snapshot)
+                    }
+                case .fog:
+                    // Fog masses dragged right in front of the viewer —
+                    // "suspensão de gotículas no ar".
+                    if reduceMotion {
+                        Color.clear
+                    } else {
+                        FrontFogDrift()
+                    }
                 }
             case .unavailable:
                 Color.clear
@@ -201,6 +230,67 @@ struct WeatherForegroundOverlay: View {
             }
         } else {
             Color.clear
+        }
+    }
+}
+
+/// The close cloud layer: bigger, faster, fainter than the sky clouds —
+/// parallax sells the depth between the two planes.
+private struct FrontCloudDrift: View {
+    let windKmh: Double
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+            Canvas { context, size in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                for index in 0..<3 {
+                    let seed = Double(index) * 1.61803398875
+                    let cloudWidth = 240.0 + seed.truncatingRemainder(dividingBy: 1) * 140
+                    let baseSpeed = 26.0 + seed.truncatingRemainder(dividingBy: 1) * 14
+                    let speed = baseSpeed * (1 + max(0, windKmh - 20) / 20 * 0.5)
+                    let span = size.width + cloudWidth * 2
+                    let x = (seed * 700.0 + t * speed).truncatingRemainder(dividingBy: span) - cloudWidth
+                    let y = 70.0 + seed.truncatingRemainder(dividingBy: 1) * (size.height * 0.4)
+                    let alpha = 0.03 + seed.truncatingRemainder(dividingBy: 1) * 0.025
+                    let color = Color(white: 0.8).opacity(alpha)
+                    for lobe in 0..<3 {
+                        let lx = x + Double(lobe) * cloudWidth * 0.35
+                        let ly = y + (lobe == 1 ? -16 : 6)
+                        let w = cloudWidth * (lobe == 1 ? 0.55 : 0.42)
+                        let h = w * 0.45
+                        context.fill(
+                            Path(ellipseIn: CGRect(x: lx, y: ly, width: w, height: h)),
+                            with: .color(color)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Fog masses passing right in front of the viewer — the "well near the
+/// foreground" layer from the Apple renderer.
+private struct FrontFogDrift: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+            Canvas { context, size in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                for index in 0..<3 {
+                    let seed = Double(index) * 1.61803398875
+                    let fogWidth = 320.0 + seed.truncatingRemainder(dividingBy: 1) * 180
+                    let speed = 12.0 + seed.truncatingRemainder(dividingBy: 1) * 8
+                    let span = size.width + fogWidth * 2
+                    let x = (seed * 900.0 + t * speed).truncatingRemainder(dividingBy: span) - fogWidth
+                    let y = 60.0 + seed.truncatingRemainder(dividingBy: 1) * (size.height - 80)
+                    let alpha = 0.04 + seed.truncatingRemainder(dividingBy: 1) * 0.04
+                    let rect = CGRect(x: x, y: y, width: fogWidth, height: 64)
+                    context.fill(
+                        Path(ellipseIn: rect),
+                        with: .color(Color(white: 0.78).opacity(alpha))
+                    )
+                }
+            }
         }
     }
 }
