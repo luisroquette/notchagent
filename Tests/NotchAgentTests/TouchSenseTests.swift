@@ -107,4 +107,37 @@ final class TouchSenseTests: XCTestCase {
         samples.append(sample(22, 15, at: 0.4))   // head left
         XCTAssertLessThan(TouchSense.caressReversalCount(samples, headZoneMaxY: 32), 2)
     }
+
+    // MARK: Entry zone (which edge the finger came through)
+
+    func testEntryZoneTop() {
+        // Coming down over the head — where a caress belongs.
+        XCTAssertEqual(TouchSense.entryZone(sample(32, 10, at: 0)), .top)
+        XCTAssertEqual(TouchSense.entryZone(sample(32, 23, at: 0)), .top)
+    }
+
+    func testEntryZoneBottom() {
+        // Coming up from below — where a hop belongs.
+        XCTAssertEqual(TouchSense.entryZone(sample(32, 55, at: 0)), .bottom)
+        XCTAssertEqual(TouchSense.entryZone(sample(32, 41, at: 0)), .bottom)
+    }
+
+    func testEntryZoneSide() {
+        // The far thirds — the corners the user pokes to show something.
+        XCTAssertEqual(TouchSense.entryZone(sample(8, 30, at: 0)), .side)
+        XCTAssertEqual(TouchSense.entryZone(sample(56, 30, at: 0)), .side)
+    }
+
+    func testEntryZoneCenter() {
+        // The middle of the body — the plain poke.
+        XCTAssertEqual(TouchSense.entryZone(sample(32, 32, at: 0)), .center)
+        XCTAssertEqual(TouchSense.entryZone(sample(32, 40, at: 0)), .center)
+    }
+
+    func testEntryZoneCornersWinOverTopAndBottom() {
+        // A corner entry (extreme x) is a side touch even when it is
+        // also high or low — the corners have their own grammar.
+        XCTAssertEqual(TouchSense.entryZone(sample(8, 10, at: 0)), .side)
+        XCTAssertEqual(TouchSense.entryZone(sample(56, 55, at: 0)), .side)
+    }
 }

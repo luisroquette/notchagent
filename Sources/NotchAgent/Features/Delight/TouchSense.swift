@@ -37,6 +37,29 @@ public enum TouchSense {
         case bump
     }
 
+    /// Which edge the finger entered through — direction and speed
+    /// together form the touch grammar: top+gentle is a caress,
+    /// top+fast is a crush, bottom is a hop, corners are glances (slow)
+    /// or annoyance (fast).
+    public enum TouchZone: Equatable, Sendable {
+        case top
+        case bottom
+        case side
+        case center
+    }
+
+    /// The entry edge from the FIRST hover sample. Corners (the far
+    /// horizontal thirds) win over top and bottom — the corners have
+    /// their own grammar. In a 64pt slot: side when |x − 32| > 16,
+    /// top when y < 24, bottom when y > 40, center in between.
+    public static func entryZone(_ sample: Sample, slotSize: Double = 64) -> TouchZone {
+        let half = slotSize / 2
+        if abs(sample.x - half) > half / 2 { return .side }
+        if sample.y < slotSize * 0.375 { return .top }
+        if sample.y > slotSize * 0.625 { return .bottom }
+        return .center
+    }
+
     /// Total distance the trail covered, in points (sum of consecutive
     /// segment lengths).
     public static func trailLength(_ samples: [Sample]) -> Double {

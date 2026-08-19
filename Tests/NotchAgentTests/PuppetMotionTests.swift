@@ -617,4 +617,54 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertEqual(PuppetMotion.nuzzleSteps(lean: 2)[0].rotationDegrees, 5, accuracy: 0.001)
         XCTAssertEqual(PuppetMotion.nuzzleSteps(lean: -2)[0].rotationDegrees, -5, accuracy: 0.001)
     }
+
+    // MARK: Crush (a hard finger pressing down from above)
+
+    func testCrushStartsAtBasePose() {
+        let base = MotionStep(scaleY: 0.9, rotationDegrees: 3, offsetY: -4, duration: 0)
+        XCTAssertEqual(PuppetMotion.crushPose(base: base, elapsed: 0), base)
+        XCTAssertEqual(PuppetMotion.crushPose(base: base, elapsed: -1), base, "before the crush there is no crush")
+    }
+
+    func testCrushDeepensMonotonicallyAndCaps() {
+        // The longer the finger stays, the deeper the squash — until the
+        // cap: a mascot can only be so flat.
+        let base = MotionStep.identity
+        let early = PuppetMotion.crushPose(base: base, elapsed: 0.2)
+        let later = PuppetMotion.crushPose(base: base, elapsed: 0.8)
+        let capped = PuppetMotion.crushPose(base: base, elapsed: 10)
+        XCTAssertGreaterThan(later.offsetY, early.offsetY, "the crush deepens while the finger stays")
+        XCTAssertLessThan(later.scaleY, early.scaleY, "the crush flattens while the finger stays")
+        XCTAssertEqual(capped.offsetY, 5, accuracy: 0.001, "depth caps at 5pt")
+        XCTAssertEqual(capped.scaleY, 0.88, accuracy: 0.001, "flattening caps at 12%")
+    }
+
+    func testCrushComposesWithAnActivePose() {
+        // The crush rides on top of whatever pose is playing — it sinks
+        // a shrinking sulk further without touching its rotation.
+        let base = MotionStep(scaleY: 0.81, rotationDegrees: 9, offsetY: 8, duration: 0)
+        let crushed = PuppetMotion.crushPose(base: base, elapsed: 0.5)
+        XCTAssertGreaterThan(crushed.offsetY, base.offsetY)
+        XCTAssertLessThan(crushed.scaleY, base.scaleY)
+        XCTAssertEqual(crushed.rotationDegrees, base.rotationDegrees, "the crush never twists")
+    }
+
+    // MARK: Corner glance (being shown something at the corner)
+
+    func testLookTurnsTowardTheCorner() {
+        let left = PuppetMotion.lookSteps(direction: -1)
+        let right = PuppetMotion.lookSteps(direction: 1)
+        XCTAssertLessThan(left[0].rotationDegrees, 0, "a left-corner glance turns left")
+        XCTAssertGreaterThan(right[0].rotationDegrees, 0, "a right-corner glance turns right")
+        XCTAssertLessThanOrEqual(abs(left[0].rotationDegrees), 14, "the glance must not become a fall")
+    }
+
+    func testLookHoldsTheGazeAndSettles() {
+        let steps = PuppetMotion.lookSteps(direction: 1)
+        XCTAssertGreaterThanOrEqual(steps.count, 3, "glance, hold, return")
+        XCTAssertEqual(steps[0].rotationDegrees, steps[1].rotationDegrees, "the gaze holds before returning")
+        XCTAssertEqual(steps.last?.scaleY, 1)
+        XCTAssertEqual(steps.last?.rotationDegrees, 0)
+        XCTAssertEqual(steps.last?.offsetY, 0)
+    }
 }

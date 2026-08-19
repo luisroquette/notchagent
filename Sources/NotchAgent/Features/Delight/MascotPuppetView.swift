@@ -142,6 +142,34 @@ public enum PuppetMotion {
         return steps
     }
 
+    /// A curious glance toward the corner being poked — like the finger
+    /// is showing something. Turns up to ±12°, holds the gaze, returns.
+    /// `direction`: -1 left corner, +1 right corner.
+    public static func lookSteps(direction: Double) -> [MotionStep] {
+        let turn = direction < 0 ? -12.0 : 12.0
+        return [
+            MotionStep(rotationDegrees: turn, offsetY: -2, duration: 0.25),
+            MotionStep(rotationDegrees: turn, offsetY: -2, duration: 0.3),
+            MotionStep(duration: 0.35),
+        ]
+    }
+
+    /// A hard finger pressing down from above flattens the mascot while
+    /// it stays: the pose sinks up to 5pt and shrinks up to 12% over
+    /// ~0.8s, riding on top of whatever animation is playing. Releases
+    /// the moment the finger lifts (the view stops feeding elapsed).
+    public static func crushPose(base: MotionStep, elapsed: Double) -> MotionStep {
+        guard elapsed > 0 else { return base }
+        let depth = min(5, elapsed * 6)
+        let shrink = min(0.12, elapsed * 0.1)
+        return MotionStep(
+            scaleY: base.scaleY * (1 - shrink),
+            rotationDegrees: base.rotationDegrees,
+            offsetY: base.offsetY + depth,
+            duration: 0
+        )
+    }
+
     /// Poke sequences: startled, annoyed, sulking — all visibly "didn't
     /// like that", all settling back.
     public static func pokeSteps(_ variant: PokeVariant, intensity: Double = 1) -> [MotionStep] {
@@ -493,6 +521,9 @@ public struct MascotPuppetView: View {
     @State private var caressSamples: [TouchSense.Sample] = []
     @State private var entryAt: Date?
     @State private var lastCaressAt = Date.distantPast
+    /// While a hard finger stays on top, the crush keeps deepening —
+    /// nil when the finger lifts or leaves the head zone.
+    @State private var crushingSince: Date?
     // Interruption blend: the pose where the last gesture was cut and
     // when — the new sequence crossfades in from there instead of
     // snapping.
@@ -518,7 +549,7 @@ public struct MascotPuppetView: View {
 
     public var body: some View {
         TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
-            let pose = reduceMotion
+            let basePose = reduceMotion
                 ? MotionStep.identity
                 : PuppetMotion.blendedPose(
                     from: interruptedPose,
@@ -532,6 +563,11 @@ public struct MascotPuppetView: View {
                     switchedAt: switchedAt,
                     now: timeline.date
                 )
+            // A hard finger on top keeps crushing while it stays — the
+            // rendered pose sinks and flattens on top of the animation.
+            let pose = crushingSince.map {
+                PuppetMotion.crushPose(base: basePose, elapsed: timeline.date.timeIntervalSince($0))
+            } ?? basePose
             Canvas { context, size in
                 // Aspect-preserving sprite rect, centered — the assets are
                 // wide (367×255); drawing into the square slot stretches
@@ -639,6 +675,10 @@ public struct MascotPuppetView: View {
                         triggerCaress(samples: caressSamples)
                         caressSamples = []
                     }
+                    // The finger lifted off the head: the crush releases.
+                    if crushingSince != nil, location.y >= 24 {
+                        crushingSince = nil
+                    }
                 }
             case .ended:
                 // A bump that crosses and leaves inside the window still
@@ -651,31 +691,62 @@ public struct MascotPuppetView: View {
                 entryAt = nil
                 entrySamples = []
                 caressSamples = []
+                crushingSince = nil
             }
         }
     }
 
-    /// The classification window closed: read tap vs bump from the entry
-    /// trail and react. The average entry x says which side the finger
-    /// came from.
+    /// The classification window closed: read the touch grammar — WHERE
+    /// the finger entered (zone) and HOW fast (kind) — and react. The
+    /// average entry x says which side the finger came from.
     private func finishTouch(samples: [TouchSense.Sample]) {
+        guard let first = samples.first else { return }
         let kind = TouchSense.classify(samples)
+        let zone = TouchSense.entryZone(first)
         let averageX = samples.map(\.x).reduce(0, +) / Double(max(samples.count, 1))
-        triggerPoke(kind: kind, fromLeft: averageX < 32.0)
+        let fromLeft = averageX < 32.0
+        switch zone {
+        case .top:
+            // Over the head: gentle closes the eyes like a puppy getting
+            // a caress; fast keeps crushing while the finger stays.
+            if kind == .bump {
+                triggerCrush(fromLeft: fromLeft)
+            } else {
+                triggerCaress(samples: samples)
+            }
+        case .bottom:
+            // From below: a little hop — higher when the finger comes fast.
+            triggerHop(kind: kind, fromLeft: fromLeft)
+        case .side:
+            // The corners: a slow poke glances toward what the finger is
+            // showing; a fast one is an annoying jab.
+            if kind == .bump {
+                triggerPoke(kind: kind, fromLeft: fromLeft, forcedVariant: .annoyedWiggle)
+            } else {
+                triggerLook(direction: fromLeft ? -1 : 1)
+            }
+        case .center:
+            triggerPoke(kind: kind, fromLeft: fromLeft)
+        }
     }
 
     /// A poke ALWAYS gets an annoyed reaction, and the reaction knows
     /// WHERE it came from AND how hard it struck — a gentle tap plays the
     /// variant at full force, a bump plays it at 1.6×. Personal: local
-    /// round-robin, this mascot only.
-    private func triggerPoke(kind: TouchSense.TouchKind, fromLeft: Bool) {
+    /// round-robin, this mascot only, unless the zone's grammar demands
+    /// a specific variant.
+    private func triggerPoke(
+        kind: TouchSense.TouchKind,
+        fromLeft: Bool,
+        forcedVariant: PokeVariant? = nil
+    ) {
         guard !reduceMotion else { return }
         let now = Date()
         guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
         lastPokeAt = now
         var cursor = pokeCursor
-        let variant = DelightCatalog.selectPoke(cursor: &cursor)
-        pokeCursor = cursor
+        let variant = forcedVariant ?? DelightCatalog.selectPoke(cursor: &cursor)
+        if forcedVariant == nil { pokeCursor = cursor }
         // The poke owns its travel personality — a poke right after a
         // drowsy greeting is still a snap, never the greeting's sluggish
         // leftovers.
@@ -690,6 +761,66 @@ public struct MascotPuppetView: View {
             pokeSide: fromLeft ? -1 : 1,
             intensity: kind == .bump ? 1.6 : 1
         )
+    }
+
+    /// A finger coming up from below: the mascot hops — a gentle little
+    /// hop for a slow approach, a full jump when the finger comes fast.
+    /// Playful, never annoyed: the eyes stay wide, not angry.
+    private func triggerHop(kind: TouchSense.TouchKind, fromLeft: Bool) {
+        guard !reduceMotion else { return }
+        let now = Date()
+        guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
+        lastPokeAt = now
+        easing = DelightCatalog.easing(for: .playful)
+        durationScale = PuppetMotion.durationScale(for: .playful)
+        useAnticipation = DelightCatalog.anticipation(for: .playful)
+        useFollowThrough = DelightCatalog.followThrough(for: .playful)
+        activeContext = .playful
+        activePoke = nil
+        play(
+            poke: .startleJump,
+            pokeSide: fromLeft ? -1 : 1,
+            intensity: kind == .bump ? 1.6 : 0.6
+        )
+    }
+
+    /// A hard finger from above: the shrink-sulk strike at 1.6×, and the
+    /// continuous crush begins — while the finger stays on top, the
+    /// mascot keeps sinking and flattening.
+    private func triggerCrush(fromLeft: Bool) {
+        guard !reduceMotion else { return }
+        let now = Date()
+        guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
+        lastPokeAt = now
+        easing = DelightCatalog.easing(for: .poke)
+        durationScale = PuppetMotion.durationScale(for: .poke)
+        useAnticipation = DelightCatalog.anticipation(for: .poke)
+        useFollowThrough = DelightCatalog.followThrough(for: .poke)
+        activeContext = .poke
+        activePoke = .shrinkSulk
+        play(poke: .shrinkSulk, pokeSide: fromLeft ? -1 : 1, intensity: 1.6)
+        crushingSince = now
+    }
+
+    /// A slow poke at the corner: the mascot glances toward it, eyes
+    /// wide with curiosity — like the finger is showing something.
+    private func triggerLook(direction: Double) {
+        guard !reduceMotion else { return }
+        let now = Date()
+        guard now.timeIntervalSince(lastCaressAt) >= caressCooldown else { return }
+        lastCaressAt = now
+        easing = .standard
+        durationScale = 1
+        useAnticipation = false
+        useFollowThrough = true
+        activeContext = .playful
+        activePoke = nil
+        activeBob = nil
+        begin(sequence: PuppetMotion.staged(
+            PuppetMotion.lookSteps(direction: direction),
+            anticipation: false,
+            followThrough: true
+        ))
     }
 
     /// A caress is the one touch the mascot LIKES: eyes close (via the
