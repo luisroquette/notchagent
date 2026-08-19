@@ -23,11 +23,16 @@ enum Theme {
     static let hairline = dynamic(dark: NSColor.white.withAlphaComponent(0.08), light: NSColor.black.withAlphaComponent(0.10))
 
     // Glass surfaces
-    /// Tint that sits on top of the material inside a liquid-glass block —
-    /// a barely-there white wash; the refraction behind it stays visible.
-    static let glassTint = dynamic(
-        dark: NSColor.white.withAlphaComponent(0.08),
-        light: NSColor.white.withAlphaComponent(0.30)
+    /// The see-through body of a liquid-glass block, brighter at the top rim
+    /// (specular) and nearly clear at the base. The sky behind stays clearly
+    /// visible through the wash.
+    static let glassTintTop = dynamic(
+        dark: NSColor.white.withAlphaComponent(0.09),
+        light: NSColor.white.withAlphaComponent(0.20)
+    )
+    static let glassTintBottom = dynamic(
+        dark: NSColor.white.withAlphaComponent(0.04),
+        light: NSColor.white.withAlphaComponent(0.10)
     )
 
     // Brand accent (Claude coral / terracotta) — deeper in light for contrast.
@@ -233,11 +238,15 @@ struct StatusPill: View {
     }
 }
 
-/// Liquid-glass surface ("Apple Liquid Glass" stand-in): the material frosts
-/// and shifts whatever is drawn BEHIND the block — the weather sky, the
-/// panel fill — standing in for refraction; a 1px gradient stroke is the
-/// glass edge, a top specular highlight catches the light, and two layered
-/// soft shadows lift the block off the background. Pure decoration.
+/// Liquid-glass surface ("Apple Liquid Glass" stand-in): a translucent
+/// vertical gradient lets whatever is drawn BEHIND the block — the weather
+/// sky, the panel fill — show through, standing in for refraction; a 1px
+/// gradient stroke is the glass edge, and two layered soft shadows lift the
+/// block off the background. Pure decoration. No NSVisualEffectView
+/// Material: in this transparent panel it renders as a milky near-opaque
+/// white, hiding the sky instead of frosting it. The specular rim lives
+/// INSIDE the background gradient — an overlay would sit above the content
+/// and wash out glyphs like the OpenAI knot.
 struct GlassCard: ViewModifier {
     var cornerRadius: CGFloat
 
@@ -245,9 +254,13 @@ struct GlassCard: ViewModifier {
         content
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Theme.glassTint)
+                    .fill(
+                        LinearGradient(
+                            colors: [Theme.glassTintTop, Theme.glassTintBottom],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
             }
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -263,18 +276,6 @@ struct GlassCard: ViewModifier {
                         ),
                         lineWidth: 1
                     )
-            }
-            .overlay(alignment: .top) {
-                RoundedRectangle(cornerRadius: max(cornerRadius - 1, 1), style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [.white.opacity(0.22), .white.opacity(0)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(height: cornerRadius * 1.5)
-                    .padding(1)
             }
             .shadow(color: .black.opacity(0.16), radius: 9, y: 4)
             .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
