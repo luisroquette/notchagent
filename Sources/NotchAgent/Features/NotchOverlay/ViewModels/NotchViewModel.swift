@@ -22,10 +22,6 @@ final class NotchViewModel {
 
     private(set) var mode: Mode = .compact
     var isPinned = false
-    /// Debug-mode override: with this set, NOTHING collapses the panel —
-    /// not Escape, not the close button, not hover-out. Used by
-    /// --debug-expand for visual verification sessions.
-    var debugNeverCollapse = false
     /// Live pointer-over state; dismiss flows use it to avoid collapsing the
     /// panel under the user's cursor.
     private(set) var isHovering = false
@@ -115,7 +111,6 @@ final class NotchViewModel {
     }
 
     func collapseNow() {
-        guard !debugNeverCollapse else { return }
         isPinned = false
         mode = .compact
     }

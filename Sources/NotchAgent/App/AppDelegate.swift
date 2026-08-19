@@ -45,7 +45,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.async {
                 AppEnvironment.shared.notchViewModel.expandedPage = 0
                 AppEnvironment.shared.notchViewModel.isPinned = true
-                AppEnvironment.shared.notchViewModel.debugNeverCollapse = true
                 AppEnvironment.shared.notchViewModel.forceExpand()
             }
         }
