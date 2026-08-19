@@ -37,6 +37,22 @@ struct ClaudeProvider: UsageProvider {
         self.init(roots: [root], probe: probe)
     }
 
+    /// The weekly percent derivation: the quota probe is authoritative,
+    /// then the local token-budget estimate. REGRESSÃO: both sources
+    /// absent silently produced nil and the card degraded to raw tokens —
+    /// the derivation is unit-tested so the contract stays visible.
+    static func weeklyUsedPercent(
+        quotaWeekly: Double?,
+        budget: Int?,
+        weekTokens: Int
+    ) -> Double? {
+        if let quotaWeekly { return quotaWeekly }
+        if let budget, budget > 0 {
+            return min(100, Double(weekTokens) / Double(budget) * 100)
+        }
+        return nil
+    }
+
     func detectInstallation() -> ProviderInstallation {
         for root in roots where FileManager.default.fileExists(atPath: root.path) {
             return .installed(dataPath: root.path)
@@ -59,6 +75,12 @@ struct ClaudeProvider: UsageProvider {
             quota = await probe.currentQuota()
             if let fetched = quota?.fetchedAt, now.timeIntervalSince(fetched) > 15 * 60 {
                 quota = nil
+            }
+            // REGRESSÃO do dia do domínio de prefs: um probe habilitado que
+            // entrega nil é o sintoma exato que custou horas — grava no
+            // arquivo para o próximo diagnóstico durar minutos.
+            if quota == nil {
+                LogFile.write("providers", "claude fetchSnapshot: probe enabled but quota nil — token? headers? network?")
             }
         }
         #if os(macOS)
@@ -177,10 +199,11 @@ struct ClaudeProvider: UsageProvider {
         let weekly = WeeklyUsage(
             tokens: weekTokens,
             cost: CostEstimate(amountUSD: weekCost),
-            usedPercent: quota?.weeklyPercent
-                ?? settings.claudeWeeklyTokenBudget.map { budget in
-                    min(100, Double(weekTokens.total) / Double(max(budget, 1)) * 100)
-                },
+            usedPercent: Self.weeklyUsedPercent(
+                quotaWeekly: quota?.weeklyPercent,
+                budget: settings.claudeWeeklyTokenBudget,
+                weekTokens: weekTokens.total
+            ),
             resetsAt: freshWeeklyReset,
             dailyTotals: byDay
                 .map { DailyTotal(day: $0.key, tokens: $0.value.tokens, costUSD: $0.value.cost) }

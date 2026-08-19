@@ -54,6 +54,7 @@ enum ClaudeTokenLocator {
         guard status == errSecSuccess, let data = item as? Data else {
             if status != errSecItemNotFound {
                 Log.providers.info("claude probe: keychain unavailable (status \(status, privacy: .public))")
+                LogFile.write("providers", "claude probe: keychain unavailable (status \(status))")
             }
             return nil
         }
@@ -120,6 +121,7 @@ actor ClaudeQuotaProbe {
             if !missingTokenLogged {
                 missingTokenLogged = true
                 Log.providers.info("claude probe: no OAuth token found — falling back to local budgets")
+            LogFile.write("providers", "claude probe: no OAuth token found")
             }
             lastAttempt = Date()
             return cache
@@ -165,6 +167,7 @@ actor ClaudeQuotaProbe {
                     cache = quota
                 }
                 Log.providers.debug("claude probe ok (\(model, privacy: .public), http \(http.statusCode, privacy: .public))")
+                LogFile.write("providers", "claude probe ok (\(model) http \(http.statusCode) weekly=\(String(describing: quota.weeklyPercent)) status=\(String(describing: quota.status))")
             } else {
                 // Was previously discarding `body` entirely on this path —
                 // "no rate-limit headers" alone doesn't say WHY (a real
@@ -180,6 +183,7 @@ actor ClaudeQuotaProbe {
         } catch {
             health[model] = ModelHealth(model: model, status: .error, latencyMs: nil, checkedAt: Date())
             Log.providers.error("claude probe failed: \(error.localizedDescription, privacy: .public)")
+            LogFile.write("providers", "claude probe failed: \(error.localizedDescription)")
             return cache
         }
     }
