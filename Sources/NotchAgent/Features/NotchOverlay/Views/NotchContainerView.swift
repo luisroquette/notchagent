@@ -9,9 +9,11 @@ struct NotchContainerView: View {
     @Environment(PreferencesStore.self) private var preferences
 
     /// Weather ambience lives on EVERY expanded page — the compact bar
-    /// stays untouched.
+    /// stays untouched. Threshold takeovers cover the whole panel, so the
+    /// animations go silent behind them instead of burning frames.
     private var ambienceActive: Bool {
         viewModel.isExpanded
+            && !viewModel.isAlertPresented
             && preferences.settings.weatherEnabled
     }
 
@@ -48,6 +50,7 @@ struct NotchContainerView: View {
                 if ambienceActive {
                     WeatherSkyView(phase: weather.phase)
                         .clipShape(panelShape)
+                        .accessibilityHidden(true)
                         .transition(.opacity)
                 }
 
@@ -59,6 +62,7 @@ struct NotchContainerView: View {
                 if ambienceActive {
                     WeatherForegroundOverlay(phase: weather.phase)
                         .clipShape(panelShape)
+                        .accessibilityHidden(true)
                         .transition(.opacity)
                 }
             }

@@ -603,8 +603,10 @@ private struct MoonView: View {
         let offset = (0.5 - phase) * 2 * 18
         let sky = Color(red: 0.06, green: 0.09, blue: 0.22)
         return ZStack {
+            // No opacity floor: a new moon must leave ONLY the halo — a
+            // residual disc would read as a half-lit moon.
             Circle()
-                .fill(Color(red: 0.94, green: 0.96, blue: 1.0).opacity(0.9 * lit + 0.08))
+                .fill(Color(red: 0.94, green: 0.96, blue: 1.0).opacity(0.9 * lit))
                 .frame(width: 18, height: 18)
             Circle()
                 .fill(sky)

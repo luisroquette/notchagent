@@ -145,6 +145,30 @@ final class WeatherStoreTests: XCTestCase {
         XCTAssertEqual(store.phase, .unavailable)
     }
 
+    // REGRESSÃO: a cidade manual geocodava a cada ciclo de 30 min. Depois
+    // da primeira resolução, as coords são persistidas com o nome — o
+    // segundo refresh reusa sem tocar no geocoding.
+    func testManualCityGeocodesOnceThenReusesCoordinates() async throws {
+        let defaults = freshDefaults()
+        let mock = MockWeather()
+        let (store, preferences) = makeStore(defaults: defaults, mock: mock, city: "Recife")
+
+        await store.refreshIfNeeded()
+        XCTAssertEqual(mock.geocodeCalls, 1)
+        XCTAssertEqual(preferences.settings.weatherCityResolved, "Recife")
+
+        // Second cycle (cache is fresh, so force stale by re-writing it).
+        let stale = WeatherSnapshot(
+            condition: .clear, temperatureC: 10, isDay: true,
+            city: "Recife, BR", capturedAt: Date().addingTimeInterval(-3600)
+        )
+        defaults.set(try JSONEncoder().encode(stale), forKey: "weather.snapshot")
+        await store.refreshIfNeeded()
+
+        XCTAssertEqual(mock.geocodeCalls, 1, "same city must reuse persisted coordinates")
+        XCTAssertEqual(mock.fetchCalls, 2, "fetch still runs every cycle")
+    }
+
     func testDecodeCacheHandlesGarbage() {
         XCTAssertNil(WeatherStore.decodeCache(Data("garbage".utf8)))
         XCTAssertNil(WeatherStore.decodeCache(nil))

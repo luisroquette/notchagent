@@ -77,7 +77,18 @@ final class WeatherStore {
     private func resolvePlace() async throws -> (lat: Double, lon: Double, name: String) {
         if let city = settings.settings.weatherCity,
            !city.trimmingCharacters(in: .whitespaces).isEmpty {
-            return try await service.geocode(city: city)
+            // The manual city's coordinates cache like the geo-IP ones:
+            // geocoding runs once per NEW city, not on every 30-min cycle.
+            if settings.settings.weatherCityResolved == city,
+               let lat = settings.settings.weatherLat,
+               let lon = settings.settings.weatherLon {
+                return (lat, lon, city)
+            }
+            let place = try await service.geocode(city: city)
+            settings.settings.weatherLat = place.lat
+            settings.settings.weatherLon = place.lon
+            settings.settings.weatherCityResolved = city
+            return place
         }
         if let lat = settings.settings.weatherLat, let lon = settings.settings.weatherLon {
             return (lat, lon, settings.settings.weatherCityResolved ?? "")
