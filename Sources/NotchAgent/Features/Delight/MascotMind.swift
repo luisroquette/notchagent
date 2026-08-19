@@ -51,7 +51,9 @@ public final class MascotMind {
     }
 
     /// Called when the panel expands. First expand of the day bumps
-    /// affection; other expands roll a ~20% random gesture.
+    /// affection; other expands roll a ~20% random gesture. Expand-triggered
+    /// reactions are scheduled AFTER the panel transition — a blink during
+    /// the 0.38s expand animation is invisible, the panel's motion swallows it.
     public func noteExpanded(now: Date = Date()) {
         lastInteractionAt = now
         isPanelOpen = true
@@ -59,11 +61,19 @@ public final class MascotMind {
         if MascotMindCore.firstExpandOfDay(state: state, dayKey: DelightSignals.dayKey(now)) {
             state.lastExpandedDay = DelightSignals.dayKey(now)
             state.affection = min(1, state.affection + DelightCatalog.affectionBump(firstExpandOfDay: true))
-            react(to: .firstExpandOfDay, now: now)
+            scheduleReaction(to: .firstExpandOfDay)
         } else if Double.random(in: 0..<1, using: &rng) < 0.2 {
-            react(to: .randomExpand, now: now)
+            scheduleReaction(to: .randomExpand)
         }
         saveSoon()
+    }
+
+    /// Delays a reaction until the panel has settled on screen.
+    private func scheduleReaction(to moment: DelightMoment) {
+        Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            self?.react(to: moment, now: Date())
+        }
     }
 
     /// Called when the panel collapses — the mascot never performs (or
@@ -134,6 +144,7 @@ public final class MascotMind {
         if gesture != .none, gesture != .ignored {
             perform(gesture)
         }
+        saveSoon()
     }
 
     private func perform(_ gesture: MascotGesture) {

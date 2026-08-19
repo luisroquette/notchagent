@@ -18,15 +18,18 @@ public enum PuppetMotion {
         }
     }
 
+    /// Amplitudes tuned to be SEEN on a 48pt sprite from across the screen:
+    /// under ~4pt of offset or ~5° of rotation the motion is invisible —
+    /// delight nobody notices is just a frame wasted.
     public static func parameters(for gesture: MascotGesture) -> Parameters {
         switch gesture {
-        case .blink: Parameters(scaleY: 0.88, rotationDegrees: 0, offsetY: 0, duration: 0.12)
-        case .tilt: Parameters(scaleY: 1, rotationDegrees: 7, offsetY: 0, duration: 0.35)
-        case .hop: Parameters(scaleY: 1, rotationDegrees: 0, offsetY: -8, duration: 0.4)
-        case .stretch: Parameters(scaleY: 1.07, rotationDegrees: 0, offsetY: 0, duration: 0.3)
-        case .nod: Parameters(scaleY: 1, rotationDegrees: 0, offsetY: 3, duration: 0.25)
-        case .yawn: Parameters(scaleY: 1.04, rotationDegrees: -4, offsetY: 0, duration: 0.5)
-        case .lookAtCursor: Parameters(scaleY: 1, rotationDegrees: 3, offsetY: 0, duration: 0.3)
+        case .blink: Parameters(scaleY: 0.78, rotationDegrees: 0, offsetY: 0, duration: 0.18)
+        case .tilt: Parameters(scaleY: 1, rotationDegrees: 10, offsetY: 0, duration: 0.35)
+        case .hop: Parameters(scaleY: 1, rotationDegrees: 0, offsetY: -12, duration: 0.4)
+        case .stretch: Parameters(scaleY: 1.10, rotationDegrees: 0, offsetY: 0, duration: 0.3)
+        case .nod: Parameters(scaleY: 0.96, rotationDegrees: 0, offsetY: 6, duration: 0.35)
+        case .yawn: Parameters(scaleY: 1.05, rotationDegrees: -6, offsetY: 0, duration: 0.5)
+        case .lookAtCursor: Parameters(scaleY: 1, rotationDegrees: 5, offsetY: 0, duration: 0.3)
         case .none, .ignored: Parameters(scaleY: 1, rotationDegrees: 0, offsetY: 0, duration: 0)
         }
     }
