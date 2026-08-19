@@ -31,7 +31,7 @@ public enum PokeVariant: String, CaseIterable, Sendable {
 }
 
 public enum EyeState: Equatable {
-    case open, closed, annoyed
+    case open, closed, annoyed, wide, droopy
 }
 
 /// Velocity personality per context: how the pose travels between
@@ -251,6 +251,50 @@ public enum PuppetMotion {
         }
         return result
     }
+
+    /// Squash/stretch coupled to the motion itself: the vertical velocity
+    /// of the pose stretches the body in the air and squashes it on
+    /// impact. Returns a scale multiplier around 1 (±6%).
+    public static func motionSquash(
+        steps: [MotionStep],
+        start: Date?,
+        now: Date,
+        easing: EasingProfile,
+        durationScale: Double
+    ) -> Double {
+        guard let start, !steps.isEmpty else { return 1 }
+        let dt = 1.0 / 60.0
+        let current = pose(steps: steps, start: start, now: now, easing: easing, durationScale: durationScale)
+        let past = pose(steps: steps, start: start, now: now.addingTimeInterval(-dt), easing: easing, durationScale: durationScale)
+        // Canvas y is down: moving UP is a negative delta — and moving up
+        // stretches the body, so the sign flips.
+        let dy = past.offsetY - current.offsetY
+        let stretch = min(max(dy * 0.08, -0.06), 0.06)
+        return 1 + stretch
+    }
+
+    /// The eyes are DERIVED, not stored: blink always wins, a startle
+    /// opens wide before settling into annoyance, drowsy contexts wear
+    /// heavy lids, excited contexts open wide.
+    public static func derivedEyeState(
+        context: MascotContext?,
+        poke: PokeVariant?,
+        elapsed: Double,
+        blinking: Bool
+    ) -> EyeState {
+        if blinking { return .closed }
+        if let poke {
+            switch poke {
+            case .startleJump: return elapsed < 0.25 ? .wide : .annoyed
+            case .annoyedWiggle, .shrinkSulk: return .annoyed
+            }
+        }
+        if let context {
+            if context == .drowsy || context == .midnightMoment { return .droopy }
+            if context == .playful || context == .celebration { return .wide }
+        }
+        return .open
+    }
 }
 
 /// The living mascot: rocks when the panel opens (varied), always reacts
@@ -270,7 +314,7 @@ public struct MascotPuppetView: View {
 
     @State private var steps: [MotionStep] = []
     @State private var animationStart: Date?
-    @State private var eyeState: EyeState = .open
+    @State private var isBlinking = false
     @State private var isBusy = false
     @State private var lastPokeAt = Date.distantPast
     @State private var playedRequestID = 0
@@ -278,6 +322,8 @@ public struct MascotPuppetView: View {
     @State private var durationScale: Double = 1
     @State private var useAnticipation = false
     @State private var useFollowThrough = false
+    @State private var activeContext: MascotContext?
+    @State private var activePoke: PokeVariant?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(MascotMind.self) private var mind
@@ -309,11 +355,17 @@ public struct MascotPuppetView: View {
                     // are wide (367×255); drawing into the square slot
                     // stretches them vertically.
                     let spriteRect = Self.spriteRect(imageSize: spriteImage?.size, canvasSize: size)
+                    // Squash/stretch coupled to the motion: stretch in the
+                    // air, squash on impact — volume-preserving.
+                    let squash = PuppetMotion.motionSquash(
+                        steps: steps, start: animationStart, now: timeline.date,
+                        easing: easing, durationScale: durationScale
+                    )
                     // Anchor at the sprite's bottom-center: translate,
                     // scale, rotate, translate back, then the pose offset
                     // (canvas y is down, so a negative offsetY lifts).
                     layer.translateBy(x: spriteRect.midX, y: spriteRect.maxY)
-                    layer.scaleBy(x: pose.scaleY, y: pose.scaleY)
+                    layer.scaleBy(x: 1 / sqrt(squash), y: pose.scaleY * squash)
                     layer.rotate(by: .degrees(pose.rotationDegrees))
                     layer.translateBy(x: -spriteRect.midX, y: -spriteRect.maxY)
                     layer.translateBy(x: 0, y: pose.offsetY)
@@ -329,7 +381,13 @@ public struct MascotPuppetView: View {
                             with: .color(Theme.coral.opacity(0.4))
                         )
                     }
-                    drawFace(state: eyeState, context: layer, rect: spriteRect)
+                    let eyes = PuppetMotion.derivedEyeState(
+                        context: activeContext,
+                        poke: activePoke,
+                        elapsed: animationStart.map { timeline.date.timeIntervalSince($0) } ?? 0,
+                        blinking: isBlinking
+                    )
+                    drawFace(state: eyes, context: layer, rect: spriteRect)
                 }
             }
         }
@@ -361,6 +419,8 @@ public struct MascotPuppetView: View {
         durationScale = PuppetMotion.durationScale(for: request.context)
         useAnticipation = DelightCatalog.anticipation(for: request.context)
         useFollowThrough = DelightCatalog.followThrough(for: request.context)
+        activeContext = request.context
+        activePoke = request.poke
         if let bob = request.bob {
             play(bob: bob)
         } else if let poke = request.poke {
@@ -450,6 +510,35 @@ public struct MascotPuppetView: View {
                 strokes.addLine(to: CGPoint(x: eye.x + eyeWidth * 0.8, y: eye.y - eyeHeight * 0.6))
             }
             context.stroke(strokes, with: .color(color), lineWidth: max(1.5, rect.height * 0.016))
+        case .wide:
+            // Startled: the eyes blow up.
+            let w = eyeWidth * 1.5
+            let h = eyeHeight * 1.4
+            for eye in [left, right] {
+                context.fill(
+                    Path(ellipseIn: CGRect(
+                        x: eye.x - w / 2, y: eye.y - h / 2,
+                        width: w, height: h
+                    )),
+                    with: .color(color)
+                )
+            }
+        case .droopy:
+            // Heavy lids: half-height eyes with a lid band resting on top.
+            let h = eyeHeight * 0.55
+            for eye in [left, right] {
+                context.fill(
+                    Path(ellipseIn: CGRect(
+                        x: eye.x - eyeWidth / 2, y: eye.y - h / 2,
+                        width: eyeWidth, height: h
+                    )),
+                    with: .color(color)
+                )
+                var lid = Path()
+                lid.move(to: CGPoint(x: eye.x - eyeWidth * 0.6, y: eye.y - h * 0.6))
+                lid.addLine(to: CGPoint(x: eye.x + eyeWidth * 0.6, y: eye.y - h * 0.6))
+                context.stroke(lid, with: .color(color), lineWidth: max(1.5, rect.height * 0.016))
+            }
         }
     }
 
@@ -462,9 +551,9 @@ public struct MascotPuppetView: View {
                 let interval = PuppetMotion.blinkInterval(rng: &rng)
                 try? await Task.sleep(for: .seconds(interval))
                 guard !isBusy, !reduceMotion else { continue }
-                eyeState = .closed
+                isBlinking = true
                 try? await Task.sleep(for: .milliseconds(130))
-                eyeState = .open
+                isBlinking = false
             }
         }
     }
@@ -478,7 +567,10 @@ public struct MascotPuppetView: View {
         steps = sequence
         animationStart = Date()
         isBusy = true
-        scheduleFinish(after: sequence, scaledBy: durationScale)
+        scheduleFinish(after: sequence, scaledBy: durationScale) {
+            self.activeContext = nil
+            self.activePoke = nil
+        }
     }
 
     private func play(poke variant: PokeVariant) {
@@ -487,12 +579,12 @@ public struct MascotPuppetView: View {
             anticipation: useAnticipation,
             followThrough: useFollowThrough
         )
-        eyeState = .annoyed
         steps = sequence
         animationStart = Date()
         isBusy = true
         scheduleFinish(after: sequence, scaledBy: durationScale) {
-            self.eyeState = .open
+            self.activePoke = nil
+            self.activeContext = nil
         }
     }
 

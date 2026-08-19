@@ -207,6 +207,79 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertTrue(DelightCatalog.followThrough(for: .calm))
     }
 
+    // MARK: secondary motion (eyes + squash coupling)
+
+    func testDerivedEyeStateBlinkAlwaysWins() {
+        for context in MascotContext.allCases {
+            XCTAssertEqual(
+                PuppetMotion.derivedEyeState(context: context, poke: nil, elapsed: 0, blinking: true),
+                .closed,
+                "blink must override \(context.rawValue)"
+            )
+        }
+    }
+
+    func testDerivedEyeStateStartleWideThenAnnoyed() {
+        XCTAssertEqual(
+            PuppetMotion.derivedEyeState(context: .poke, poke: .startleJump, elapsed: 0.1, blinking: false),
+            .wide
+        )
+        XCTAssertEqual(
+            PuppetMotion.derivedEyeState(context: .poke, poke: .startleJump, elapsed: 0.4, blinking: false),
+            .annoyed
+        )
+        XCTAssertEqual(
+            PuppetMotion.derivedEyeState(context: .poke, poke: .annoyedWiggle, elapsed: 0.4, blinking: false),
+            .annoyed
+        )
+    }
+
+    func testDerivedEyeStateContexts() {
+        XCTAssertEqual(PuppetMotion.derivedEyeState(context: .drowsy, poke: nil, elapsed: 0, blinking: false), .droopy)
+        XCTAssertEqual(PuppetMotion.derivedEyeState(context: .midnightMoment, poke: nil, elapsed: 0, blinking: false), .droopy)
+        XCTAssertEqual(PuppetMotion.derivedEyeState(context: .playful, poke: nil, elapsed: 0, blinking: false), .wide)
+        XCTAssertEqual(PuppetMotion.derivedEyeState(context: .calm, poke: nil, elapsed: 0, blinking: false), .open)
+        XCTAssertEqual(PuppetMotion.derivedEyeState(context: nil, poke: nil, elapsed: 0, blinking: false), .open)
+    }
+
+    func testMotionSquashIsNeutralWithoutSequence() {
+        XCTAssertEqual(
+            PuppetMotion.motionSquash(steps: [], start: nil, now: t0, easing: .standard, durationScale: 1),
+            1,
+            accuracy: 0.0001
+        )
+    }
+
+    func testMotionSquashStaysBounded() {
+        let steps = PuppetMotion.bobSteps(.hopBob)
+        for i in 0...300 {
+            let t = t0.addingTimeInterval(Double(i) / 100)
+            let squash = PuppetMotion.motionSquash(
+                steps: steps, start: t0, now: t, easing: .standard, durationScale: 1
+            )
+            XCTAssertGreaterThanOrEqual(squash, 0.94, "squash floor is -6%")
+            XCTAssertLessThanOrEqual(squash, 1.06, "stretch ceiling is +6%")
+        }
+    }
+
+    func testMotionSquashHasStretchAndSquashPhases() {
+        // Across a hop the body must stretch in the air AND squash on
+        // impact — both phases must exist.
+        let steps = PuppetMotion.bobSteps(.hopBob)
+        var maxSquash = 1.0
+        var minSquash = 1.0
+        for i in 0...400 {
+            let t = t0.addingTimeInterval(Double(i) / 150)
+            let squash = PuppetMotion.motionSquash(
+                steps: steps, start: t0, now: t, easing: .standard, durationScale: 1
+            )
+            maxSquash = max(maxSquash, squash)
+            minSquash = min(minSquash, squash)
+        }
+        XCTAssertGreaterThan(maxSquash, 1.005, "hops must stretch the body")
+        XCTAssertLessThan(minSquash, 0.995, "landings must squash the body")
+    }
+
     // MARK: pose interpolation (the frame-by-frame driver)
 
     private let t0 = Date(timeIntervalSince1970: 1_756_000_000)
