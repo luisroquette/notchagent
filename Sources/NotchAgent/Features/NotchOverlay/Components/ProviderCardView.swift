@@ -113,10 +113,8 @@ struct ProviderCardView: View {
         switch provider {
         case .claudeCode:
             // 64pt: big enough for the blink/eye overlay to read.
-            MascotPuppetView {
-                ClaudeMascot(name: Self.mascotName(for: snapshot?.activeModel))
-            }
-            .frame(width: 64, height: 64)
+            MascotPuppetView(spriteName: Self.mascotName(for: snapshot?.activeModel))
+                .frame(width: 64, height: 64)
         case .codex:
             OpenAIGlyph()
                 .frame(width: 48, height: 48)

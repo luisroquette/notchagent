@@ -44,7 +44,10 @@ struct NotchRunnerView: View {
     private let baseSpacing: [CGFloat] = [170, 240, 205, 290]
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { context in
+        // TimelineView(.periodic) — the schedule this panel window
+        // provably renders (the weather clock uses it). Display-link
+        // driven schedules (.animation) stay frozen here.
+        TimelineView(.periodic(from: .now, by: 1.0 / 20.0)) { context in
             Canvas { graphics, size in
                 let t = context.date.timeIntervalSinceReferenceDate
                 if isGameOver {

@@ -1,7 +1,8 @@
+import AppKit
 import SwiftUI
 
 /// One keyframe of a mascot animation — the puppet plays a small sequence
-/// of these with springs. `.identity` is the settled pose.
+/// of these. `.identity` is the settled pose.
 public struct MotionStep: Equatable, Sendable {
     public var scaleY: Double
     public var rotationDegrees: Double
@@ -136,137 +137,139 @@ public enum PuppetMotion {
     }
 }
 
-/// The pixel-art face drawn OVER the sprite at the asset's real eye
-/// positions: open dots, a closed line for blinks, slanted strokes when
-/// annoyed. Pure decoration, never hit-testable.
-public struct MascotFaceView: View {
-    public let state: EyeState
-
-    public init(state: EyeState) {
-        self.state = state
-    }
-
-    public var body: some View {
-        Canvas { context, size in
-            let eyeWidth = max(2, size.width * 0.07)
-            let eyeHeight = eyeWidth * 1.1
-            let color = Color.black.opacity(0.88)
-
-            func point(_ rel: CGPoint) -> CGPoint {
-                CGPoint(x: rel.x * size.width, y: rel.y * size.height)
-            }
-
-            let left = point(PuppetMotion.eyeLeftRelative)
-            let right = point(PuppetMotion.eyeRightRelative)
-
-            switch state {
-            case .open:
-                context.fill(
-                    Path(ellipseIn: CGRect(
-                        x: left.x - eyeWidth / 2, y: left.y - eyeHeight / 2,
-                        width: eyeWidth, height: eyeHeight
-                    )),
-                    with: .color(color)
-                )
-                context.fill(
-                    Path(ellipseIn: CGRect(
-                        x: right.x - eyeWidth / 2, y: right.y - eyeHeight / 2,
-                        width: eyeWidth, height: eyeHeight
-                    )),
-                    with: .color(color)
-                )
-            case .closed:
-                // Thick enough to cover the sprite's baked-in eyes.
-                let lineHeight = max(2, size.height * 0.02)
-                context.fill(
-                    Path(CGRect(
-                        x: left.x - eyeWidth * 0.7, y: left.y - lineHeight / 2,
-                        width: eyeWidth * 1.4, height: lineHeight
-                    )),
-                    with: .color(color)
-                )
-                context.fill(
-                    Path(CGRect(
-                        x: right.x - eyeWidth * 0.7, y: right.y - lineHeight / 2,
-                        width: eyeWidth * 1.4, height: lineHeight
-                    )),
-                    with: .color(color)
-                )
-            case .annoyed:
-                // Slanted "unimpressed" brows: \ / over both eyes.
-                var strokes = Path()
-                for eye in [left, right] {
-                    strokes.move(to: CGPoint(x: eye.x - eyeWidth * 0.8, y: eye.y + eyeHeight * 0.6))
-                    strokes.addLine(to: CGPoint(x: eye.x + eyeWidth * 0.8, y: eye.y - eyeHeight * 0.6))
-                }
-                context.stroke(strokes, with: .color(color), lineWidth: max(1.5, size.height * 0.016))
-            }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-}
-
 /// The living mascot: rocks when the panel opens (varied), always reacts
 /// to a poke with displeasure, and blinks constantly. Self-contained —
 /// local state only, no engine dependency.
 ///
-/// Motion is driven by a 60fps Task loop mutating `pose` — deliberately
-/// NOT withAnimation springs or TimelineView(.animation): this panel
-/// window proved frozen for display-link/CoreAnimation-driven updates
-/// (the runner game too), while plain state changes (the clock) render
-/// fine. `PuppetMotion.pose` interpolates the keyframes purely.
-public struct MascotPuppetView<Content: View>: View {
-    private let content: Content
+/// EVERYTHING renders inside one Canvas, driven by TimelineView(.periodic)
+/// at 30fps — the update schedule this panel window provably renders (the
+/// weather clock uses it). View transform modifiers (rotationEffect/
+/// scaleEffect/offset) and display-link-driven schedules
+/// (TimelineView(.animation), withAnimation springs) do NOT render in this
+/// panel — the hardcoded-tilt probe proved the modifiers inert — while
+/// Canvas drawing with explicit context transforms does.
+public struct MascotPuppetView: View {
+    public let spriteName: String
     private let pokeCooldown: TimeInterval = 2
 
     @State private var steps: [MotionStep] = []
     @State private var animationStart: Date?
-    @State private var pose: MotionStep = .identity
     @State private var eyeState: EyeState = .open
     @State private var isBusy = false
     @State private var lastPokeAt = Date.distantPast
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    public init(@ViewBuilder content: () -> Content) {
-        self.content = content()
+    public init(spriteName: String) {
+        self.spriteName = spriteName
+    }
+
+    private var spriteImage: NSImage? {
+        guard let url = Bundle.main.url(forResource: "Mascots/\(spriteName)", withExtension: "png")
+        else { return nil }
+        return NSImage(contentsOf: url)
     }
 
     public var body: some View {
-        content
-            .scaleEffect(y: pose.scaleY, anchor: .bottom)
-            .rotationEffect(.degrees(pose.rotationDegrees))
-            .offset(y: pose.offsetY)
-            .overlay { MascotFaceView(state: eyeState) }
-            .onAppear {
-                guard !reduceMotion else { return }
-                startFrameLoop()
-                startBlinking()
-                play(bob: BobVariant.allCases.randomElement()!)
-            }
-            .onHover { hovering in
-                guard hovering, !reduceMotion else { return }
-                let now = Date()
-                guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
-                lastPokeAt = now
-                play(poke: PokeVariant.allCases.randomElement()!)
-            }
-    }
+        TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
+            let pose = reduceMotion
+                ? MotionStep.identity
+                : PuppetMotion.pose(steps: steps, start: animationStart, now: timeline.date)
+            Canvas { context, size in
+                context.drawLayer { layer in
+                    // Anchor at bottom-center: translate, scale, rotate,
+                    // translate back, then the pose offset (canvas y is
+                    // down, so a negative offsetY lifts the sprite).
+                    layer.translateBy(x: size.width / 2, y: size.height)
+                    layer.scaleBy(x: pose.scaleY, y: pose.scaleY)
+                    layer.rotate(by: .degrees(pose.rotationDegrees))
+                    layer.translateBy(x: -size.width / 2, y: -size.height)
+                    layer.translateBy(x: 0, y: pose.offsetY)
 
-    /// The frame driver: recomputes the interpolated pose ~60×/s and
-    /// publishes it as plain state — the update path this window renders.
-    private func startFrameLoop() {
-        Task { @MainActor in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(16))
-                guard let start = animationStart, !steps.isEmpty else { continue }
-                let now = Date()
-                let next = PuppetMotion.pose(steps: steps, start: start, now: now)
-                if next != pose {
-                    pose = next
+                    if let image = spriteImage {
+                        layer.draw(
+                            Image(nsImage: image).resizable().interpolation(.none),
+                            in: CGRect(origin: .zero, size: size)
+                        )
+                    } else {
+                        layer.fill(
+                            Path(CGRect(origin: .zero, size: size)),
+                            with: .color(Theme.coral.opacity(0.4))
+                        )
+                    }
+                    drawFace(state: eyeState, context: layer, size: size)
                 }
             }
+        }
+        .onAppear {
+            guard !reduceMotion else { return }
+            startBlinking()
+            play(bob: BobVariant.allCases.randomElement()!)
+        }
+        .onHover { hovering in
+            guard hovering, !reduceMotion else { return }
+            let now = Date()
+            guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
+            lastPokeAt = now
+            play(poke: PokeVariant.allCases.randomElement()!)
+        }
+    }
+
+    /// The pixel-art face at the asset's real eye positions — drawn inside
+    /// the sprite's layer so it follows every pose.
+    private func drawFace(state: EyeState, context: GraphicsContext, size: CGSize) {
+        let eyeWidth = max(2, size.width * 0.07)
+        let eyeHeight = eyeWidth * 1.1
+        let color = Color.black.opacity(0.88)
+
+        func point(_ rel: CGPoint) -> CGPoint {
+            CGPoint(x: rel.x * size.width, y: rel.y * size.height)
+        }
+
+        let left = point(PuppetMotion.eyeLeftRelative)
+        let right = point(PuppetMotion.eyeRightRelative)
+
+        switch state {
+        case .open:
+            context.fill(
+                Path(ellipseIn: CGRect(
+                    x: left.x - eyeWidth / 2, y: left.y - eyeHeight / 2,
+                    width: eyeWidth, height: eyeHeight
+                )),
+                with: .color(color)
+            )
+            context.fill(
+                Path(ellipseIn: CGRect(
+                    x: right.x - eyeWidth / 2, y: right.y - eyeHeight / 2,
+                    width: eyeWidth, height: eyeHeight
+                )),
+                with: .color(color)
+            )
+        case .closed:
+            // Thick enough to cover the sprite's baked-in eyes.
+            let lineHeight = max(2, size.height * 0.02)
+            context.fill(
+                Path(CGRect(
+                    x: left.x - eyeWidth * 0.7, y: left.y - lineHeight / 2,
+                    width: eyeWidth * 1.4, height: lineHeight
+                )),
+                with: .color(color)
+            )
+            context.fill(
+                Path(CGRect(
+                    x: right.x - eyeWidth * 0.7, y: right.y - lineHeight / 2,
+                    width: eyeWidth * 1.4, height: lineHeight
+                )),
+                with: .color(color)
+            )
+        case .annoyed:
+            // Slanted "unimpressed" brows: \ / over both eyes.
+            var strokes = Path()
+            for eye in [left, right] {
+                strokes.move(to: CGPoint(x: eye.x - eyeWidth * 0.8, y: eye.y + eyeHeight * 0.6))
+                strokes.addLine(to: CGPoint(x: eye.x + eyeWidth * 0.8, y: eye.y - eyeHeight * 0.6))
+            }
+            context.stroke(strokes, with: .color(color), lineWidth: max(1.5, size.height * 0.016))
         }
     }
 
@@ -301,12 +304,12 @@ public struct MascotPuppetView<Content: View>: View {
         animationStart = Date()
         isBusy = true
         scheduleFinish(after: sequence) {
-            eyeState = .open
+            self.eyeState = .open
         }
     }
 
-    /// Clears the sequence once its total duration has passed — the pose
-    /// holds identity from then on (the settle step handles the return).
+    /// Releases the busy flag once the sequence's total duration passed —
+    /// the pose itself returns to identity purely (see `pose`).
     private func scheduleFinish(after sequence: [MotionStep], onFinish: (() -> Void)? = nil) {
         let total = sequence.reduce(0) { $0 + $1.duration }
         Task { @MainActor in
