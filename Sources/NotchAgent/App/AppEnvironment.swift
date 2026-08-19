@@ -19,6 +19,7 @@ final class AppEnvironment {
     let appUpdates: AppUpdateController
     let notifications = NotificationService()
     let weather: WeatherStore
+    let mind: MascotMind
     private(set) var notchController: NotchWindowController?
     private var exchangeRateTask: Task<Void, Never>?
 
@@ -40,6 +41,7 @@ final class AppEnvironment {
         desk = NotchAgentDeskCoordinator(store: store)
         appUpdates = AppUpdateController()
         weather = WeatherStore(settings: preferences)
+        mind = MascotMind(settings: preferences, store: store)
         router.environment = self
         desk.onConnectionPhaseChange = { [weak self] phase in
             guard let self,
@@ -54,8 +56,9 @@ final class AppEnvironment {
         store.onAlert = { [notifications, preferences] alert in
             notifications.post(alert, settings: preferences.settings)
         }
-        store.onRestore = { [notifications, preferences] moment in
+        store.onRestore = { [notifications, preferences, mind] moment in
             notifications.postRestored(moment, settings: preferences.settings)
+            mind.notePeakPassed()
         }
     }
 
@@ -71,10 +74,12 @@ final class AppEnvironment {
             store: store,
             router: router,
             spending: spending,
-            weather: weather
+            weather: weather,
+            mind: mind
         )
         notchController = controller
         controller.show()
+        mind.start()
 
         Task {
             let persisted = await snapshotStore.load()
