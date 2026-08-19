@@ -177,27 +177,31 @@ public struct MascotPuppetView: View {
                 : PuppetMotion.pose(steps: steps, start: animationStart, now: timeline.date)
             Canvas { context, size in
                 context.drawLayer { layer in
-                    // Anchor at bottom-center: translate, scale, rotate,
-                    // translate back, then the pose offset (canvas y is
-                    // down, so a negative offsetY lifts the sprite).
-                    layer.translateBy(x: size.width / 2, y: size.height)
+                    // Aspect-preserving sprite rect, centered — the assets
+                    // are wide (367×255); drawing into the square slot
+                    // stretches them vertically.
+                    let spriteRect = Self.spriteRect(imageSize: spriteImage?.size, canvasSize: size)
+                    // Anchor at the sprite's bottom-center: translate,
+                    // scale, rotate, translate back, then the pose offset
+                    // (canvas y is down, so a negative offsetY lifts).
+                    layer.translateBy(x: spriteRect.midX, y: spriteRect.maxY)
                     layer.scaleBy(x: pose.scaleY, y: pose.scaleY)
                     layer.rotate(by: .degrees(pose.rotationDegrees))
-                    layer.translateBy(x: -size.width / 2, y: -size.height)
+                    layer.translateBy(x: -spriteRect.midX, y: -spriteRect.maxY)
                     layer.translateBy(x: 0, y: pose.offsetY)
 
                     if let image = spriteImage {
                         layer.draw(
                             Image(nsImage: image).resizable().interpolation(.none),
-                            in: CGRect(origin: .zero, size: size)
+                            in: spriteRect
                         )
                     } else {
                         layer.fill(
-                            Path(CGRect(origin: .zero, size: size)),
+                            Path(spriteRect),
                             with: .color(Theme.coral.opacity(0.4))
                         )
                     }
-                    drawFace(state: eyeState, context: layer, size: size)
+                    drawFace(state: eyeState, context: layer, rect: spriteRect)
                 }
             }
         }
@@ -215,15 +219,42 @@ public struct MascotPuppetView: View {
         }
     }
 
+    /// Aspect-preserving, centered rect for the sprite inside the slot —
+    /// the assets are wider than tall, so a square slot letterboxes them.
+    static func spriteRect(imageSize: CGSize?, canvasSize: CGSize) -> CGRect {
+        guard let imageSize, imageSize.width > 0, imageSize.height > 0 else {
+            return CGRect(origin: .zero, size: canvasSize)
+        }
+        let aspect = imageSize.width / imageSize.height
+        let canvasAspect = canvasSize.width / canvasSize.height
+        if aspect > canvasAspect {
+            let height = canvasSize.width / aspect
+            return CGRect(
+                x: 0,
+                y: (canvasSize.height - height) / 2,
+                width: canvasSize.width,
+                height: height
+            )
+        } else {
+            let width = canvasSize.height * aspect
+            return CGRect(
+                x: (canvasSize.width - width) / 2,
+                y: 0,
+                width: width,
+                height: canvasSize.height
+            )
+        }
+    }
+
     /// The pixel-art face at the asset's real eye positions — drawn inside
     /// the sprite's layer so it follows every pose.
-    private func drawFace(state: EyeState, context: GraphicsContext, size: CGSize) {
-        let eyeWidth = max(2, size.width * 0.07)
+    private func drawFace(state: EyeState, context: GraphicsContext, rect: CGRect) {
+        let eyeWidth = max(2, rect.width * 0.07)
         let eyeHeight = eyeWidth * 1.1
         let color = Color.black.opacity(0.88)
 
         func point(_ rel: CGPoint) -> CGPoint {
-            CGPoint(x: rel.x * size.width, y: rel.y * size.height)
+            CGPoint(x: rect.minX + rel.x * rect.width, y: rect.minY + rel.y * rect.height)
         }
 
         let left = point(PuppetMotion.eyeLeftRelative)
@@ -247,7 +278,7 @@ public struct MascotPuppetView: View {
             )
         case .closed:
             // Thick enough to cover the sprite's baked-in eyes.
-            let lineHeight = max(2, size.height * 0.02)
+            let lineHeight = max(2, rect.height * 0.02)
             context.fill(
                 Path(CGRect(
                     x: left.x - eyeWidth * 0.7, y: left.y - lineHeight / 2,
@@ -269,7 +300,7 @@ public struct MascotPuppetView: View {
                 strokes.move(to: CGPoint(x: eye.x - eyeWidth * 0.8, y: eye.y + eyeHeight * 0.6))
                 strokes.addLine(to: CGPoint(x: eye.x + eyeWidth * 0.8, y: eye.y - eyeHeight * 0.6))
             }
-            context.stroke(strokes, with: .color(color), lineWidth: max(1.5, size.height * 0.016))
+            context.stroke(strokes, with: .color(color), lineWidth: max(1.5, rect.height * 0.016))
         }
     }
 

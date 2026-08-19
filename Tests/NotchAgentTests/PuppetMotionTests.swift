@@ -75,6 +75,26 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertEqual(PuppetMotion.eyeRightRelative.y, 0.35, accuracy: 0.03)
     }
 
+    func testSpriteRectPreservesAssetAspectInSquareSlot() {
+        // REGRESSÃO 19/08: desenhar o asset 367×255 direto no slot quadrado
+        // esticava o mascote na vertical — o retângulo deve ser letterbox.
+        let rect = MascotPuppetView.spriteRect(
+            imageSize: CGSize(width: 367, height: 255),
+            canvasSize: CGSize(width: 64, height: 64)
+        )
+        XCTAssertEqual(rect.width, 64, accuracy: 0.01)
+        XCTAssertEqual(rect.height, 64 * 255 / 367, accuracy: 0.01)
+        XCTAssertEqual(rect.midY, 32, accuracy: 0.01, "centered vertically in the slot")
+    }
+
+    func testSpriteRectFillsWhenAspectMatches() {
+        let rect = MascotPuppetView.spriteRect(
+            imageSize: CGSize(width: 64, height: 64),
+            canvasSize: CGSize(width: 64, height: 64)
+        )
+        XCTAssertEqual(rect, CGRect(x: 0, y: 0, width: 64, height: 64))
+    }
+
     // MARK: pose interpolation (the frame-by-frame driver)
 
     private let t0 = Date(timeIntervalSince1970: 1_756_000_000)
