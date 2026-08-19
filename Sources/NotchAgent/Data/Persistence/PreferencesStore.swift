@@ -11,7 +11,18 @@ final class PreferencesStore {
         didSet { persist() }
     }
 
-    init(defaults: UserDefaults = .standard) {
+    /// The app's preferences domain, pinned EXPLICITLY. REGRESSÃO: a bare
+    /// `swift run` has no bundle id, so UserDefaults.standard lands on the
+    /// executable's own domain — every test instance silently ignored the
+    /// installed app's settings (probe off, no consent) while the installed
+    /// app worked. The suiteName domain is the SAME domain the installed
+    /// .app's standard defaults use, so both packaging worlds read and
+    /// write the one true settings blob.
+    static let defaultStore: UserDefaults = {
+        UserDefaults(suiteName: "br.com.lfrprojects.notchagent") ?? .standard
+    }()
+
+    init(defaults: UserDefaults = PreferencesStore.defaultStore) {
         var loaded: AppSettings
         self.defaults = defaults
         if let data = defaults.data(forKey: Self.key),
