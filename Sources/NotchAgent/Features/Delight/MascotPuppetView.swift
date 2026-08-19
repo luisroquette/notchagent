@@ -740,7 +740,12 @@ public struct MascotPuppetView: View {
                     caressSamples = [sample]
                     entryAt = now
                 } else {
-                    entrySamples.append(sample)
+                    // The entry trail only feeds the classifier's window —
+                    // past it, the samples have nothing to measure and
+                    // must not accumulate for the rest of the hover.
+                    if entryAt != nil {
+                        entrySamples.append(sample)
+                    }
                     if let entry = entryAt,
                        now.timeIntervalSince(entry) >= TouchSense.classificationWindow {
                         entryAt = nil
