@@ -117,7 +117,7 @@ struct ProviderCardView: View {
                 .frame(width: 64, height: 64)
         case .codex:
             OpenAIGlyph()
-                .frame(width: 48, height: 48)
+                .frame(width: 64, height: 64)
         default:
             Image(systemName: provider.symbolName)
                 .font(.system(size: 9, weight: .bold))
