@@ -120,6 +120,41 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertGreaterThan(layout.rightCenter.x, 0.5)
     }
 
+    // MARK: Continuous eye motion (a lid that drops and rises, features that fade)
+
+    func testBlinkAmountIsAContinuousCycle() {
+        // 0 = open, 1 = closed — the lid drops over 0.14s, rises over
+        // 0.14s, and is gone outside the cycle. Never a state swap.
+        XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: 0), 0, accuracy: 0.001)
+        XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: -0.1), 0, accuracy: 0.001)
+        XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: 0.28), 0, accuracy: 0.001)
+        XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: 0.14), 1, accuracy: 0.001, "fully closed at mid-cycle")
+        XCTAssertEqual(PuppetMotion.blinkAmount(elapsed: 1.0), 0, accuracy: 0.001, "no blink after the cycle ended")
+    }
+
+    func testBlinkAmountMovesSmoothly() {
+        // Sampling every 16ms: no adjacent pair may jump more than a
+        // small bound — the lid glides, it never teleports.
+        var previous = PuppetMotion.blinkAmount(elapsed: 0)
+        var t = 0.0
+        while t <= 0.28 {
+            t += 0.016
+            let amount = PuppetMotion.blinkAmount(elapsed: t)
+            XCTAssertLessThanOrEqual(abs(amount - previous), 0.25, "lid jumped at t=\(t)")
+            previous = amount
+        }
+    }
+
+    func testExpressionOpacityFadesInAndOut() {
+        let total = 1.2
+        XCTAssertEqual(PuppetMotion.expressionOpacity(elapsed: 0, total: total), 0, accuracy: 0.01)
+        XCTAssertEqual(PuppetMotion.expressionOpacity(elapsed: 0.6, total: total), 1, accuracy: 0.01, "held at full in the middle")
+        XCTAssertEqual(PuppetMotion.expressionOpacity(elapsed: total, total: total), 0, accuracy: 0.01, "faded out at the end")
+        XCTAssertLessThan(PuppetMotion.expressionOpacity(elapsed: 0.05, total: total), 0.5, "the fade-in starts subtle")
+        XCTAssertGreaterThan(PuppetMotion.expressionOpacity(elapsed: total - 0.05, total: total), 0.0)
+        XCTAssertLessThan(PuppetMotion.expressionOpacity(elapsed: total - 0.05, total: total), 0.5, "the fade-out drains before the end")
+    }
+
     func testSpriteRectPreservesAssetAspectInSquareSlot() {
         // REGRESSÃO 19/08: desenhar o asset 367×255 direto no slot quadrado
         // esticava o mascote na vertical — o retângulo deve ser letterbox.

@@ -87,6 +87,37 @@ public enum PuppetMotion {
         blue: 20.0 / 255.0
     )
 
+    /// A blink is a LID that drops and rises, not a state swap:
+    /// 0 = open, 1 = fully closed, back to 0 — 0.14s down, 0.14s up,
+    /// ease in-out on both legs. The view draws a body-color band of
+    /// height `eyeHeight × amount` over the embedded eye, so the lid
+    /// geometrically covers and uncovers it.
+    public static func blinkAmount(elapsed: Double) -> Double {
+        let down = 0.14
+        let up = 0.14
+        guard elapsed >= 0, elapsed <= down + up else { return 0 }
+        if elapsed < down {
+            return ease(elapsed / down, profile: .standard)
+        }
+        return ease(1 - (elapsed - down) / up, profile: .standard)
+    }
+
+    /// Expression features breathe instead of snapping: opacity ramps
+    /// 0→1 over the first `fade` seconds of the gesture and 1→0 over
+    /// its last `fade` seconds, held at full in between. The embedded
+    /// eye is covered gradually on the way in and revealed gradually
+    /// on the way out.
+    public static func expressionOpacity(elapsed: Double, total: Double, fade: Double = 0.15) -> Double {
+        guard total > 0, elapsed >= 0 else { return 0 }
+        if elapsed <= fade {
+            return ease(elapsed / fade, profile: .standard)
+        }
+        if elapsed >= total - fade {
+            return ease((total - elapsed) / fade, profile: .standard)
+        }
+        return 1
+    }
+
     /// Bob sequences: every variant swings the mascot like it's being
     /// rocked up and down (the wobbleFall one almost drops it), and every
     /// sequence settles back to identity.
@@ -600,7 +631,9 @@ public struct MascotPuppetView: View {
 
     @State private var steps: [MotionStep] = []
     @State private var animationStart: Date?
-    @State private var isBlinking = false
+    /// When the last blink started — the render clock drives the lid
+    /// down and up from here (see blinkAmount). nil = no blink running.
+    @State private var lastBlinkAt: Date?
     @State private var isBusy = false
     @State private var lastPokeAt = Date.distantPast
     @State private var playedRequestID = 0
@@ -728,15 +761,32 @@ public struct MascotPuppetView: View {
                             with: .color(Theme.coral.opacity(0.4))
                         )
                     }
+                    let gestureElapsed = animationStart.map { timeline.date.timeIntervalSince($0) } ?? 0
+                    let blink = lastBlinkAt.map {
+                        PuppetMotion.blinkAmount(elapsed: timeline.date.timeIntervalSince($0))
+                    } ?? 0
                     let eyes = PuppetMotion.derivedEyeState(
                         context: activeContext,
                         poke: activePoke,
-                        elapsed: animationStart.map { timeline.date.timeIntervalSince($0) } ?? 0,
-                        blinking: isBlinking,
+                        elapsed: gestureElapsed,
+                        blinking: blink > 0,
                         // A nuzzle closes the eyes — pleasure, not alarm.
                         bob: animationStart != nil ? activeBob : nil
                     )
-                    drawFace(state: eyes, context: layer, rect: spriteRect)
+                    // Features breathe in and out with the gesture; the
+                    // blink is geometric (the lid itself carries it).
+                    let totalDuration = steps.reduce(0) { $0 + $1.duration } * durationScale
+                    let featureOpacity = PuppetMotion.expressionOpacity(
+                        elapsed: gestureElapsed,
+                        total: totalDuration
+                    )
+                    drawFace(
+                        state: eyes,
+                        blinkProgress: blink,
+                        opacity: featureOpacity,
+                        context: layer,
+                        rect: spriteRect
+                    )
                 }
                 drawContextExtras(context: context, size: size, spriteRect: spriteRect, now: timeline.date)
             }
@@ -1092,13 +1142,21 @@ public struct MascotPuppetView: View {
     /// The face overlay at the asset's MEASURED eye positions, drawn
     /// inside the sprite's layer so it follows every pose. The embedded
     /// eyes ARE the open state — every other expression REPLACES them:
-    /// a body-color patch covers the real eye box first, then the new
-    /// feature draws in its place. One eye or the other, never both —
-    /// and the swap is a feature transition, not a second pair.
-    private func drawFace(state: EyeState, context: GraphicsContext, rect: CGRect) {
+    /// the blink is a GEOMETRIC lid (a body-color band of height
+    /// `eyeHeight × blinkProgress` descends over the embedded eye and
+    /// rises again), and the features fade in/out with the gesture via
+    /// `opacity` — the embedded eye is covered gradually, never swapped.
+    private func drawFace(
+        state: EyeState,
+        blinkProgress: Double,
+        opacity: Double,
+        context: GraphicsContext,
+        rect: CGRect
+    ) {
         guard state != .open else { return }
         let layout = PuppetMotion.eyeLayout(for: spriteName)
         let ink = Color.black.opacity(0.88)
+        let patch = PuppetMotion.eyePatchColor
 
         func point(_ rel: CGPoint) -> CGPoint {
             CGPoint(x: rect.minX + rel.x * rect.width, y: rect.minY + rel.y * rect.height)
@@ -1115,29 +1173,36 @@ public struct MascotPuppetView: View {
                 width: eyeWidth,
                 height: eyeHeight
             )
-            // The replacement patch: exactly the embedded eye's box, in
-            // the face's own color — the old eye is gone, not layered.
-            context.fill(Path(eyeRect), with: .color(PuppetMotion.eyePatchColor))
+            if state == .closed {
+                // The descending lid: a body-color band grows from the
+                // top of the eye box — the embedded eye is covered and
+                // uncovered geometrically, no opacity involved.
+                let lidHeight = eyeHeight * min(max(blinkProgress, 0), 1)
+                if lidHeight > 0 {
+                    context.fill(
+                        Path(CGRect(
+                            x: eyeRect.minX,
+                            y: eyeRect.minY,
+                            width: eyeRect.width,
+                            height: lidHeight
+                        )),
+                        with: .color(patch)
+                    )
+                }
+                continue
+            }
+            // Replacement patch with the gesture's fade: covers the
+            // embedded eye gradually on the way in, reveals it gradually
+            // on the way out.
+            context.fill(Path(eyeRect), with: .color(patch.opacity(opacity)))
 
             switch state {
-            case .closed:
-                // A shut eye: a thick lid line across the eye box.
-                let lineHeight = max(1.5, eyeHeight * 0.1)
-                context.fill(
-                    Path(CGRect(
-                        x: center.x - eyeWidth * 0.55,
-                        y: center.y - lineHeight / 2,
-                        width: eyeWidth * 1.1,
-                        height: lineHeight
-                    )),
-                    with: .color(ink)
-                )
             case .annoyed:
                 // Slanted "unimpressed" brows: \ / inside the eye box.
                 var strokes = Path()
                 strokes.move(to: CGPoint(x: center.x - eyeWidth * 0.5, y: center.y + eyeHeight * 0.45))
                 strokes.addLine(to: CGPoint(x: center.x + eyeWidth * 0.5, y: center.y - eyeHeight * 0.45))
-                context.stroke(strokes, with: .color(ink), lineWidth: max(1.5, eyeHeight * 0.1))
+                context.stroke(strokes, with: .color(ink.opacity(opacity)), lineWidth: max(1.5, eyeHeight * 0.1))
             case .wide:
                 // Startled: the eye blows up past its own box.
                 context.fill(
@@ -1147,7 +1212,7 @@ public struct MascotPuppetView: View {
                         width: eyeWidth * 1.1,
                         height: eyeHeight
                     )),
-                    with: .color(ink)
+                    with: .color(ink.opacity(opacity))
                 )
             case .droopy:
                 // Heavy lids: a half-height eye with a lid band on top.
@@ -1158,13 +1223,13 @@ public struct MascotPuppetView: View {
                         width: eyeWidth,
                         height: eyeHeight * 0.55
                     )),
-                    with: .color(ink)
+                    with: .color(ink.opacity(opacity))
                 )
                 var lid = Path()
                 lid.move(to: CGPoint(x: center.x - eyeWidth * 0.55, y: center.y - eyeHeight * 0.3))
                 lid.addLine(to: CGPoint(x: center.x + eyeWidth * 0.55, y: center.y - eyeHeight * 0.3))
-                context.stroke(lid, with: .color(ink), lineWidth: max(1.5, eyeHeight * 0.1))
-            case .open:
+                context.stroke(lid, with: .color(ink.opacity(opacity)), lineWidth: max(1.5, eyeHeight * 0.1))
+            case .closed, .open:
                 break
             }
         }
@@ -1172,7 +1237,8 @@ public struct MascotPuppetView: View {
 
     /// "Olhos piscando sempre": an irregular blink loop that runs the
     /// whole time the mascot is on screen, pausing while a bob/poke plays.
-    /// One loop per view — recycled views never stack loops.
+    /// One loop per view — recycled views never stack loops. Each cycle
+    /// only stamps the start time; the render clock animates the lid.
     private func startBlinking() {
         guard blinkTask == nil else { return }
         blinkTask = Task { @MainActor in
@@ -1181,9 +1247,7 @@ public struct MascotPuppetView: View {
                 let interval = PuppetMotion.blinkInterval(rng: &rng)
                 try? await Task.sleep(for: .seconds(interval))
                 guard !isBusy, !reduceMotion else { continue }
-                isBlinking = true
-                try? await Task.sleep(for: .milliseconds(130))
-                isBlinking = false
+                lastBlinkAt = Date()
             }
         }
     }
