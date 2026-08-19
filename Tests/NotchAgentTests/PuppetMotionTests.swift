@@ -280,6 +280,16 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertLessThan(minSquash, 0.995, "landings must squash the body")
     }
 
+    // MARK: runner revival (quota reset bounces the dino back)
+
+    func testRevivalJumpArc() {
+        XCTAssertEqual(NotchRunnerView.revivalJumpHeight(timeSinceRevival: -1), 0)
+        XCTAssertEqual(NotchRunnerView.revivalJumpHeight(timeSinceRevival: 0), 0)
+        XCTAssertEqual(NotchRunnerView.revivalJumpHeight(timeSinceRevival: 0.6), 10, accuracy: 0.01, "peak at mid-arc")
+        XCTAssertEqual(NotchRunnerView.revivalJumpHeight(timeSinceRevival: 1.2), 0, accuracy: 0.01)
+        XCTAssertEqual(NotchRunnerView.revivalJumpHeight(timeSinceRevival: 5), 0, "the bounce ends")
+    }
+
     // MARK: context depth (celebration particles + compound yawn)
 
     func testCelebrationParticlesAreDeterministicAndArcUp() {

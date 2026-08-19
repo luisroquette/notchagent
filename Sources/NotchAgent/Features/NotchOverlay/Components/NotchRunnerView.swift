@@ -43,6 +43,11 @@ struct NotchRunnerView: View {
     private let baseSpeed: CGFloat = 46
     private let baseSpacing: [CGFloat] = [170, 240, 205, 290]
 
+    /// When the run revives (game over → running), the dino celebrates
+    /// with a forced jump for the first ~1.2s.
+    @State private var revivalAt: Date?
+    @State private var lastWasGameOver = false
+
     var body: some View {
         // TimelineView(.periodic) — the schedule this panel window
         // provably renders (the weather clock uses it). Display-link
@@ -53,12 +58,31 @@ struct NotchRunnerView: View {
                 if isGameOver {
                     drawGameOver(in: graphics, size: size, time: t)
                 } else {
-                    drawRun(in: graphics, size: size, time: t)
+                    let revivalJump = revivalAt.map {
+                        Self.revivalJumpHeight(timeSinceRevival: context.date.timeIntervalSince($0))
+                    } ?? 0
+                    drawRun(in: graphics, size: size, time: t, revivalJump: revivalJump)
                 }
             }
         }
+        .onChange(of: isGameOver) { _, gameOver in
+            if !gameOver, lastWasGameOver {
+                revivalAt = Date()
+            }
+            lastWasGameOver = gameOver
+        }
+        .onAppear {
+            lastWasGameOver = isGameOver
+        }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    /// Pure revival jump: a 1.2s arc peaking at 10pt — the dino bounces
+    /// back into the run when the quota resets.
+    static func revivalJumpHeight(timeSinceRevival: Double) -> CGFloat {
+        guard timeSinceRevival >= 0, timeSinceRevival < 1.2 else { return 0 }
+        return CGFloat(sin(timeSinceRevival / 1.2 * .pi)) * 10
     }
 
     // MARK: Difficulty from the gauge
@@ -71,7 +95,7 @@ struct NotchRunnerView: View {
 
     // MARK: Running
 
-    private func drawRun(in context: GraphicsContext, size: CGSize, time: TimeInterval) {
+    private func drawRun(in context: GraphicsContext, size: CGSize, time: TimeInterval, revivalJump: CGFloat = 0) {
         let groundY = size.height - 1.5
         drawGround(in: context, size: size, groundY: groundY, scroll: CGFloat(time * Double(speed)))
 
@@ -88,11 +112,12 @@ struct NotchRunnerView: View {
             }
         }
 
-        // Jump parabola timed to clear the nearest incoming obstacle.
-        var jumpHeight: CGFloat = 0
+        // Jump parabola timed to clear the nearest incoming obstacle —
+        // plus the revival bounce when the quota reset brought the run back.
+        var jumpHeight: CGFloat = revivalJump
         if nextObstacleDistance < 38 {
             let progress = 1 - max(nextObstacleDistance, -6) / 38
-            jumpHeight = sin(min(progress, 1) * .pi) * 13
+            jumpHeight = max(jumpHeight, sin(min(progress, 1) * .pi) * 13)
         }
 
         // Gait speeds up with the world.

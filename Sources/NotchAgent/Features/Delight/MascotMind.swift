@@ -71,15 +71,6 @@ public final class MascotMind {
         lastInteractionAt = now
     }
 
-    /// The user touched the mascot — displeasure, always, with variety.
-    public func notePoked(now: Date = Date()) {
-        lastInteractionAt = now
-        guard settings.settings.delightEnabled else { return }
-        let poke = DelightCatalog.selectPoke(cursor: &state.variantCursor)
-        publish(context: .poke, poke: poke)
-        saveSoon()
-    }
-
     /// The usage peak passed (alert cleared) — relief.
     public func notePeakPassed(now: Date = Date()) {
         guard settings.settings.delightEnabled else { return }

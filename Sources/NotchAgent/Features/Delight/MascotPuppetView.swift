@@ -366,6 +366,11 @@ public enum PuppetMotion {
 /// Canvas drawing with explicit context transforms does.
 public struct MascotPuppetView: View {
     public let spriteName: String
+    /// Whether this mascot plays the mind's contextual requests (bobs on
+    /// expand, celebrations…). Non-reactive mascots keep their ambient
+    /// presence (breathing, blink, head-turn) and their own poke, but they
+    /// never act out global events — only the active model's mascot does.
+    public let reactive: Bool
     private let pokeCooldown: TimeInterval = 2
 
     @State private var steps: [MotionStep] = []
@@ -382,12 +387,14 @@ public struct MascotPuppetView: View {
     @State private var activePoke: PokeVariant?
     @State private var activeBob: BobVariant?
     @State private var cursorOffset: Double = 0
+    @State private var pokeCursor = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(MascotMind.self) private var mind
 
-    public init(spriteName: String) {
+    public init(spriteName: String, reactive: Bool = true) {
         self.spriteName = spriteName
+        self.reactive = reactive
     }
 
     private var spriteImage: NSImage? {
@@ -474,7 +481,13 @@ public struct MascotPuppetView: View {
             let now = Date()
             guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
             lastPokeAt = now
-            mind.notePoked()
+            // Pokes are PERSONAL: local round-robin, this mascot only.
+            var cursor = pokeCursor
+            let variant = DelightCatalog.selectPoke(cursor: &cursor)
+            pokeCursor = cursor
+            activeContext = .poke
+            activePoke = variant
+            play(poke: variant)
         }
         .onContinuousHover { phase in
             // The head follows the cursor while it's over the mascot;
@@ -490,9 +503,12 @@ public struct MascotPuppetView: View {
 
     /// Plays a published request: contextual bob or poke, skipping replays
     /// of an id the puppet already performed. The request's context sets
-    /// the travel personality (easing + duration scale).
+    /// the travel personality (easing + duration scale). Non-reactive
+    /// mascots only act on their own pokes — global events belong to the
+    /// active model's mascot.
     private func play(_ request: AnimationRequest?) {
         guard let request, request.id > playedRequestID, !reduceMotion else { return }
+        guard request.poke == nil || reactive else { return }
         playedRequestID = request.id
         easing = DelightCatalog.easing(for: request.context)
         durationScale = PuppetMotion.durationScale(for: request.context)

@@ -1187,6 +1187,12 @@ struct NotchExpandedView: View {
         return namedQuotas.contains { $0.name.lowercased().contains(needle) }
     }
 
+    /// The family key of the active model ("claude-sonnet" → "sonnet") —
+    /// the models-page mascot that acts out global events.
+    static func activeFamilyKey(for model: String?) -> String? {
+        String(ProviderCardView.mascotName(for: model).dropFirst("claude-".count))
+    }
+
     private var modelsPage: some View {
         let snapshot = store.snapshots[.claudeCode]
         let health = snapshot?.modelHealth ?? []
@@ -1230,7 +1236,10 @@ struct NotchExpandedView: View {
                         usage: familyUsage(family.key, breakdown: breakdown),
                         quota: family.key == "fable" ? fableQuota : nil,
                         blocked: exhausted && family.key != "fable",
-                        share: Double(familyUsage(family.key, breakdown: breakdown)?.tokens ?? 0) / Double(totalTokens)
+                        share: Double(familyUsage(family.key, breakdown: breakdown)?.tokens ?? 0) / Double(totalTokens),
+                        // Only the active model's family mascot acts out
+                        // global events; the others keep ambient presence.
+                        reactive: family.key == Self.activeFamilyKey(for: snapshot?.activeModel)
                     )
                 }
             }
@@ -1259,10 +1268,11 @@ struct NotchExpandedView: View {
         usage: (tokens: Int, cost: Double)?,
         quota: NamedQuota? = nil,
         blocked: Bool = false,
-        share: Double
+        share: Double,
+        reactive: Bool = false
     ) -> some View {
         HStack(spacing: 10) {
-            ClaudeMascot(name: "claude-\(family.key)")
+            MascotPuppetView(spriteName: "claude-\(family.key)", reactive: reactive)
                 .frame(width: 44, height: 28)
             VStack(alignment: .leading, spacing: 3) {
                 Text(family.name)
