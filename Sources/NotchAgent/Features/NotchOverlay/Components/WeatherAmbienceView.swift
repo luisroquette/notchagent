@@ -30,9 +30,12 @@ struct WeatherSkyView: View {
                 ZStack {
                     // The procedural sky: solar phase drives the palette,
                     // the condition drives its desaturation. Present enough
-                    // to read as weather, never enough to hide the data.
+                    // to read as weather, never enough to hide the data —
+                    // the day palette is a bright sky blue, so on the black
+                    // panel it stays a WASH, not a backdrop: at 0.28 the
+                    // white text keeps its contrast and the weather reads.
                     SkyGradientView(snapshot: snapshot)
-                        .opacity(0.65)
+                        .opacity(0.28)
 
                     switch snapshot.condition {
                     case .clear:
