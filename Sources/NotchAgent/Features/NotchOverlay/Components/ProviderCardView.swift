@@ -24,14 +24,11 @@ struct ProviderCardView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Theme.surface)
-        )
+        .glassCard(cornerRadius: 12)
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(
-                    attention == .normal ? Theme.hairline : attention.color.opacity(0.45),
+                    attention == .normal ? .clear : attention.color.opacity(0.45),
                     lineWidth: 1
                 )
         )

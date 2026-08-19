@@ -229,10 +229,7 @@ struct NotchExpandedView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(Theme.surface.opacity(0.7))
-        )
+        .glassCard(cornerRadius: 9)
     }
 
     // MARK: API Accounts
@@ -1309,10 +1306,7 @@ struct NotchExpandedView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Theme.surface)
-        )
+        .glassCard(cornerRadius: 8)
     }
 
     @ViewBuilder
@@ -1436,10 +1430,7 @@ struct NotchExpandedView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Theme.surface)
-        )
+        .glassCard(cornerRadius: 8)
     }
 
     private func modelUsageRow(_ usage: ModelUsage, share: Double, blocked: Bool = false) -> some View {
@@ -1468,10 +1459,7 @@ struct NotchExpandedView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Theme.surface)
-        )
+        .glassCard(cornerRadius: 8)
     }
 
     /// Red strip shown when the shared pool is exhausted — the reason why

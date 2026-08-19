@@ -1,19 +1,5 @@
 # Changelog
 
-## 3.4.3 — 2026-08-18
-
-### Added
-
-- Marketing site: images scale to their height (fix from
-  `codex/close-product-gaps-20260815`, cherry-picked).
-
-### Changed
-
-- Final approved mascots: sprites reproduced from the approved V7 mockup
-  crops (gpt-image-2 sprite sheet from the user's reference crops), validated
-  complete and noise-free at app size. OpenAI glyph re-extracted from the
-  same reference.
-
 ## 3.4.2 — 2026-08-18
 
 ### Changed

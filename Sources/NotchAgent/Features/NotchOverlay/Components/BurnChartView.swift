@@ -369,10 +369,7 @@ struct BurnChartView: View {
                 series: scrubSeries, nowDate: last.date, labelPositions: labelPositions
             )
         }
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Theme.surface)
-        )
+        .glassCard(cornerRadius: 10)
     }
 
     private func drawFrame(context: GraphicsContext, size: CGSize, y: (Double) -> CGFloat) {

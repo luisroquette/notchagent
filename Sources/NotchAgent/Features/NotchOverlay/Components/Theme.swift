@@ -22,6 +22,14 @@ enum Theme {
     )
     static let hairline = dynamic(dark: NSColor.white.withAlphaComponent(0.08), light: NSColor.black.withAlphaComponent(0.10))
 
+    // Glass surfaces
+    /// Tint that sits on top of the material inside a liquid-glass block —
+    /// a barely-there white wash; the refraction behind it stays visible.
+    static let glassTint = dynamic(
+        dark: NSColor.white.withAlphaComponent(0.08),
+        light: NSColor.white.withAlphaComponent(0.30)
+    )
+
     // Brand accent (Claude coral / terracotta) — deeper in light for contrast.
     static let coral = dynamic(
         dark: NSColor(red: 0.855, green: 0.467, blue: 0.341, alpha: 1),
@@ -222,5 +230,60 @@ struct StatusPill: View {
             .background(Capsule().fill(color.opacity(0.16)))
             .overlay(Capsule().strokeBorder(color.opacity(0.35), lineWidth: 0.5))
             .foregroundStyle(color)
+    }
+}
+
+/// Liquid-glass surface ("Apple Liquid Glass" stand-in): the material frosts
+/// and shifts whatever is drawn BEHIND the block — the weather sky, the
+/// panel fill — standing in for refraction; a 1px gradient stroke is the
+/// glass edge, a top specular highlight catches the light, and two layered
+/// soft shadows lift the block off the background. Pure decoration.
+struct GlassCard: ViewModifier {
+    var cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Theme.glassTint)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .white.opacity(0.55), location: 0),
+                                .init(color: .white.opacity(0.10), location: 0.55),
+                                .init(color: .black.opacity(0.15), location: 1),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .overlay(alignment: .top) {
+                RoundedRectangle(cornerRadius: max(cornerRadius - 1, 1), style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [.white.opacity(0.22), .white.opacity(0)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: cornerRadius * 1.5)
+                    .padding(1)
+            }
+            .shadow(color: .black.opacity(0.16), radius: 9, y: 4)
+            .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
+    }
+}
+
+extension View {
+    /// Applies the liquid-glass surface — see `GlassCard`.
+    func glassCard(cornerRadius: CGFloat) -> some View {
+        modifier(GlassCard(cornerRadius: cornerRadius))
     }
 }
