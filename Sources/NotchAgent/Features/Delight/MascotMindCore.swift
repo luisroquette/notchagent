@@ -45,6 +45,25 @@ public struct MascotMindState: Codable, Equatable, Sendable {
         self.ignoresInARow = ignoresInARow
         self.gestureCooldownUntil = gestureCooldownUntil
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case mood, energy, affection, lastSeen, lastExpandedDay, lastGesture
+        case ignoresInARow, gestureCooldownUntil
+    }
+
+    /// Tolerant decode: a save from an older build (missing keys) keeps its
+    /// values and falls back to defaults — never to a fresh mascot.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        mood = try c.decodeIfPresent(MascotMood.self, forKey: .mood) ?? .calm
+        energy = try c.decodeIfPresent(Double.self, forKey: .energy) ?? 0.8
+        affection = try c.decodeIfPresent(Double.self, forKey: .affection) ?? 0.5
+        lastSeen = try c.decodeIfPresent(Date.self, forKey: .lastSeen)
+        lastExpandedDay = try c.decodeIfPresent(String.self, forKey: .lastExpandedDay)
+        lastGesture = try c.decodeIfPresent(MascotGesture.self, forKey: .lastGesture)
+        ignoresInARow = try c.decodeIfPresent(Int.self, forKey: .ignoresInARow) ?? 0
+        gestureCooldownUntil = try c.decodeIfPresent(Date.self, forKey: .gestureCooldownUntil)
+    }
 }
 
 /// Deterministic RNG for tests; production uses SystemRandomNumberGenerator.
