@@ -21,12 +21,12 @@ public struct MotionStep: Equatable, Sendable {
 
 /// Opening greetings: the mascot always moves when the panel opens, never
 /// the same way twice.
-public enum BobVariant: String, CaseIterable {
+public enum BobVariant: String, CaseIterable, Sendable {
     case swingUpDown, swayPendulum, wobbleFall, hopBob
 }
 
 /// Touch reactions: poking the mascot ALWAYS gets an annoyed response.
-public enum PokeVariant: String, CaseIterable {
+public enum PokeVariant: String, CaseIterable, Sendable {
     case startleJump, annoyedWiggle, shrinkSulk
 }
 
@@ -157,8 +157,10 @@ public struct MascotPuppetView: View {
     @State private var eyeState: EyeState = .open
     @State private var isBusy = false
     @State private var lastPokeAt = Date.distantPast
+    @State private var playedRequestID = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(MascotMind.self) private var mind
 
     public init(spriteName: String) {
         self.spriteName = spriteName
@@ -208,14 +210,30 @@ public struct MascotPuppetView: View {
         .onAppear {
             guard !reduceMotion else { return }
             startBlinking()
-            play(bob: BobVariant.allCases.randomElement()!)
+            // The expand already published a contextual request; play it.
+            play(mind.animationRequest)
+        }
+        .onChange(of: mind.animationRequest) { _, request in
+            play(request)
         }
         .onHover { hovering in
             guard hovering, !reduceMotion else { return }
             let now = Date()
             guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
             lastPokeAt = now
-            play(poke: PokeVariant.allCases.randomElement()!)
+            mind.notePoked()
+        }
+    }
+
+    /// Plays a published request: contextual bob or poke, skipping replays
+    /// of an id the puppet already performed.
+    private func play(_ request: AnimationRequest?) {
+        guard let request, request.id > playedRequestID, !reduceMotion else { return }
+        playedRequestID = request.id
+        if let bob = request.bob {
+            play(bob: bob)
+        } else if let poke = request.poke {
+            play(poke: poke)
         }
     }
 

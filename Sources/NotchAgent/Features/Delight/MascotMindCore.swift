@@ -14,6 +14,46 @@ public enum DelightMoment: String, Codable, CaseIterable, Sendable {
     case quotaReset, peakPassed, midnight, firstExpandOfDay, idleThirtySeconds, randomExpand
 }
 
+/// WHY the mascot moves. Every animation belongs to a context — variety
+/// comes from many contexts interleaving, never from coin flips.
+public enum MascotContext: String, Codable, CaseIterable, Sendable {
+    /// First expand of the day — a greeting.
+    case greeting
+    /// Default expand, calm mood.
+    case calm
+    /// Burn high: tense, alert.
+    case tense
+    /// Low energy: slow, drowsy.
+    case drowsy
+    /// High energy + affection: playful.
+    case playful
+    /// The usage peak passed: relief.
+    case relief
+    /// Quota reset: celebration.
+    case celebration
+    /// Crossed midnight: settling in.
+    case midnightMoment
+    /// The user touched the mascot: displeasure.
+    case poke
+}
+
+/// One published animation: the context that motivated it, the selected
+/// variant, and a monotonically increasing id so the puppet can tell a
+/// new request from a replay.
+public struct AnimationRequest: Equatable, Sendable {
+    public let context: MascotContext
+    public let bob: BobVariant?
+    public let poke: PokeVariant?
+    public let id: Int
+
+    public init(context: MascotContext, bob: BobVariant? = nil, poke: PokeVariant? = nil, id: Int) {
+        self.context = context
+        self.bob = bob
+        self.poke = poke
+        self.id = id
+    }
+}
+
 /// The mascot's persistent inner life. Everything the engine needs to feel
 /// continuous across launches.
 public struct MascotMindState: Codable, Equatable, Sendable {
@@ -25,6 +65,10 @@ public struct MascotMindState: Codable, Equatable, Sendable {
     public var lastGesture: MascotGesture?
     public var ignoresInARow: Int
     public var gestureCooldownUntil: Date?
+    /// Round-robin cursor over the animation catalog — variety WITHOUT
+    /// randomness: the same context never plays the same variant twice in
+    /// a row, and different contexts interleave their own variety.
+    public var variantCursor: Int
 
     public init(
         mood: MascotMood = .calm,
@@ -34,7 +78,8 @@ public struct MascotMindState: Codable, Equatable, Sendable {
         lastExpandedDay: String? = nil,
         lastGesture: MascotGesture? = nil,
         ignoresInARow: Int = 0,
-        gestureCooldownUntil: Date? = nil
+        gestureCooldownUntil: Date? = nil,
+        variantCursor: Int = 0
     ) {
         self.mood = mood
         self.energy = energy
@@ -44,11 +89,12 @@ public struct MascotMindState: Codable, Equatable, Sendable {
         self.lastGesture = lastGesture
         self.ignoresInARow = ignoresInARow
         self.gestureCooldownUntil = gestureCooldownUntil
+        self.variantCursor = variantCursor
     }
 
     private enum CodingKeys: String, CodingKey {
         case mood, energy, affection, lastSeen, lastExpandedDay, lastGesture
-        case ignoresInARow, gestureCooldownUntil
+        case ignoresInARow, gestureCooldownUntil, variantCursor
     }
 
     /// Tolerant decode: a save from an older build (missing keys) keeps its
@@ -63,6 +109,7 @@ public struct MascotMindState: Codable, Equatable, Sendable {
         lastGesture = try c.decodeIfPresent(MascotGesture.self, forKey: .lastGesture)
         ignoresInARow = try c.decodeIfPresent(Int.self, forKey: .ignoresInARow) ?? 0
         gestureCooldownUntil = try c.decodeIfPresent(Date.self, forKey: .gestureCooldownUntil)
+        variantCursor = try c.decodeIfPresent(Int.self, forKey: .variantCursor) ?? 0
     }
 }
 

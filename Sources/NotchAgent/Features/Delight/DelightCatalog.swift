@@ -28,6 +28,57 @@ public enum DelightCatalog {
         }
     }
 
+    // MARK: Contextual animation catalog
+
+    /// Which bob variants belong to each context — the mascot's vocabulary
+    /// per situation. Variety comes from contexts interleaving; the SAME
+    /// context rotates through its set via round-robin, never repeating
+    /// consecutively.
+    public static func bobVariants(for context: MascotContext) -> [BobVariant] {
+        switch context {
+        case .greeting: [.swingUpDown, .swayPendulum]
+        case .calm: [.swingUpDown, .swayPendulum, .hopBob]
+        case .tense: [.swayPendulum, .wobbleFall]
+        case .drowsy: [.swingUpDown]
+        case .playful: [.hopBob, .wobbleFall]
+        case .relief: [.swayPendulum, .swingUpDown]
+        case .celebration: [.hopBob, .swingUpDown]
+        case .midnightMoment: [.swingUpDown]
+        case .poke: []
+        }
+    }
+
+    /// Round-robin over a context's bob set: deterministic variety — each
+    /// selection advances the cursor so the next one differs.
+    public static func selectBob(context: MascotContext, cursor: inout Int) -> BobVariant {
+        let options = bobVariants(for: context)
+        guard !options.isEmpty else { return .swingUpDown }
+        let index = cursor % options.count
+        cursor += 1
+        return options[index]
+    }
+
+    /// Round-robin over the poke reactions (all three, never the same
+    /// twice in a row).
+    public static func selectPoke(cursor: inout Int) -> PokeVariant {
+        let options = PokeVariant.allCases
+        let index = cursor % options.count
+        cursor += 1
+        return options[index]
+    }
+
+    /// Mood → context for an ordinary expand (greeting wins when it's the
+    /// first expand of the day).
+    public static func expandContext(mood: MascotMood, firstExpandOfDay: Bool) -> MascotContext {
+        if firstExpandOfDay { return .greeting }
+        switch mood {
+        case .alert: return .tense
+        case .sleepy: return .drowsy
+        case .curious: return .playful
+        case .calm: return .calm
+        }
+    }
+
     public static func affectionBump(firstExpandOfDay: Bool) -> Double {
         firstExpandOfDay ? 0.02 : 0
     }

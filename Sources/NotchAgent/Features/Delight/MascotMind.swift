@@ -2,25 +2,26 @@ import Foundation
 import Observation
 
 /// The mascot's running mind: owns the persisted state, ticks every 60s,
-/// receives nudges from app events and turns them into gestures — which it
-/// may ignore. Everything here is gated by `settings.delightEnabled`.
+/// derives CONTEXT from app events (expand, peak passed, quota reset,
+/// midnight) and publishes contextual animation requests. Variety is
+/// deterministic round-robin per context — never a coin flip.
+/// Everything here is gated by `settings.delightEnabled`.
 @MainActor
 @Observable
 public final class MascotMind {
     public private(set) var state: MascotMindState
-    /// The gesture the puppet is currently performing (`.none` when idle).
-    public private(set) var activeGesture: MascotGesture = .none
+    /// The latest published animation request; the puppet plays these.
+    public private(set) var animationRequest: AnimationRequest?
 
-    private var rng = SystemRandomNumberGenerator()
     private let persistence: MascotMindPersistence
     private let settings: PreferencesStore
     private weak var store: UsageStore?
     private var tickTask: Task<Void, Never>?
     private var lastTickAt = Date()
     private var lastInteractionAt = Date()
-    private var isPanelOpen = false
     private var burnHigh = false
     private var previousMetrics: [ProviderID: GaugeMetric] = [:]
+    private var requestID = 0
 
     init(
         settings: PreferencesStore,
@@ -48,44 +49,42 @@ public final class MascotMind {
         tickTask = nil
     }
 
-    /// Called when the panel expands. First expand of the day bumps
-    /// affection; other expands roll a ~20% random gesture. Expand-triggered
-    /// reactions are scheduled AFTER the panel transition — a blink during
-    /// the 0.38s expand animation is invisible, the panel's motion swallows it.
+    /// Called when the panel expands. The first expand of the day greets;
+    /// every other expand plays the mood's context — always an animation,
+    /// always contextual, never the same variant twice in a row.
     public func noteExpanded(now: Date = Date()) {
         lastInteractionAt = now
-        isPanelOpen = true
         guard settings.settings.delightEnabled else { return }
-        if MascotMindCore.firstExpandOfDay(state: state, dayKey: DelightSignals.dayKey(now)) {
+        let first = MascotMindCore.firstExpandOfDay(state: state, dayKey: DelightSignals.dayKey(now))
+        if first {
             state.lastExpandedDay = DelightSignals.dayKey(now)
             state.affection = min(1, state.affection + DelightCatalog.affectionBump(firstExpandOfDay: true))
-            scheduleReaction(to: .firstExpandOfDay)
-        } else if Double.random(in: 0..<1, using: &rng) < 0.2 {
-            scheduleReaction(to: .randomExpand)
         }
+        let context = DelightCatalog.expandContext(mood: state.mood, firstExpandOfDay: first)
+        let bob = DelightCatalog.selectBob(context: context, cursor: &state.variantCursor)
+        publish(context: context, bob: bob)
         saveSoon()
     }
 
-    /// Delays a reaction until the panel has settled on screen.
-    private func scheduleReaction(to moment: DelightMoment) {
-        Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(500))
-            self?.react(to: moment, now: Date())
-        }
-    }
-
-    /// Called when the panel collapses — the mascot never performs (or
-    /// makes noise) with the panel closed.
+    /// Called when the panel collapses.
     public func noteCollapsed(now: Date = Date()) {
         lastInteractionAt = now
-        isPanelOpen = false
-        activeGesture = .none
     }
 
-    /// The usage peak passed (alert cleared).
+    /// The user touched the mascot — displeasure, always, with variety.
+    public func notePoked(now: Date = Date()) {
+        lastInteractionAt = now
+        guard settings.settings.delightEnabled else { return }
+        let poke = DelightCatalog.selectPoke(cursor: &state.variantCursor)
+        publish(context: .poke, poke: poke)
+        saveSoon()
+    }
+
+    /// The usage peak passed (alert cleared) — relief.
     public func notePeakPassed(now: Date = Date()) {
         guard settings.settings.delightEnabled else { return }
-        react(to: .peakPassed, now: now)
+        let bob = DelightCatalog.selectBob(context: .relief, cursor: &state.variantCursor)
+        publish(context: .relief, bob: bob)
         saveSoon()
     }
 
@@ -105,13 +104,8 @@ public final class MascotMind {
         detectQuotaReset(now: now)
 
         if DelightSignals.crossedMidnight(previous: lastTickAt, now: now) {
-            react(to: .midnight, now: now)
-        }
-        if idle >= 30 {
-            react(to: .idleThirtySeconds, now: now)
-        } else {
-            let gesture = MascotMindCore.selfInitiatedGesture(state: &state, now: now, rng: &rng)
-            if gesture != .none { perform(gesture) }
+            let bob = DelightCatalog.selectBob(context: .midnightMoment, cursor: &state.variantCursor)
+            publish(context: .midnightMoment, bob: bob)
         }
         lastTickAt = now
         saveSoon()
@@ -129,29 +123,16 @@ public final class MascotMind {
             DelightSignals.quotaResetDetected(previous: previousMetrics[$0], current: currentMetrics[$0])
         }
         if !resetProviders.isEmpty {
-            react(to: .quotaReset, now: now)
+            let bob = DelightCatalog.selectBob(context: .celebration, cursor: &state.variantCursor)
+            publish(context: .celebration, bob: bob)
         }
         burnHigh = currentMetrics.values.map(\.used).max() ?? 0 >= 70
         previousMetrics = currentMetrics
     }
 
-    private func react(to moment: DelightMoment, now: Date) {
-        var s = state
-        let gesture = MascotMindCore.nudge(state: &s, moment: moment, now: now, rng: &rng)
-        state = s
-        if gesture != .none, gesture != .ignored {
-            perform(gesture)
-        }
-        saveSoon()
-    }
-
-    private func perform(_ gesture: MascotGesture) {
-        guard isPanelOpen else { return }
-        activeGesture = gesture
-        Task { [weak self] in
-            try? await Task.sleep(for: .seconds(1.5))
-            self?.activeGesture = .none
-        }
+    private func publish(context: MascotContext, bob: BobVariant? = nil, poke: PokeVariant? = nil) {
+        requestID += 1
+        animationRequest = AnimationRequest(context: context, bob: bob, poke: poke, id: requestID)
     }
 
     private func saveSoon() {
