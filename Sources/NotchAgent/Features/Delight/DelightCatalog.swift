@@ -78,6 +78,21 @@ public enum DelightCatalog {
         }
     }
 
+    /// Which contexts wind up before committing — tense and drowsy have
+    /// no energy for a wind-up; the rest preload with intent.
+    public static func anticipation(for context: MascotContext) -> Bool {
+        switch context {
+        case .greeting, .calm, .playful, .celebration, .relief: true
+        case .tense, .drowsy, .midnightMoment, .poke: false
+        }
+    }
+
+    /// Which contexts drain with a tail — tense ends dead (a snap with a
+    /// tail is a wobble); everything else drains.
+    public static func followThrough(for context: MascotContext) -> Bool {
+        context != .tense
+    }
+
     /// Mood → context for an ordinary expand (greeting wins when it's the
     /// first expand of the day).
     public static func expandContext(mood: MascotMood, firstExpandOfDay: Bool) -> MascotContext {

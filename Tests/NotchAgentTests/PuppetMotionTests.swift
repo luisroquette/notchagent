@@ -161,6 +161,52 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertEqual(DelightCatalog.easing(for: .calm), .standard)
     }
 
+    // MARK: anticipation + follow-through (staging)
+
+    func testAnticipationMovesOppositeToTheFirstStep() {
+        let step = MotionStep(offsetY: -10, duration: 0.25)
+        let windUp = PuppetMotion.anticipationStep(for: step)
+        XCTAssertGreaterThan(windUp.offsetY, 0, "the wind-up must load in the opposite direction")
+        XCTAssertLessThan(abs(windUp.offsetY), abs(step.offsetY), "the wind-up is smaller than the move")
+
+        let rotation = MotionStep(rotationDegrees: 10, duration: 0.25)
+        let rotationWindUp = PuppetMotion.anticipationStep(for: rotation)
+        XCTAssertLessThan(rotationWindUp.rotationDegrees, 0, "a rightward turn winds up leftward")
+    }
+
+    func testFollowThroughOvershootsPastRest() {
+        let step = MotionStep(offsetY: -10, duration: 0.25)
+        let tail = PuppetMotion.followThroughStep(for: step)
+        XCTAssertGreaterThan(tail.offsetY, 0, "the tail continues past rest in the motion's direction")
+        XCTAssertLessThan(abs(tail.offsetY), abs(step.offsetY), "the tail is smaller than the move")
+    }
+
+    func testStagedComposesAndStillSettles() {
+        let steps = PuppetMotion.bobSteps(.hopBob)
+        let staged = PuppetMotion.staged(steps, anticipation: true, followThrough: true)
+        XCTAssertEqual(staged.count, steps.count + 3, "wind-up + tail + final rest")
+        XCTAssertEqual(staged.first?.offsetY, PuppetMotion.anticipationStep(for: steps[0]).offsetY)
+        // The last step is the final rest — the sequence always settles.
+        let last = staged[staged.count - 1]
+        XCTAssertEqual(last.scaleY, 1)
+        XCTAssertEqual(last.rotationDegrees, 0)
+        XCTAssertEqual(last.offsetY, 0)
+    }
+
+    func testStagedWithoutFlagsIsPassthrough() {
+        let steps = PuppetMotion.bobSteps(.swingUpDown)
+        XCTAssertEqual(PuppetMotion.staged(steps, anticipation: false, followThrough: false), steps)
+    }
+
+    func testCatalogStagingFlags() {
+        XCTAssertTrue(DelightCatalog.anticipation(for: .playful), "playful winds up")
+        XCTAssertTrue(DelightCatalog.anticipation(for: .greeting), "greetings wind up")
+        XCTAssertFalse(DelightCatalog.anticipation(for: .tense), "tense has no time to wind up")
+        XCTAssertFalse(DelightCatalog.anticipation(for: .drowsy), "drowsy has no energy to wind up")
+        XCTAssertFalse(DelightCatalog.followThrough(for: .tense), "tense ends dead")
+        XCTAssertTrue(DelightCatalog.followThrough(for: .calm))
+    }
+
     // MARK: pose interpolation (the frame-by-frame driver)
 
     private let t0 = Date(timeIntervalSince1970: 1_756_000_000)

@@ -208,6 +208,49 @@ public enum PuppetMotion {
         default: 1.0
         }
     }
+
+    /// The wind-up: a small move in the OPPOSITE direction of the first
+    /// real step — the pose preloads before committing. Deliberately small;
+    /// it reads as intent, not as a separate gesture.
+    public static func anticipationStep(for step: MotionStep) -> MotionStep {
+        MotionStep(
+            scaleY: step.scaleY == 1 ? 0.95 : 1 + (1 - step.scaleY) * 0.4,
+            rotationDegrees: step.rotationDegrees != 0 ? -step.rotationDegrees * 0.35 : 0,
+            offsetY: step.offsetY != 0 ? -step.offsetY * 0.35 : 0,
+            duration: 0.12
+        )
+    }
+
+    /// The tail: after settling, overshoot slightly PAST rest in the
+    /// direction the gesture was going, then return — the motion never
+    /// stops dead, it drains.
+    public static func followThroughStep(for step: MotionStep) -> MotionStep {
+        MotionStep(
+            scaleY: step.scaleY == 1 ? 1.03 : 1 - (1 - step.scaleY) * 0.3,
+            rotationDegrees: step.rotationDegrees != 0 ? -step.rotationDegrees * 0.25 : 0,
+            offsetY: step.offsetY != 0 ? -step.offsetY * 0.25 : -1.5,
+            duration: 0.18
+        )
+    }
+
+    /// Composes the playable sequence: optional wind-up, the gesture, then
+    /// the follow-through tail before the final rest.
+    public static func staged(
+        _ steps: [MotionStep],
+        anticipation: Bool,
+        followThrough: Bool
+    ) -> [MotionStep] {
+        var result: [MotionStep] = []
+        if anticipation, let first = steps.first {
+            result.append(anticipationStep(for: first))
+        }
+        result += steps
+        if followThrough, let lastMoving = steps.dropLast().last ?? steps.first {
+            result.append(followThroughStep(for: lastMoving))
+            result.append(MotionStep(duration: 0.25))
+        }
+        return result
+    }
 }
 
 /// The living mascot: rocks when the panel opens (varied), always reacts
@@ -233,6 +276,8 @@ public struct MascotPuppetView: View {
     @State private var playedRequestID = 0
     @State private var easing: EasingProfile = .standard
     @State private var durationScale: Double = 1
+    @State private var useAnticipation = false
+    @State private var useFollowThrough = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(MascotMind.self) private var mind
@@ -314,6 +359,8 @@ public struct MascotPuppetView: View {
         playedRequestID = request.id
         easing = DelightCatalog.easing(for: request.context)
         durationScale = PuppetMotion.durationScale(for: request.context)
+        useAnticipation = DelightCatalog.anticipation(for: request.context)
+        useFollowThrough = DelightCatalog.followThrough(for: request.context)
         if let bob = request.bob {
             play(bob: bob)
         } else if let poke = request.poke {
@@ -423,7 +470,11 @@ public struct MascotPuppetView: View {
     }
 
     private func play(bob variant: BobVariant) {
-        let sequence = PuppetMotion.bobSteps(variant)
+        let sequence = PuppetMotion.staged(
+            PuppetMotion.bobSteps(variant),
+            anticipation: useAnticipation,
+            followThrough: useFollowThrough
+        )
         steps = sequence
         animationStart = Date()
         isBusy = true
@@ -431,7 +482,11 @@ public struct MascotPuppetView: View {
     }
 
     private func play(poke variant: PokeVariant) {
-        let sequence = PuppetMotion.pokeSteps(variant)
+        let sequence = PuppetMotion.staged(
+            PuppetMotion.pokeSteps(variant),
+            anticipation: useAnticipation,
+            followThrough: useFollowThrough
+        )
         eyeState = .annoyed
         steps = sequence
         animationStart = Date()
