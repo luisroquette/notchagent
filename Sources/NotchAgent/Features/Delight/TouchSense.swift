@@ -49,14 +49,20 @@ public enum TouchSense {
     }
 
     /// The entry edge from the FIRST hover sample. Corners (the far
-    /// horizontal thirds) win over top and bottom — the corners have
-    /// their own grammar. In a 64pt slot: side when |x − 32| > 16,
-    /// top when y < 24, bottom when y > 40, center in between.
-    public static func entryZone(_ sample: Sample, slotSize: Double = 64) -> TouchZone {
-        let half = slotSize / 2
+    /// horizontal thirds of the WIDTH) win over top and bottom — the
+    /// corners have their own grammar. Vertical zones use the HEIGHT:
+    /// in a 64×64 slot, side when |x − 32| > 16, top when y < 24,
+    /// bottom when y > 40, center in between. Width and height are
+    /// separate because real slots are not square (44×28 rows).
+    public static func entryZone(
+        _ sample: Sample,
+        slotWidth: Double = 64,
+        slotHeight: Double = 64
+    ) -> TouchZone {
+        let half = slotWidth / 2
         if abs(sample.x - half) > half / 2 { return .side }
-        if sample.y < slotSize * 0.375 { return .top }
-        if sample.y > slotSize * 0.625 { return .bottom }
+        if sample.y < slotHeight * 0.375 { return .top }
+        if sample.y > slotHeight * 0.625 { return .bottom }
         return .center
     }
 

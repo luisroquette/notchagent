@@ -1272,7 +1272,11 @@ struct NotchExpandedView: View {
         reactive: Bool = false
     ) -> some View {
         HStack(spacing: 10) {
-            MascotPuppetView(spriteName: "claude-\(family.key)", reactive: reactive)
+            MascotPuppetView(
+                spriteName: "claude-\(family.key)",
+                reactive: reactive,
+                slotSize: CGSize(width: 44, height: 28)
+            )
                 .frame(width: 44, height: 28)
             VStack(alignment: .leading, spacing: 3) {
                 Text(family.name)

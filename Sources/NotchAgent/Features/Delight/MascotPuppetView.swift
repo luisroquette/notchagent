@@ -494,10 +494,23 @@ public struct MascotPuppetView: View {
     /// presence (breathing, blink, head-turn) and their own poke, but they
     /// never act out global events — only the active model's mascot does.
     public let reactive: Bool
+    /// The slot's real size. The touch grammar derives from it — zones,
+    /// sides, head zone, gaze tracking. ProviderCardView uses the 64×64
+    /// default; the models page rows pass 44×28.
+    public let slotSize: CGSize
     private let pokeCooldown: TimeInterval = 2
     /// Shorter than the poke's: a tap may flow into a caress almost
     /// immediately — felt the touch, recognized the affection.
     private let caressCooldown: TimeInterval = 0.8
+
+    private var slotHalfX: Double { slotSize.width / 2 }
+    /// The head band: above this y a touch is "on top", below it "on the
+    /// body" (caresses need the head; the crush releases past the top).
+    private var headZoneTopY: Double { slotSize.height * 0.375 }
+    /// Below this y a touch comes from under the mascot.
+    private var bottomZoneY: Double { slotSize.height * 0.625 }
+    /// The caress zone: the upper half of the slot.
+    private var headZoneMaxY: Double { slotSize.height / 2 }
 
     @State private var steps: [MotionStep] = []
     @State private var animationStart: Date?
@@ -536,9 +549,14 @@ public struct MascotPuppetView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(MascotMind.self) private var mind
 
-    public init(spriteName: String, reactive: Bool = true) {
+    public init(
+        spriteName: String,
+        reactive: Bool = true,
+        slotSize: CGSize = CGSize(width: 64, height: 64)
+    ) {
         self.spriteName = spriteName
         self.reactive = reactive
+        self.slotSize = slotSize
     }
 
     private var spriteImage: NSImage? {
@@ -549,25 +567,11 @@ public struct MascotPuppetView: View {
 
     public var body: some View {
         TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
-            let basePose = reduceMotion
-                ? MotionStep.identity
-                : PuppetMotion.blendedPose(
-                    from: interruptedPose,
-                    to: PuppetMotion.pose(
-                        steps: steps,
-                        start: animationStart,
-                        now: timeline.date,
-                        easing: easing,
-                        durationScale: durationScale
-                    ),
-                    switchedAt: switchedAt,
-                    now: timeline.date
-                )
-            // A hard finger on top keeps crushing while it stays — the
-            // rendered pose sinks and flattens on top of the animation.
-            let pose = crushingSince.map {
-                PuppetMotion.crushPose(base: basePose, elapsed: timeline.date.timeIntervalSince($0))
-            } ?? basePose
+            // The pose as drawn: blend layer first, crush on top. The
+            // crush is timeline-driven — a perfectly still finger keeps
+            // sinking it to the cap; only the release (hover .ended or
+            // leaving the head zone) lifts it.
+            let pose = renderedPose(now: timeline.date)
             Canvas { context, size in
                 // Aspect-preserving sprite rect, centered — the assets are
                 // wide (367×255); drawing into the square slot stretches
@@ -637,6 +641,14 @@ public struct MascotPuppetView: View {
             }
         }
         .onAppear {
+            // A recycled view (panel re-expand) must not believe the
+            // cursor is still inside — the next entry reseeds the touch
+            // trail and any leftover crush releases.
+            wasHovering = false
+            entryAt = nil
+            entrySamples = []
+            caressSamples = []
+            crushingSince = nil
             guard !reduceMotion else { return }
             startBlinking()
             // The expand already published a contextual request; play it.
@@ -652,7 +664,7 @@ public struct MascotPuppetView: View {
             // the ongoing trail watches for caresses on the head.
             switch phase {
             case .active(let location):
-                cursorOffset = min(max((location.x - 32.0) / 32.0, -1), 1)
+                cursorOffset = min(max((location.x - slotHalfX) / slotHalfX, -1), 1)
                 let now = Date()
                 let sample = TouchSense.Sample(at: now, x: location.x, y: location.y)
                 if !wasHovering {
@@ -671,12 +683,12 @@ public struct MascotPuppetView: View {
                     // the trail reads as stroking the head, react to it.
                     caressSamples.append(sample)
                     caressSamples.removeAll { now.timeIntervalSince($0.at) > TouchSense.caressWindow }
-                    if TouchSense.isCaress(caressSamples, headZoneMaxY: 32) {
+                    if TouchSense.isCaress(caressSamples, headZoneMaxY: headZoneMaxY) {
                         triggerCaress(samples: caressSamples)
                         caressSamples = []
                     }
                     // The finger lifted off the head: the crush releases.
-                    if crushingSince != nil, location.y >= 24 {
+                    if crushingSince != nil, location.y >= headZoneTopY {
                         crushingSince = nil
                     }
                 }
@@ -702,9 +714,13 @@ public struct MascotPuppetView: View {
     private func finishTouch(samples: [TouchSense.Sample]) {
         guard let first = samples.first else { return }
         let kind = TouchSense.classify(samples)
-        let zone = TouchSense.entryZone(first)
+        let zone = TouchSense.entryZone(
+            first,
+            slotWidth: slotSize.width,
+            slotHeight: slotSize.height
+        )
         let averageX = samples.map(\.x).reduce(0, +) / Double(max(samples.count, 1))
-        let fromLeft = averageX < 32.0
+        let fromLeft = averageX < slotHalfX
         switch zone {
         case .top:
             // Over the head: gentle closes the eyes like a puppy getting
@@ -833,7 +849,7 @@ public struct MascotPuppetView: View {
         guard now.timeIntervalSince(lastCaressAt) >= caressCooldown else { return }
         lastCaressAt = now
         let averageX = samples.map(\.x).reduce(0, +) / Double(max(samples.count, 1))
-        let lean = (averageX - 32.0) / 32.0 * 8
+        let lean = (averageX - slotHalfX) / slotHalfX * 8
         easing = DelightCatalog.easing(for: .calm)
         durationScale = PuppetMotion.durationScale(for: .calm)
         useAnticipation = false
@@ -846,6 +862,29 @@ public struct MascotPuppetView: View {
             anticipation: false,
             followThrough: true
         ))
+    }
+
+    /// The pose as drawn at `now`: the interruption blend first, then the
+    /// crush on top — one function, so `begin` captures the same pose the
+    /// canvas renders (a blend starting mid-crush never snaps).
+    private func renderedPose(now: Date) -> MotionStep {
+        let base = reduceMotion
+            ? MotionStep.identity
+            : PuppetMotion.blendedPose(
+                from: interruptedPose,
+                to: PuppetMotion.pose(
+                    steps: steps,
+                    start: animationStart,
+                    now: now,
+                    easing: easing,
+                    durationScale: durationScale
+                ),
+                switchedAt: switchedAt,
+                now: now
+            )
+        return crushingSince.map {
+            PuppetMotion.crushPose(base: base, elapsed: now.timeIntervalSince($0))
+        } ?? base
     }
 
     /// Plays a published request: contextual bob or poke, skipping replays
@@ -1053,17 +1092,12 @@ public struct MascotPuppetView: View {
     }
 
     /// Starts a sequence. If another gesture was in flight, captures the
-    /// pose at the cut and crossfades the new sequence in from there —
-    /// interruptions read as intent, never as a teleport.
+    /// RENDERED pose at the cut (blend and crush included) and crossfades
+    /// the new sequence in from there — interruptions read as intent,
+    /// never as a teleport.
     private func begin(sequence: [MotionStep]) {
-        if animationStart != nil || !steps.isEmpty {
-            interruptedPose = PuppetMotion.pose(
-                steps: steps,
-                start: animationStart,
-                now: Date(),
-                easing: easing,
-                durationScale: durationScale
-            )
+        if animationStart != nil || !steps.isEmpty || crushingSince != nil {
+            interruptedPose = renderedPose(now: Date())
             switchedAt = Date()
         }
         generation += 1
