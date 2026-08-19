@@ -216,11 +216,14 @@ public enum PuppetMotion {
         }
     }
 
-    /// How much slower/faster a context plays its steps.
+    /// How much slower/faster a context plays its steps — the same gesture
+    /// has a mood: calm lingers, drowsy drags, tense snaps, playful bounces,
+    /// and a poke is always immediate.
     public static func durationScale(for context: MascotContext) -> Double {
         switch context {
         case .drowsy, .midnightMoment: 1.7
         case .tense: 0.7
+        case .calm: 1.15
         case .playful, .celebration: 0.9
         default: 1.0
         }
@@ -584,6 +587,13 @@ public struct MascotPuppetView: View {
         var cursor = pokeCursor
         let variant = DelightCatalog.selectPoke(cursor: &cursor)
         pokeCursor = cursor
+        // The poke owns its travel personality — a poke right after a
+        // drowsy greeting is still a snap, never the greeting's sluggish
+        // leftovers.
+        easing = DelightCatalog.easing(for: .poke)
+        durationScale = PuppetMotion.durationScale(for: .poke)
+        useAnticipation = DelightCatalog.anticipation(for: .poke)
+        useFollowThrough = DelightCatalog.followThrough(for: .poke)
         activeContext = .poke
         activePoke = variant
         play(poke: variant, pokeSide: fromLeft ? -1 : 1)

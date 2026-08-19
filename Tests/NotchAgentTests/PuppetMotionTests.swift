@@ -127,7 +127,17 @@ final class PuppetMotionTests: XCTestCase {
     func testDurationScalePerContext() {
         XCTAssertGreaterThan(PuppetMotion.durationScale(for: .drowsy), 1, "drowsy drags")
         XCTAssertLessThan(PuppetMotion.durationScale(for: .tense), 1, "tense snaps")
-        XCTAssertEqual(PuppetMotion.durationScale(for: .calm), 1, accuracy: 0.0001)
+        XCTAssertGreaterThan(PuppetMotion.durationScale(for: .calm), 1, "calm lingers")
+        XCTAssertEqual(PuppetMotion.durationScale(for: .poke), 1, accuracy: 0.0001, "pokes are always immediate")
+    }
+
+    func testPokeProfileIsSelfContained() {
+        // The poke's travel personality must never inherit a previous
+        // event's profile — a poke after a drowsy greeting is still a
+        // snap, with no wind-up and a draining tail.
+        XCTAssertEqual(DelightCatalog.easing(for: .poke), .sharp)
+        XCTAssertEqual(DelightCatalog.anticipation(for: .poke), false)
+        XCTAssertEqual(DelightCatalog.followThrough(for: .poke), true)
     }
 
     func testPoseRespectsDurationScale() {
