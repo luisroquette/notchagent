@@ -717,4 +717,36 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertLessThan(lifted.width, full.width)
         XCTAssertEqual(lifted.midX, full.midX, accuracy: 0.001, "the shadow stays centered under the mascot")
     }
+
+    // REGRESSÃO: um bump a 1.6× sobe 22.4pt, mas o card de 64pt só tem
+    // 9.8pt de folga acima do sprite — o topo saía do canvas. E o slot
+    // 44×28 não tem folga vertical nenhuma: qualquer pulo ou crush
+    // cortava o sprite. O lift renderizado é clampado à moldura.
+    func testClampedLiftBoundsJumpToFrame() {
+        let cardSprite = CGRect(x: 0, y: 9.8, width: 64, height: 44.4)
+        let card = CGSize(width: 64, height: 64)
+        XCTAssertEqual(
+            PuppetMotion.clampedLift(offsetY: -22.4, spriteRect: cardSprite, canvasSize: card),
+            -9.8, accuracy: 0.001,
+            "the bump jump is bounded by the space above the sprite"
+        )
+        XCTAssertEqual(
+            PuppetMotion.clampedLift(offsetY: -8, spriteRect: cardSprite, canvasSize: card),
+            -8, accuracy: 0.001,
+            "travel inside the bounds passes through untouched"
+        )
+        XCTAssertEqual(
+            PuppetMotion.clampedLift(offsetY: 5, spriteRect: cardSprite, canvasSize: card),
+            5, accuracy: 0.001,
+            "the card has room for the full crush sink"
+        )
+    }
+
+    func testClampedLiftZeroesVerticalTravelInTightRows() {
+        // 44×28 row: the sprite fills the height — no lift, no sink.
+        let rowSprite = CGRect(x: 1.85, y: 0, width: 40.3, height: 28)
+        let row = CGSize(width: 44, height: 28)
+        XCTAssertEqual(PuppetMotion.clampedLift(offsetY: -14, spriteRect: rowSprite, canvasSize: row), 0)
+        XCTAssertEqual(PuppetMotion.clampedLift(offsetY: 5, spriteRect: rowSprite, canvasSize: row), 0)
+    }
 }

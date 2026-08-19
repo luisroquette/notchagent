@@ -446,6 +446,19 @@ public enum PuppetMotion {
         )
     }
 
+    /// Clamps the pose's vertical travel to the canvas: a mascot inside
+    /// a frame must not jump out of it. The lift is bounded by the space
+    /// above the sprite, the sink by the space below — tight slots
+    /// (44×28 rows) allow neither, the 64pt card allows ~10pt each way.
+    public static func clampedLift(
+        offsetY: Double,
+        spriteRect: CGRect,
+        canvasSize: CGSize
+    ) -> Double {
+        let up = max(offsetY, -spriteRect.minY)
+        return min(up, canvasSize.height - spriteRect.maxY)
+    }
+
     /// Interruption blend: when a new gesture cuts an in-flight one
     /// (a poke mid-bob, an alert mid-hop), the puppet crossfades over
     /// `blendDuration` from where it was to where the new sequence says
@@ -599,10 +612,19 @@ public struct MascotPuppetView: View {
                 // wide (367×255); drawing into the square slot stretches
                 // them vertically.
                 let spriteRect = Self.spriteRect(imageSize: spriteImage?.size, canvasSize: size)
+                // The rendered lift, clamped to the canvas: the mascot
+                // never jumps out of its frame (tight rows allow no
+                // vertical travel). Shadow and sprite both use it, so
+                // the contact stays physically honest.
+                let lift = PuppetMotion.clampedLift(
+                    offsetY: pose.offsetY,
+                    spriteRect: spriteRect,
+                    canvasSize: size
+                )
                 // Ground shadow first, under the sprite layer: it shrinks
                 // and fades as the mascot lifts, and never follows the
                 // pose's rotation — contact lives on the ground.
-                let shadowScale = PuppetMotion.shadowScale(offsetY: pose.offsetY)
+                let shadowScale = PuppetMotion.shadowScale(offsetY: lift)
                 let shadowRect = PuppetMotion.shadowRect(
                     spriteRect: spriteRect,
                     canvasSize: size,
@@ -610,7 +632,7 @@ public struct MascotPuppetView: View {
                 )
                 context.fill(
                     Path(ellipseIn: shadowRect),
-                    with: .color(Color.black.opacity(PuppetMotion.shadowOpacity(offsetY: pose.offsetY)))
+                    with: .color(Color.black.opacity(PuppetMotion.shadowOpacity(offsetY: lift)))
                 )
                 context.drawLayer { layer in
                     // Squash/stretch coupled to the motion: stretch in the
@@ -630,13 +652,13 @@ public struct MascotPuppetView: View {
                         ? PuppetMotion.headTurnRotation(cursorOffset: cursorOffset)
                         : 0
                     // Anchor at the sprite's bottom-center: translate,
-                    // scale, rotate, translate back, then the pose offset
-                    // (canvas y is down, so a negative offsetY lifts).
+                    // scale, rotate, translate back, then the clamped
+                    // lift (canvas y is down, so negative lifts).
                     layer.translateBy(x: spriteRect.midX, y: spriteRect.maxY)
                     layer.scaleBy(x: pow(squash, -0.5), y: pose.scaleY * squash * breathing)
                     layer.rotate(by: .degrees(pose.rotationDegrees + headTurn))
                     layer.translateBy(x: -spriteRect.midX, y: -spriteRect.maxY)
-                    layer.translateBy(x: 0, y: pose.offsetY)
+                    layer.translateBy(x: 0, y: lift)
 
                     if let image = spriteImage {
                         layer.draw(
