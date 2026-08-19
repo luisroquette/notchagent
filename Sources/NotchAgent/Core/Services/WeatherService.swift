@@ -32,7 +32,7 @@ actor WeatherService: WeatherFetching {
             URLQueryItem(name: "latitude", value: String(lat)),
             URLQueryItem(name: "longitude", value: String(lon)),
             URLQueryItem(name: "current", value: "temperature_2m,weather_code,is_day,wind_speed_10m"),
-            URLQueryItem(name: "daily", value: "sunrise,sunset"),
+            URLQueryItem(name: "daily", value: "sunrise,sunset,temperature_2m_max,temperature_2m_min"),
             URLQueryItem(name: "timezone", value: "auto"),
         ]
         guard let url = components?.url else { throw WeatherError.invalidURL }
@@ -105,7 +105,9 @@ actor WeatherService: WeatherFetching {
             capturedAt: now,
             windSpeedKmh: wind,
             sunrise: sunrise,
-            sunset: sunset
+            sunset: sunset,
+            temperatureMaxC: (daily?["temperature_2m_max"] as? [Double])?.first,
+            temperatureMinC: (daily?["temperature_2m_min"] as? [Double])?.first
         )
     }
 

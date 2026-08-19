@@ -15,7 +15,10 @@ final class NotchViewModel {
     }
 
     /// Fixed transparent canvas; content only ever occupies part of it.
-    static let canvasSize = CGSize(width: 720, height: 460)
+    /// The expanded panel needs headroom for the weather block, incident
+    /// line and the runner strip — a too-short canvas pushes the bottom
+    /// content (game strip included) past the panel edge and cuts it.
+    static let canvasSize = CGSize(width: 720, height: 560)
 
     private(set) var mode: Mode = .compact
     var isPinned = false
@@ -57,7 +60,7 @@ final class NotchViewModel {
     }
 
     var expandedSize: CGSize {
-        CGSize(width: 660, height: geometry.hasNotch ? 430 : 410)
+        CGSize(width: 660, height: geometry.hasNotch ? 530 : 500)
     }
 
     var currentSize: CGSize { isExpanded ? expandedSize : compactSize }

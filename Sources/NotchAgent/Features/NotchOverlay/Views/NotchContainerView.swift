@@ -33,25 +33,27 @@ struct NotchContainerView: View {
                     .fill(viewModel.isExpanded ? Theme.panel : Color.black)
                     .shadow(color: .black.opacity(viewModel.isExpanded ? 0.45 : 0.2), radius: viewModel.isExpanded ? 14 : 4, y: 4)
 
-                // Light mode: keep a black cap hugging the physical camera
-                // housing — a light surface around black hardware reads broken.
-                if viewModel.isExpanded, viewModel.geometry.hasNotch {
-                    NotchShape(bottomRadius: 10)
-                        .fill(Color.black)
-                        .frame(
-                            width: viewModel.geometry.notchWidth + 28,
-                            height: viewModel.geometry.topInset
-                        )
-                }
-
-                // Sky BEHIND the content but ABOVE the black cap: the night
-                // veil, stars and moon mix into the cap instead of leaving
-                // it a dead black bar.
+                // Sky BEHIND the content: the weather fills the whole panel,
+                // top strip included — no dead zone at the top edge.
                 if ambienceActive {
                     WeatherSkyView(phase: weather.phase)
                         .clipShape(panelShape)
                         .accessibilityHidden(true)
                         .transition(.opacity)
+                }
+
+                // A soft dark halo hugs the physical camera housing — the
+                // translucent cap lets the sky show THROUGH it, so the
+                // weather reaches the screen's top edge instead of being
+                // cut by a hard black band.
+                if viewModel.isExpanded, viewModel.geometry.hasNotch {
+                    NotchShape(bottomRadius: 10)
+                        .fill(Color.black.opacity(0.55))
+                        .blur(radius: 3)
+                        .frame(
+                            width: viewModel.geometry.notchWidth + 28,
+                            height: viewModel.geometry.topInset
+                        )
                 }
 
                 content

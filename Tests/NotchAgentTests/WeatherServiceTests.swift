@@ -5,7 +5,7 @@ final class WeatherServiceTests: XCTestCase {
     private let openMeteoPayload = Data("""
     {"timezone":"America/Sao_Paulo",
      "current":{"time":"2026-08-18T19:00","temperature_2m":24.3,"weather_code":65,"is_day":0,"wind_speed_10m":22.5},
-     "daily":{"sunrise":["2026-08-18T06:20"],"sunset":["2026-08-18T17:55"]}}
+     "daily":{"sunrise":["2026-08-18T06:20"],"sunset":["2026-08-18T17:55"],"temperature_2m_max":[27.1],"temperature_2m_min":[12.4]}}
     """.utf8)
 
     private let geocodingPayload = Data("""
@@ -27,6 +27,20 @@ final class WeatherServiceTests: XCTestCase {
         XCTAssertEqual(snap?.windSpeedKmh, 22.5)
         XCTAssertNotNil(snap?.sunrise, "sunrise must parse in the reported timezone")
         XCTAssertNotNil(snap?.sunset)
+        XCTAssertEqual(snap?.temperatureMaxC, 27.1, "daily high feeds the Apple-style H/L line")
+        XCTAssertEqual(snap?.temperatureMinC, 12.4)
+    }
+
+    func testOpenMeteoParseMissingDailyBoundsAreNil() {
+        let withoutBounds = Data("""
+        {"timezone":"America/Sao_Paulo",
+         "current":{"temperature_2m":24.3,"weather_code":0,"is_day":1},
+         "daily":{"sunrise":["2026-08-18T06:20"]}}
+        """.utf8)
+        let snap = WeatherService.snapshot(fromOpenMeteo: withoutBounds, city: "X", now: Date())
+        XCTAssertNotNil(snap)
+        XCTAssertNil(snap?.temperatureMaxC)
+        XCTAssertNil(snap?.temperatureMinC)
     }
 
     func testDayDateParsesInReportedTimezone() {

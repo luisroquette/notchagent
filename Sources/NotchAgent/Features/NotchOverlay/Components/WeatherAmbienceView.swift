@@ -29,31 +29,27 @@ struct WeatherSkyView: View {
             case .fresh(let snapshot):
                 ZStack {
                     // The procedural sky: solar phase drives the palette,
-                    // the condition drives its desaturation. Sits at low
-                    // opacity so the dark panel stays the protagonist.
+                    // the condition drives its desaturation. Present enough
+                    // to read as weather, never enough to hide the data.
                     SkyGradientView(snapshot: snapshot)
-                        .opacity(0.4)
+                        .opacity(0.65)
 
                     switch snapshot.condition {
                     case .clear:
                         if snapshot.isDay {
-                            if reduceMotion { StaticSunGlow() } else { SunView() }
+                            RealSunView(pulsing: !reduceMotion)
                         } else {
                             nightSky(snapshot, starDensity: 1.0)
                         }
                     case .partlyCloudy:
-                        if reduceMotion {
-                            StaticClouds(density: 0.7)
-                        } else {
-                            CloudDrift(density: 0.7, windKmh: snapshot.windSpeedKmh)
-                        }
+                        RealCloudBank(pulsing: !reduceMotion, windKmh: snapshot.windSpeedKmh)
                         if snapshot.isDay {
-                            if reduceMotion { StaticSunGlow().opacity(0.5) } else { SunView().opacity(0.55) }
+                            RealSunView(pulsing: !reduceMotion).opacity(0.6)
                         } else {
                             nightSky(snapshot, starDensity: 0.5)
                         }
                     case .cloudy:
-                        if reduceMotion { StaticClouds(density: 1.0) } else { CloudDrift(density: 1.0, windKmh: snapshot.windSpeedKmh) }
+                        RealCloudBank(pulsing: !reduceMotion, windKmh: snapshot.windSpeedKmh)
                     case .fog:
                         if reduceMotion { StaticFog() } else { FogDrift(density: 1.0) }
                     case .drizzle, .rain, .heavyRain, .freezingRain:
@@ -138,8 +134,115 @@ private struct StaticSunGlow: View {
             ],
             center: .topTrailing,
             startRadius: 0,
-            endRadius: 340
+            endRadius: 230
         )
+    }
+}
+
+// MARK: - Generated art (gpt-image-2)
+
+/// Realistic weather art generated with gpt-image-2, bundled under
+/// Resources/Weather/ and composited with `.blendMode(.screen)` — the
+/// black plate contributes nothing, only the lit pixels light the panel.
+enum WeatherArt {
+    /// Bundled PNG; nil when the asset is missing (test bundles, first
+    /// run before make-app.sh copies it) — callers fall back to the
+    /// procedural views.
+    static func image(named name: String) -> NSImage? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "Weather") else {
+            return nil
+        }
+        return NSImage(contentsOf: url)
+    }
+}
+
+/// The generated sun: real atmospheric glow, breathing slowly, with a
+/// gentle sway so the light feels alive. Anchored inside the panel bounds
+/// — the glow fades into the black plate before the image edge, so the
+/// panel never hard-cuts the drawing.
+private struct RealSunView: View {
+    let pulsing: Bool
+
+    var body: some View {
+        if let image = WeatherArt.image(named: "weather-sun") {
+            Group {
+                if pulsing {
+                    TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+                        let t = timeline.date.timeIntervalSinceReferenceDate
+                        Image(nsImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .blendMode(.screen)
+                            .scaleEffect(1.0 + 0.015 * sin(t * 0.4))
+                            .offset(y: 2.0 * sin(t * 0.3))
+                    }
+                } else {
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .blendMode(.screen)
+                }
+            }
+            .frame(width: 300, height: 300)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .padding(.top, 24)
+            .padding(.trailing, 20)
+        } else {
+            if pulsing { SunView() } else { StaticSunGlow() }
+        }
+    }
+}
+
+/// The generated cloud bank: three depth layers drifting at different
+/// speeds (wind pushes them faster), screen-blended over the sky.
+private struct RealCloudBank: View {
+    let pulsing: Bool
+    let windKmh: Double
+
+    var body: some View {
+        if let image = WeatherArt.image(named: "weather-clouds") {
+            Group {
+                if pulsing {
+                    TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+                        let t = timeline.date.timeIntervalSinceReferenceDate
+                        let wind = 1.0 + max(0, windKmh - 20) / 20 * 0.5
+                        ZStack(alignment: .top) {
+                            cloudSlice(image, t: t, speed: 1.4 * wind, width: 280, y: 8, opacity: 0.5)
+                            cloudSlice(image, t: t, speed: 2.2 * wind, width: 340, y: 30, opacity: 0.55)
+                            cloudSlice(image, t: t, speed: 3.6 * wind, width: 460, y: 60, opacity: 0.45)
+                        }
+                    }
+                } else {
+                    ZStack(alignment: .top) {
+                        cloudSlice(image, t: 0, speed: 0, width: 340, y: 30, opacity: 0.55)
+                        cloudSlice(image, t: 0, speed: 0, width: 460, y: 60, opacity: 0.45)
+                    }
+                }
+            }
+        } else {
+            if pulsing { CloudDrift(density: 1.0, windKmh: windKmh) } else { StaticClouds(density: 1.0) }
+        }
+    }
+
+    private func cloudSlice(
+        _ image: NSImage,
+        t: Double,
+        speed: Double,
+        width: CGFloat,
+        y: CGFloat,
+        opacity: Double
+    ) -> some View {
+        // Wraps horizontally: each layer re-enters from the left after
+        // leaving on the right, like a real cloud bank.
+        let span = 660.0 + Double(width)
+        let x = (t * speed).truncatingRemainder(dividingBy: span) - Double(width)
+        return Image(nsImage: image)
+            .resizable()
+            .scaledToFit()
+            .frame(width: width)
+            .blendMode(.screen)
+            .opacity(opacity)
+            .offset(x: x, y: y)
     }
 }
 
@@ -334,14 +437,16 @@ private struct SunView: View {
         TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
             Canvas { context, size in
                 let t = timeline.date.timeIntervalSinceReferenceDate
-                let cx = size.width - 46
-                let cy = 30.0
+                // Anchored inside the panel bounds: the halo fades in the
+                // sky instead of being hard-cut by the top/right edges.
+                let cx = size.width - 88
+                let cy = 84.0
 
                 // Breathing halo: concentric rings whose radius and alpha
                 // pulse on staggered phases.
                 let basePulse = 0.10 + 0.05 * sin(t * 0.7)
                 for ring in 0..<5 {
-                    let radius = 26.0 + Double(ring) * 22.0 + 5.0 * sin(t * 0.7 + Double(ring) * 0.8)
+                    let radius = 26.0 + Double(ring) * 18.0 + 5.0 * sin(t * 0.7 + Double(ring) * 0.8)
                     let alpha = basePulse * max(0, 0.5 - Double(ring) * 0.09)
                     let rect = CGRect(x: cx - radius, y: cy - radius, width: radius * 2, height: radius * 2)
                     context.fill(Path(ellipseIn: rect), with: .color(Color.orange.opacity(alpha)))
@@ -355,7 +460,7 @@ private struct SunView: View {
                 for ray in 0..<8 {
                     let angle = Double(ray) * .pi / 4 + t * 0.07
                     let inner = 34.0
-                    let outer = 58.0 + 6.0 * sin(t * 0.7 + Double(ray))
+                    let outer = 50.0 + 6.0 * sin(t * 0.7 + Double(ray))
                     var path = Path()
                     path.move(to: CGPoint(x: cx + cos(angle) * inner, y: cy + sin(angle) * inner))
                     path.addLine(to: CGPoint(x: cx + cos(angle) * outer, y: cy + sin(angle) * outer))
@@ -589,8 +694,10 @@ private struct MoonView: View {
                 }
             }
         }
-        .padding(.top, 4)
-        .padding(.trailing, 26)
+        // Inside the panel bounds: the halo must fade in the sky, never
+        // get hard-cut by the panel's top/right edges.
+        .padding(.top, 40)
+        .padding(.trailing, 40)
     }
 
     /// Full lit disc + a sky-colored circle offset by the phase: new moon

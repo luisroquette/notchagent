@@ -51,6 +51,25 @@ public enum WeatherCondition: String, Codable, Sendable, Equatable, CaseIterable
         }
     }
 
+    /// Human condition name for the header line ("Clear", "Fog", …) —
+    /// English copy, matching the rest of the panel UI.
+    public var label: String {
+        switch self {
+        case .clear: "Clear"
+        case .partlyCloudy: "Partly cloudy"
+        case .cloudy: "Cloudy"
+        case .fog: "Fog"
+        case .drizzle: "Drizzle"
+        case .rain: "Rain"
+        case .heavyRain: "Heavy rain"
+        case .freezingRain: "Freezing rain"
+        case .snow: "Snow"
+        case .heavySnow: "Heavy snow"
+        case .thunderstorm: "Thunderstorm"
+        case .severeThunderstorm: "Severe thunderstorm"
+        }
+    }
+
     /// Overcast conditions that desaturate the sky palette.
     public var dimsSky: Bool {
         switch self {
@@ -77,6 +96,11 @@ public struct WeatherSnapshot: Codable, Sendable, Equatable {
     /// procedural dawn/dusk sky gradient.
     public var sunrise: Date?
     public var sunset: Date?
+    /// Today's high/low (from the daily forecast) — the Apple-style
+    /// "H: x° L: y°" line. Optional: legacy caches and older payloads
+    /// simply omit the line.
+    public var temperatureMaxC: Double?
+    public var temperatureMinC: Double?
 
     public init(
         condition: WeatherCondition,
@@ -86,7 +110,9 @@ public struct WeatherSnapshot: Codable, Sendable, Equatable {
         capturedAt: Date,
         windSpeedKmh: Double = 0,
         sunrise: Date? = nil,
-        sunset: Date? = nil
+        sunset: Date? = nil,
+        temperatureMaxC: Double? = nil,
+        temperatureMinC: Double? = nil
     ) {
         self.condition = condition
         self.temperatureC = temperatureC
@@ -96,13 +122,15 @@ public struct WeatherSnapshot: Codable, Sendable, Equatable {
         self.windSpeedKmh = windSpeedKmh
         self.sunrise = sunrise
         self.sunset = sunset
+        self.temperatureMaxC = temperatureMaxC
+        self.temperatureMinC = temperatureMinC
     }
 
     /// Manual decode with defaults: caches written before wind/sun fields
     /// existed must still load (the store then refreshes them naturally).
     private enum CodingKeys: String, CodingKey {
         case condition, temperatureC, isDay, city, capturedAt
-        case windSpeedKmh, sunrise, sunset
+        case windSpeedKmh, sunrise, sunset, temperatureMaxC, temperatureMinC
     }
 
     public init(from decoder: Decoder) throws {
@@ -115,5 +143,7 @@ public struct WeatherSnapshot: Codable, Sendable, Equatable {
         windSpeedKmh = try container.decodeIfPresent(Double.self, forKey: .windSpeedKmh) ?? 0
         sunrise = try container.decodeIfPresent(Date.self, forKey: .sunrise)
         sunset = try container.decodeIfPresent(Date.self, forKey: .sunset)
+        temperatureMaxC = try container.decodeIfPresent(Double.self, forKey: .temperatureMaxC)
+        temperatureMinC = try container.decodeIfPresent(Double.self, forKey: .temperatureMinC)
     }
 }
