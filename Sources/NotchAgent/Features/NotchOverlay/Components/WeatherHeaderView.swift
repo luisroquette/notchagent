@@ -50,11 +50,14 @@ struct WeatherHeaderView: View {
             Spacer()
             if case .fresh(let snapshot) = phase {
                 // The resolved city is always visible — precision is
-                // checkable at a glance, never silently wrong.
+                // checkable at a glance, never silently wrong. Capped so a
+                // long name can never squeeze the clock.
                 Text(snapshot.city)
                     .font(Theme.body(8.5, weight: .medium))
                     .foregroundStyle(Theme.textFaint)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: 130, alignment: .trailing)
                 Image(systemName: WeatherFormat.symbol(for: snapshot.condition))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Theme.textDim)
