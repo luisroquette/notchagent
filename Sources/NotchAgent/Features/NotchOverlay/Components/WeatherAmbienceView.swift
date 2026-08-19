@@ -141,9 +141,11 @@ private struct StaticSunGlow: View {
 
 // MARK: - Generated art (gpt-image-2)
 
-/// Realistic weather art generated with gpt-image-2, bundled under
-/// Resources/Weather/ and composited with `.blendMode(.screen)` — the
-/// black plate contributes nothing, only the lit pixels light the panel.
+/// Realistic weather art generated with OpenAI image models, bundled under
+/// Resources/Weather/ as alpha PNGs (gpt-image-1 transparent, or
+/// gpt-image-2 black plate + chroma-key in gen-weather-assets.py). Plain
+/// alpha compositing — no blend modes, so opacity and clipping stay
+/// predictable.
 enum WeatherArt {
     /// Bundled PNG; nil when the asset is missing (test bundles, first
     /// run before make-app.sh copies it) — callers fall back to the
@@ -172,7 +174,6 @@ private struct RealSunView: View {
                         Image(nsImage: image)
                             .resizable()
                             .scaledToFit()
-                            .blendMode(.screen)
                             .scaleEffect(1.0 + 0.015 * sin(t * 0.4))
                             .offset(y: 2.0 * sin(t * 0.3))
                     }
@@ -180,9 +181,9 @@ private struct RealSunView: View {
                     Image(nsImage: image)
                         .resizable()
                         .scaledToFit()
-                        .blendMode(.screen)
                 }
             }
+            .opacity(0.9)
             .frame(width: 300, height: 300)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             .padding(.top, 24)
@@ -240,7 +241,6 @@ private struct RealCloudBank: View {
             .resizable()
             .scaledToFit()
             .frame(width: width)
-            .blendMode(.screen)
             .opacity(opacity)
             .offset(x: x, y: y)
     }
