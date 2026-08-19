@@ -837,7 +837,7 @@ public struct MascotPuppetView: View {
             caressSamples = []
             crushingSince = nil
             if loadedSprite == nil,
-               let url = Bundle.main.url(forResource: "Mascots/\(spriteName)", withExtension: "png") {
+               let url = AssetBundle.url(forResource: "Mascots/\(spriteName)", withExtension: "png") {
                 loadedSprite = NSImage(contentsOf: url)
             }
             guard !reduceMotion else { return }

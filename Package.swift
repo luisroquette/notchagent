@@ -26,6 +26,7 @@ let package = Package(
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
             path: "Sources/NotchAgent",
+            resources: [.copy("Resources/Mascots")],
             linkerSettings: [
                 .unsafeFlags([
                     "-Xlinker", "-rpath",

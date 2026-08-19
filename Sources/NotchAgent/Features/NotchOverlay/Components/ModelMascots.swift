@@ -11,7 +11,7 @@ struct ClaudeMascot: View {
     var tint: Color = Theme.coral
 
     private var image: NSImage? {
-        guard let url = Bundle.main.url(forResource: "Mascots/\(name)", withExtension: "png")
+        guard let url = AssetBundle.url(forResource: "Mascots/\(name)", withExtension: "png")
         else { return nil }
         return NSImage(contentsOf: url)
     }
@@ -73,7 +73,7 @@ struct OpenAIGlyph: View {
     var tint: Color = Theme.textPrimary
 
     private var image: NSImage? {
-        guard let url = Bundle.main.url(forResource: "Mascots/openai-glyph", withExtension: "png")
+        guard let url = AssetBundle.url(forResource: "Mascots/openai-glyph", withExtension: "png")
         else { return nil }
         return NSImage(contentsOf: url)
     }
