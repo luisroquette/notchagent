@@ -25,4 +25,25 @@ final class ProviderCardHeadlineTests: XCTestCase {
             "API accounts must keep the percentage headline"
         )
     }
+
+    // REGRESSÃO: probe ligado sem credencial OAuth → sem quota → o card
+    // exibia tokens como se fossem a cota. Deve declarar indisponibilidade.
+    func testQuotaUnavailableOnlyWhenProbeOnAndNoQuota() {
+        XCTAssertTrue(
+            ProviderCardView.quotaUnavailable(for: .claudeCode, probeEnabled: true, hasQuota: false),
+            "probe on + no quota = unavailable"
+        )
+        XCTAssertFalse(
+            ProviderCardView.quotaUnavailable(for: .claudeCode, probeEnabled: true, hasQuota: true),
+            "with quota the percent renders normally"
+        )
+        XCTAssertFalse(
+            ProviderCardView.quotaUnavailable(for: .claudeCode, probeEnabled: false, hasQuota: false),
+            "probe off keeps the token fallback (user chose not to connect)"
+        )
+        XCTAssertFalse(
+            ProviderCardView.quotaUnavailable(for: .codex, probeEnabled: true, hasQuota: false),
+            "Codex never shows the Claude login hint"
+        )
+    }
 }

@@ -135,6 +135,18 @@ struct ProviderCardView: View {
         provider == .codex
     }
 
+    /// REGRESSÃO: with the probe on but no Claude Code OAuth on the
+    /// machine, the probe delivers no quota and the card showed the raw
+    /// token count as if it were the quota. When the probe is enabled and
+    /// the snapshot carries no quota data, the card must say so instead.
+    static func quotaUnavailable(
+        for provider: ProviderID,
+        probeEnabled: Bool,
+        hasQuota: Bool
+    ) -> Bool {
+        provider == .claudeCode && probeEnabled && !hasQuota
+    }
+
     static func mascotName(for model: String?) -> String {
         let families = ["fable", "opus", "haiku", "sonnet"]
         let lower = model?.lowercased() ?? ""
@@ -222,6 +234,18 @@ struct ProviderCardView: View {
                         )
                     }
                 }
+            } else if Self.quotaUnavailable(
+                for: provider,
+                probeEnabled: settings.claudeQuotaProbeEnabled,
+                hasQuota: snapshot.quotaStatus != nil || snapshot.session?.usedPercentIsFromQuota == true
+            ) {
+                // The probe is on but no quota arrived (no Claude Code
+                // OAuth on this machine) — honest "unavailable" beats a
+                // token count that reads as the quota itself.
+                Text("QUOTA INDISPONÍVEL")
+                    .font(Theme.numeral(18))
+                    .foregroundStyle(Theme.warning)
+                GaugeLabel(text: "FAÇA LOGIN NO CLAUDE CODE PARA VER O %", color: Theme.textFaint, size: 8)
             } else if let tokens = fallbackTokens(snapshot) {
                 // No official quota exists for this window (e.g. Codex plans
                 // that only expose a weekly %) — show the SAME "current
