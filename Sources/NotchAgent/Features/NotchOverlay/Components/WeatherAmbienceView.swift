@@ -165,7 +165,6 @@ struct WeatherForegroundOverlay: View {
                     } else {
                         ParticleField(
                             condition: snapshot.condition,
-                            isDay: snapshot.isDay,
                             windSpeedKmh: snapshot.windSpeedKmh,
                             alphaScale: 0.55
                         )
@@ -626,7 +625,6 @@ private struct MoonView: View {
 /// strokes with real presence, not hairlines.
 private struct ParticleField: View {
     let condition: WeatherCondition
-    let isDay: Bool
     /// Wind speed in km/h — leans the falling particles sideways.
     let windSpeedKmh: Double
     /// Multiplier for drop alpha — foreground drops sit on top of text and
@@ -696,7 +694,10 @@ private struct ParticleField: View {
                 }
 
                 if condition == .thunderstorm || condition == .severeThunderstorm {
-                    let flashCycle = t.truncatingRemainder(dividingBy: 5)
+                    // Cadence matches StormClouds (6s) so the sky
+                    // illumination, the full flash and the bolt always
+                    // fire together — one storm, one clock.
+                    let flashCycle = t.truncatingRemainder(dividingBy: 6)
                     if flashCycle < 0.25 {
                         context.fill(
                             Path(CGRect(origin: .zero, size: size)),
