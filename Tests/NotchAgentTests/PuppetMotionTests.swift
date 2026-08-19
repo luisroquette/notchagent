@@ -749,4 +749,45 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertEqual(PuppetMotion.clampedLift(offsetY: -14, spriteRect: rowSprite, canvasSize: row), 0)
         XCTAssertEqual(PuppetMotion.clampedLift(offsetY: 5, spriteRect: rowSprite, canvasSize: row), 0)
     }
+
+    // REGRESSÃO: o layer escala a partir dos pés do sprite — nuzzle (1.1),
+    // respiração (1.02) e squash (±6%) incham para cima e cortavam uma
+    // faixa do topo nos slots apertados. O swell é clampado ao teto do
+    // canvas; encolher nunca corta.
+    func testClampedScaleYBoundsSwellToCanvas() {
+        let cardSprite = CGRect(x: 0, y: 9.8, width: 64, height: 44.4)
+        let card = CGSize(width: 64, height: 64)
+        XCTAssertEqual(
+            PuppetMotion.clampedScaleY(scaleY: 1.1, spriteRect: cardSprite, canvasSize: card),
+            1.1, accuracy: 0.001,
+            "the card's headroom allows the nuzzle swell"
+        )
+        XCTAssertEqual(
+            PuppetMotion.clampedScaleY(scaleY: 2.0, spriteRect: cardSprite, canvasSize: card),
+            64 / 44.4, accuracy: 0.001,
+            "anything beyond the canvas ceiling is capped at it"
+        )
+        let rowSprite = CGRect(x: 1.85, y: 0, width: 40.3, height: 28)
+        let row = CGSize(width: 44, height: 28)
+        XCTAssertEqual(
+            PuppetMotion.clampedScaleY(scaleY: 1.1, spriteRect: rowSprite, canvasSize: row),
+            1.0, accuracy: 0.001,
+            "a sprite filling the row height never swells past it"
+        )
+    }
+
+    func testClampedScaleYLeavesShrinkingAlone() {
+        let rowSprite = CGRect(x: 1.85, y: 0, width: 40.3, height: 28)
+        let row = CGSize(width: 44, height: 28)
+        XCTAssertEqual(
+            PuppetMotion.clampedScaleY(scaleY: 0.808, spriteRect: rowSprite, canvasSize: row),
+            0.808, accuracy: 0.001,
+            "the crush shrink passes through — shrinking never clips"
+        )
+        XCTAssertEqual(
+            PuppetMotion.clampedScaleY(scaleY: 0.1, spriteRect: rowSprite, canvasSize: row),
+            0.4, accuracy: 0.001,
+            "a floor keeps the mascot from vanishing"
+        )
+    }
 }

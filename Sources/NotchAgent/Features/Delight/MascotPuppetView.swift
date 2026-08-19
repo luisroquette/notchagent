@@ -459,6 +459,20 @@ public enum PuppetMotion {
         return min(up, canvasSize.height - spriteRect.maxY)
     }
 
+    /// Clamps the rendered vertical scale: the layer scales from the
+    /// sprite's feet, so swelling past the canvas clips a whole band off
+    /// the top. Shrinking never clips — it only needs a floor. Tight
+    /// rows cap at 1.0: no swell (the lean and eyes still carry the
+    /// gesture), but no clip either.
+    public static func clampedScaleY(
+        scaleY: Double,
+        spriteRect: CGRect,
+        canvasSize: CGSize
+    ) -> Double {
+        let maxScale = canvasSize.height / max(spriteRect.height, 1)
+        return min(max(scaleY, 0.4), maxScale)
+    }
+
     /// Interruption blend: when a new gesture cuts an in-flight one
     /// (a poke mid-bob, an alert mid-hop), the puppet crossfades over
     /// `blendDuration` from where it was to where the new sequence says
@@ -655,7 +669,11 @@ public struct MascotPuppetView: View {
                     // scale, rotate, translate back, then the clamped
                     // lift (canvas y is down, so negative lifts).
                     layer.translateBy(x: spriteRect.midX, y: spriteRect.maxY)
-                    layer.scaleBy(x: pow(squash, -0.5), y: pose.scaleY * squash * breathing)
+                    layer.scaleBy(x: pow(squash, -0.5), y: PuppetMotion.clampedScaleY(
+                        scaleY: pose.scaleY * squash * breathing,
+                        spriteRect: spriteRect,
+                        canvasSize: size
+                    ))
                     layer.rotate(by: .degrees(pose.rotationDegrees + headTurn))
                     layer.translateBy(x: -spriteRect.midX, y: -spriteRect.maxY)
                     layer.translateBy(x: 0, y: lift)
