@@ -28,7 +28,7 @@ final class PuppetMotionTests: XCTestCase {
     }
 
     func testBobVariantsAreVisibleVariedAndSettle() {
-        XCTAssertEqual(BobVariant.allCases.count, 7, "the opening move needs variety")
+        XCTAssertEqual(BobVariant.allCases.count, 8, "the opening move needs variety")
         for variant in BobVariant.allCases {
             let steps = PuppetMotion.bobSteps(variant)
             // A bow is exactly 3 beats (lean, hold, rise) — three is the
@@ -278,6 +278,25 @@ final class PuppetMotionTests: XCTestCase {
         }
         XCTAssertGreaterThan(maxSquash, 1.005, "hops must stretch the body")
         XCTAssertLessThan(minSquash, 0.995, "landings must squash the body")
+    }
+
+    // MARK: context depth (celebration particles + compound yawn)
+
+    func testCelebrationParticlesAreDeterministicAndArcUp() {
+        let early = PuppetMotion.celebrationParticles(elapsed: 0.3)
+        XCTAssertEqual(early.count, 12)
+        XCTAssertEqual(early, PuppetMotion.celebrationParticles(elapsed: 0.3), "same instant, same particles")
+        XCTAssertTrue(early.allSatisfy { $0.y < 0 }, "0.3s in, particles are still above the launch point")
+        XCTAssertTrue(early.allSatisfy { abs($0.x) < 100 }, "the fan stays local")
+        XCTAssertTrue(PuppetMotion.celebrationParticles(elapsed: 5).isEmpty, "the celebration ends")
+        XCTAssertTrue(PuppetMotion.celebrationParticles(elapsed: -1).isEmpty)
+    }
+
+    func testYawnStretchInMidnightVocabulary() {
+        XCTAssertTrue(
+            DelightCatalog.bobVariants(for: .midnightMoment).contains(.yawnStretch),
+            "midnight owns the compound yawn"
+        )
     }
 
     // MARK: ambient presence (breathing + head turn)

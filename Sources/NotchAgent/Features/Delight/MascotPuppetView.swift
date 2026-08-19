@@ -22,7 +22,7 @@ public struct MotionStep: Equatable, Sendable {
 /// Opening greetings: the mascot always moves when the panel opens, never
 /// the same way twice.
 public enum BobVariant: String, CaseIterable, Sendable {
-    case swingUpDown, swayPendulum, wobbleFall, hopBob, bow, shiver, doubleTake
+    case swingUpDown, swayPendulum, wobbleFall, hopBob, bow, shiver, doubleTake, yawnStretch
 }
 
 /// Touch reactions: poking the mascot ALWAYS gets an annoyed response.
@@ -106,6 +106,13 @@ public enum PuppetMotion {
             MotionStep(rotationDegrees: 10, duration: 0.18),
             MotionStep(duration: 0.12),
             MotionStep(duration: 0.4),
+        ]
+        case .yawnStretch: [
+            // Compound midnight yawn: stretch up, hold the stretch with a
+            // drowsy lean (eyes go droopy via context, "z z z" floats up).
+            MotionStep(scaleY: 1.06, rotationDegrees: -6, duration: 0.4),
+            MotionStep(scaleY: 1.06, rotationDegrees: -6, duration: 0.5),
+            MotionStep(duration: 0.5),
         ]
         }
     }
@@ -279,6 +286,43 @@ public enum PuppetMotion {
         1 + 0.02 * sin(2 * .pi * now.timeIntervalSinceReferenceDate / 3.0)
     }
 
+    /// One celebration pixel: position relative to the sprite's top-center
+    /// (negative y = above the launch point), size and a palette index the
+    /// view maps to the model colors.
+    public struct CelebrationParticle: Equatable, Sendable {
+        public let x: Double
+        public let y: Double
+        public let size: Double
+        public let paletteIndex: Int
+
+        public init(x: Double, y: Double, size: Double, paletteIndex: Int) {
+            self.x = x
+            self.y = y
+            self.size = size
+            self.paletteIndex = paletteIndex
+        }
+    }
+
+    /// Deterministic confetti: 12 particles fan upward with per-index
+    /// speed/size/color, pulled back down by gravity. Same elapsed → same
+    /// particles; after 1.4s the celebration is over.
+    public static func celebrationParticles(elapsed: Double) -> [CelebrationParticle] {
+        guard elapsed >= 0, elapsed < 1.4 else { return [] }
+        return (0..<12).map { index in
+            let fan = (Double(index % 5) - 2) * 0.18
+            let speed = 90.0 + Double(index % 4) * 22.0
+            let vx = sin(fan) * speed
+            let vy = -cos(fan) * speed
+            let gravity = 260.0
+            return CelebrationParticle(
+                x: vx * elapsed,
+                y: vy * elapsed + 0.5 * gravity * elapsed * elapsed,
+                size: 2.0 + Double(index % 3),
+                paletteIndex: index % 4
+            )
+        }
+    }
+
     /// The idle head-turn: the mascot leans toward the cursor, up to ±4°.
     /// `cursorOffset` is -1…1 across the slot (negative = cursor left).
     public static func headTurnRotation(cursorOffset: Double) -> Double {
@@ -336,6 +380,7 @@ public struct MascotPuppetView: View {
     @State private var useFollowThrough = false
     @State private var activeContext: MascotContext?
     @State private var activePoke: PokeVariant?
+    @State private var activeBob: BobVariant?
     @State private var cursorOffset: Double = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -363,11 +408,11 @@ public struct MascotPuppetView: View {
                     durationScale: durationScale
                 )
             Canvas { context, size in
+                // Aspect-preserving sprite rect, centered — the assets are
+                // wide (367×255); drawing into the square slot stretches
+                // them vertically.
+                let spriteRect = Self.spriteRect(imageSize: spriteImage?.size, canvasSize: size)
                 context.drawLayer { layer in
-                    // Aspect-preserving sprite rect, centered — the assets
-                    // are wide (367×255); drawing into the square slot
-                    // stretches them vertically.
-                    let spriteRect = Self.spriteRect(imageSize: spriteImage?.size, canvasSize: size)
                     // Squash/stretch coupled to the motion: stretch in the
                     // air, squash on impact — volume-preserving.
                     let squash = PuppetMotion.motionSquash(
@@ -412,6 +457,7 @@ public struct MascotPuppetView: View {
                     )
                     drawFace(state: eyes, context: layer, rect: spriteRect)
                 }
+                drawContextExtras(context: context, size: size, spriteRect: spriteRect, now: timeline.date)
             }
         }
         .onAppear {
@@ -454,6 +500,7 @@ public struct MascotPuppetView: View {
         useFollowThrough = DelightCatalog.followThrough(for: request.context)
         activeContext = request.context
         activePoke = request.poke
+        activeBob = request.bob
         if let bob = request.bob {
             play(bob: bob)
         } else if let poke = request.poke {
@@ -485,6 +532,38 @@ public struct MascotPuppetView: View {
                 width: width,
                 height: canvasSize.height
             )
+        }
+    }
+
+    /// Canvas-space extras that do NOT follow the sprite's pose: the
+    /// celebration confetti and the midnight "z z z".
+    private func drawContextExtras(
+        context: GraphicsContext,
+        size: CGSize,
+        spriteRect: CGRect,
+        now: Date
+    ) {
+        if activeContext == .celebration, let start = animationStart {
+            let elapsed = now.timeIntervalSince(start)
+            let palette: [Color] = [Theme.modelHaiku, Theme.modelSonnet, Theme.modelOpus, Theme.modelFable]
+            for particle in PuppetMotion.celebrationParticles(elapsed: elapsed) {
+                let rect = CGRect(
+                    x: spriteRect.midX + particle.x,
+                    y: spriteRect.minY + particle.y,
+                    width: particle.size,
+                    height: particle.size
+                )
+                context.fill(Path(rect), with: .color(palette[particle.paletteIndex].opacity(0.9)))
+            }
+        }
+        if activeBob == .yawnStretch, activeContext == .midnightMoment, let start = animationStart {
+            let elapsed = now.timeIntervalSince(start)
+            if elapsed > 0.4, elapsed < 1.2 {
+                context.draw(
+                    Text("z z z").font(Theme.body(8, weight: .bold)).foregroundStyle(Theme.textDim),
+                    at: CGPoint(x: spriteRect.maxX - 8, y: spriteRect.minY - 4 - (elapsed - 0.4) * 6)
+                )
+            }
         }
     }
 

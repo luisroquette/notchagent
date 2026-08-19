@@ -43,7 +43,7 @@ public enum DelightCatalog {
         case .playful: [.hopBob, .wobbleFall, .doubleTake]
         case .relief: [.swayPendulum, .swingUpDown, .bow]
         case .celebration: [.hopBob, .swingUpDown]
-        case .midnightMoment: [.swingUpDown]
+        case .midnightMoment: [.swingUpDown, .yawnStretch]
         case .poke: []
         }
     }
