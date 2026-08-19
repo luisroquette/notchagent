@@ -36,12 +36,12 @@ public enum DelightCatalog {
     /// consecutively.
     public static func bobVariants(for context: MascotContext) -> [BobVariant] {
         switch context {
-        case .greeting: [.swingUpDown, .swayPendulum]
-        case .calm: [.swingUpDown, .swayPendulum, .hopBob]
-        case .tense: [.swayPendulum, .wobbleFall]
+        case .greeting: [.swingUpDown, .swayPendulum, .bow]
+        case .calm: [.swingUpDown, .swayPendulum, .hopBob, .doubleTake]
+        case .tense: [.swayPendulum, .wobbleFall, .shiver]
         case .drowsy: [.swingUpDown]
-        case .playful: [.hopBob, .wobbleFall]
-        case .relief: [.swayPendulum, .swingUpDown]
+        case .playful: [.hopBob, .wobbleFall, .doubleTake]
+        case .relief: [.swayPendulum, .swingUpDown, .bow]
         case .celebration: [.hopBob, .swingUpDown]
         case .midnightMoment: [.swingUpDown]
         case .poke: []

@@ -22,7 +22,7 @@ public struct MotionStep: Equatable, Sendable {
 /// Opening greetings: the mascot always moves when the panel opens, never
 /// the same way twice.
 public enum BobVariant: String, CaseIterable, Sendable {
-    case swingUpDown, swayPendulum, wobbleFall, hopBob
+    case swingUpDown, swayPendulum, wobbleFall, hopBob, bow, shiver, doubleTake
 }
 
 /// Touch reactions: poking the mascot ALWAYS gets an annoyed response.
@@ -80,6 +80,32 @@ public enum PuppetMotion {
             MotionStep(duration: 0.15),
             MotionStep(offsetY: -4, duration: 0.2),
             MotionStep(duration: 0.3),
+        ]
+        case .bow: [
+            // A little bow: lean forward and down, hold it, rise back.
+            MotionStep(scaleY: 0.94, rotationDegrees: 14, duration: 0.35),
+            MotionStep(scaleY: 0.94, rotationDegrees: 14, duration: 0.3),
+            MotionStep(duration: 0.45),
+        ]
+        case .shiver: [
+            // Nervous jitter: rapid tiny wiggles, then still. Amplitudes
+            // sit just above the perception threshold — a shiver is small
+            // but it must read.
+            MotionStep(rotationDegrees: -5, duration: 0.07),
+            MotionStep(rotationDegrees: 5, duration: 0.07),
+            MotionStep(rotationDegrees: -5, duration: 0.07),
+            MotionStep(rotationDegrees: 5, duration: 0.07),
+            MotionStep(rotationDegrees: -5, duration: 0.07),
+            MotionStep(rotationDegrees: 5, duration: 0.07),
+            MotionStep(duration: 0.3),
+        ]
+        case .doubleTake: [
+            // Glance away, snap back, glance the other way, settle.
+            MotionStep(rotationDegrees: -10, duration: 0.18),
+            MotionStep(duration: 0.12),
+            MotionStep(rotationDegrees: 10, duration: 0.18),
+            MotionStep(duration: 0.12),
+            MotionStep(duration: 0.4),
         ]
         }
     }

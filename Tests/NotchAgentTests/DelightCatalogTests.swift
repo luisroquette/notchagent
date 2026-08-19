@@ -56,6 +56,16 @@ final class DelightCatalogTests: XCTestCase {
         XCTAssertEqual(fourth, PokeVariant.allCases[0], "after a full cycle the sequence restarts")
     }
 
+    func testVocabularyAssignments() {
+        // Round 3: cada gesto novo pertence ao contexto certo.
+        XCTAssertTrue(DelightCatalog.bobVariants(for: .greeting).contains(.bow), "greeting bows")
+        XCTAssertTrue(DelightCatalog.bobVariants(for: .relief).contains(.bow), "relief bows too")
+        XCTAssertTrue(DelightCatalog.bobVariants(for: .tense).contains(.shiver), "tense shivers")
+        XCTAssertTrue(DelightCatalog.bobVariants(for: .playful).contains(.doubleTake), "playful double-takes")
+        XCTAssertTrue(DelightCatalog.bobVariants(for: .calm).contains(.doubleTake), "calm double-takes too")
+        XCTAssertFalse(DelightCatalog.bobVariants(for: .drowsy).contains(.shiver), "a drowsy mascot has no energy to shiver")
+    }
+
     func testVariantCursorPersistsInState() throws {
         var state = MascotMindState(variantCursor: 7)
         let data = try JSONEncoder().encode(state)

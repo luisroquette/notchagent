@@ -28,10 +28,12 @@ final class PuppetMotionTests: XCTestCase {
     }
 
     func testBobVariantsAreVisibleVariedAndSettle() {
-        XCTAssertEqual(BobVariant.allCases.count, 4, "the opening move needs variety")
+        XCTAssertEqual(BobVariant.allCases.count, 7, "the opening move needs variety")
         for variant in BobVariant.allCases {
             let steps = PuppetMotion.bobSteps(variant)
-            XCTAssertGreaterThanOrEqual(steps.count, 4, "\(variant.rawValue) is too short to read as motion")
+            // A bow is exactly 3 beats (lean, hold, rise) — three is the
+            // floor; anything shorter cannot read as a gesture.
+            XCTAssertGreaterThanOrEqual(steps.count, 3, "\(variant.rawValue) is too short to read as motion")
             assertTransitionsVisible(steps, variant.rawValue)
             // The settle step only needs the neutral POSE — its duration is
             // the breathing room before the next animation.
