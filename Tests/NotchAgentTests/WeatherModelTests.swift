@@ -90,10 +90,25 @@ final class WeatherModelTests: XCTestCase {
             temperatureC: 24.3,
             isDay: true,
             city: "São Paulo, BR",
-            capturedAt: Date(timeIntervalSince1970: 1_756_000_000)
+            capturedAt: Date(timeIntervalSince1970: 1_756_000_000),
+            windSpeedKmh: 18.4,
+            sunrise: Date(timeIntervalSince1970: 1_756_088_400),
+            sunset: Date(timeIntervalSince1970: 1_756_130_100)
         )
         let data = try JSONEncoder().encode(snap)
         let decoded = try JSONDecoder().decode(WeatherSnapshot.self, from: data)
         XCTAssertEqual(decoded, snap)
+    }
+
+    func testLegacyCacheWithoutNewFieldsStillDecodes() throws {
+        // Snapshot written by the first ambience release: no wind, no sun.
+        let legacy = Data("""
+        {"condition":"clear","temperatureC":20.7,"isDay":false,"city":"São Paulo, BR","capturedAt":756000000}
+        """.utf8)
+        let decoded = try JSONDecoder().decode(WeatherSnapshot.self, from: legacy)
+        XCTAssertEqual(decoded.condition, .clear)
+        XCTAssertEqual(decoded.windSpeedKmh, 0)
+        XCTAssertNil(decoded.sunrise)
+        XCTAssertNil(decoded.sunset)
     }
 }

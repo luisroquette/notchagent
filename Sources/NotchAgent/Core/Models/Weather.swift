@@ -97,4 +97,23 @@ public struct WeatherSnapshot: Codable, Sendable, Equatable {
         self.sunrise = sunrise
         self.sunset = sunset
     }
+
+    /// Manual decode with defaults: caches written before wind/sun fields
+    /// existed must still load (the store then refreshes them naturally).
+    private enum CodingKeys: String, CodingKey {
+        case condition, temperatureC, isDay, city, capturedAt
+        case windSpeedKmh, sunrise, sunset
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        condition = try container.decode(WeatherCondition.self, forKey: .condition)
+        temperatureC = try container.decode(Double.self, forKey: .temperatureC)
+        isDay = try container.decode(Bool.self, forKey: .isDay)
+        city = try container.decode(String.self, forKey: .city)
+        capturedAt = try container.decode(Date.self, forKey: .capturedAt)
+        windSpeedKmh = try container.decodeIfPresent(Double.self, forKey: .windSpeedKmh) ?? 0
+        sunrise = try container.decodeIfPresent(Date.self, forKey: .sunrise)
+        sunset = try container.decodeIfPresent(Date.self, forKey: .sunset)
+    }
 }

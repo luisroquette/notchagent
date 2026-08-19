@@ -701,9 +701,44 @@ private struct ParticleField: View {
                             with: .color(Color.white.opacity(0.06))
                         )
                     }
+                    // A jagged bolt: brief, deterministic, forked — drawn
+                    // only for the first flash instant.
+                    if flashCycle < 0.12 {
+                        drawBolt(context: context, size: size)
+                    }
                 }
             }
         }
+    }
+
+    /// A forked lightning bolt, jagged between cloud top and panel bottom.
+    private func drawBolt(context: GraphicsContext, size: CGSize) {
+        let startX = size.width * 0.62
+        var path = Path()
+        path.move(to: CGPoint(x: startX, y: 0))
+        var y = 0.0
+        var x = startX
+        var step = 0
+        while y < size.height * 0.85 {
+            y += 26 + Double(step % 3) * 8
+            x += (step.isMultiple(of: 2) ? -1 : 1) * (18 + Double(step % 2) * 14)
+            path.addLine(to: CGPoint(x: x, y: y))
+            step += 1
+        }
+        context.stroke(
+            path,
+            with: .color(Color(red: 0.95, green: 0.97, blue: 1.0).opacity(0.85)),
+            style: StrokeStyle(lineWidth: 1.6, lineCap: .round)
+        )
+        // Secondary fork.
+        var fork = Path()
+        fork.move(to: CGPoint(x: x - 10, y: y - 34))
+        fork.addLine(to: CGPoint(x: x - 34, y: y - 12))
+        context.stroke(
+            fork,
+            with: .color(Color(red: 0.95, green: 0.97, blue: 1.0).opacity(0.55)),
+            style: StrokeStyle(lineWidth: 1.0, lineCap: .round)
+        )
     }
 
     private enum ParticleKind {
