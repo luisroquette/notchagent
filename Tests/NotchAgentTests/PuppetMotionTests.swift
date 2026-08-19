@@ -57,16 +57,10 @@ final class PuppetMotionTests: XCTestCase {
         }
     }
 
-    func testBlinkIntervalStaysIrregularAndInRange() {
-        var rng = SplitMix64(seed: 7)
-        var intervals: Set<Double> = []
-        for _ in 0..<100 {
-            let interval = PuppetMotion.blinkInterval(rng: &rng)
-            XCTAssertGreaterThanOrEqual(interval, 2.5)
-            XCTAssertLessThanOrEqual(interval, 5.5)
-            intervals.insert((interval * 10).rounded())
-        }
-        XCTAssertGreaterThan(intervals.count, 5, "blinks must be irregular, not metronomic")
+    func testStableSeedIsDeterministicPerIdentity() {
+        XCTAssertEqual(PuppetMotion.stableSeed("claude-haiku"), PuppetMotion.stableSeed("claude-haiku"))
+        XCTAssertNotEqual(PuppetMotion.stableSeed("claude-haiku"), PuppetMotion.stableSeed("claude-opus"))
+        XCTAssertNotEqual(PuppetMotion.stableSeed("claude-haiku"), 0)
     }
 
     // REGRESSÃO: os centros estimados (0.26/0.72 x, 0.35 y) não batiam
@@ -154,6 +148,65 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertLessThan(PuppetMotion.expressionOpacity(elapsed: 0.05, total: total), 0.5, "the fade-in starts subtle")
         XCTAssertGreaterThan(PuppetMotion.expressionOpacity(elapsed: total - 0.05, total: total), 0.0)
         XCTAssertLessThan(PuppetMotion.expressionOpacity(elapsed: total - 0.05, total: total), 0.5, "the fade-out drains before the end")
+    }
+
+    // MARK: Clock-derived blink gate (no Task — nothing a view lifecycle can kill)
+
+    // REGRESSÃO: o piscar vivia numa Task da view e morria com qualquer
+    // recriação (a respiração sobrevivia, o piscar não — o vídeo provou
+    // 6.8s sem uma única pálpebra). O gate agora deriva do relógio:
+    // determinístico, irregular na percepção, imune a ciclo de vida.
+    func testBlinkGateIsDeterministic() {
+        let t = Date(timeIntervalSinceReferenceDate: 5_000.25)
+        XCTAssertEqual(
+            PuppetMotion.blinkGate(now: t, seed: 42),
+            PuppetMotion.blinkGate(now: t, seed: 42),
+            "same time + seed = same gate"
+        )
+    }
+
+    func testBlinkGateFiresIrregularlyAtExpectedRate() {
+        // 2400 half-second buckets = 20 minutes: with gate h%7==0 the
+        // expected count is ~343; a healthy irregular spread stays in
+        // [250, 450] — not metronomic, not dead.
+        let t0 = Date(timeIntervalSinceReferenceDate: 1_000_000)
+        var fires = 0
+        var lastFire = -1
+        var gaps: [Int] = []
+        for bucket in 0..<2400 {
+            let t = t0.addingTimeInterval(Double(bucket) * 0.5)
+            if PuppetMotion.blinkGate(now: t, seed: 7) {
+                fires += 1
+                if lastFire >= 0 { gaps.append(bucket - lastFire) }
+                lastFire = bucket
+            }
+        }
+        XCTAssertGreaterThan(fires, 250, "gate almost dead: \(fires) blinks in 20 min")
+        XCTAssertLessThan(fires, 450, "gate metronomic: \(fires) blinks in 20 min")
+        XCTAssertGreaterThan(Set(gaps).count, 5, "gaps must vary, not tick like a metronome")
+    }
+
+    func testBlinkGateSeedsDesynchronizeMascots() {
+        // Two mascots with different seeds must not blink in lockstep.
+        let t0 = Date(timeIntervalSinceReferenceDate: 2_000_000)
+        var together = 0
+        var any = 0
+        for bucket in 0..<400 {
+            let t = t0.addingTimeInterval(Double(bucket) * 0.5)
+            let a = PuppetMotion.blinkGate(now: t, seed: 11)
+            let b = PuppetMotion.blinkGate(now: t, seed: 99)
+            if a && b { together += 1 }
+            if a || b { any += 1 }
+        }
+        XCTAssertGreaterThan(any, 20, "both mascots blink across the window")
+        XCTAssertLessThan(together, any / 5, "mascots must blink independently, not in chorus")
+    }
+
+    func testBlinkBucketStartAlignsToHalfSecond() {
+        let t = Date(timeIntervalSinceReferenceDate: 1_000_000.6)
+        let start = PuppetMotion.blinkBucketStart(now: t)
+        XCTAssertEqual(start.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 0.5), 0, accuracy: 0.0001)
+        XCTAssertLessThanOrEqual(t.timeIntervalSince(start), 0.5)
     }
 
     func testSpriteRectPreservesAssetAspectInSquareSlot() {

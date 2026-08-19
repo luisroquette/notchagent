@@ -124,6 +124,27 @@ public enum PuppetMotion {
         return 1
     }
 
+    /// The start of the current half-second blink bucket — the clock
+    /// grid the blink gate hashes.
+    public static func blinkBucketStart(now: Date) -> Date {
+        let t = now.timeIntervalSinceReferenceDate
+        return Date(timeIntervalSinceReferenceDate: (t / 0.5).rounded(.down) * 0.5)
+    }
+
+    /// The blink schedule DERIVED from the clock: a deterministic hash
+    /// of the current half-second bucket and the mascot's seed decides
+    /// whether a blink starts in this bucket (~1 in 7 — a blink every
+    /// ~3.5s on average, irregular in perception, and completely immune
+    /// to view lifecycle: no Task, no state, nothing to kill). Same
+    /// time + seed always gives the same answer.
+    public static func blinkGate(now: Date, seed: UInt64) -> Bool {
+        let bucket = UInt64(now.timeIntervalSinceReferenceDate * 2)
+        var h = bucket &* 2_862_933_555_777_941_757 &+ seed &* 3_030_007_493
+        h ^= h >> 32
+        h &*= 0x9E37_79B9_7F4A_7C15
+        return h % 7 == 0
+    }
+
     /// Bob sequences: every variant swings the mascot like it's being
     /// rocked up and down (the wobbleFall one almost drops it), and every
     /// sequence settles back to identity.
@@ -298,9 +319,15 @@ public enum PuppetMotion {
         return [lean] + pokeSteps(variant, intensity: intensity)
     }
 
-    /// Always-on blinking: a blink every 2.5–5.5s, irregular on purpose.
-    public static func blinkInterval(rng: inout some RandomNumberGenerator) -> Double {
-        Double.random(in: 2.5...5.5, using: &rng)
+    /// A stable per-identity seed (FNV-1a): the same name always yields
+    /// the same seed, so each mascot's blink schedule stays its own and
+    /// deterministic across launches.
+    public static func stableSeed(_ text: String) -> UInt64 {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in text.utf8 {
+            hash = (hash ^ UInt64(byte)) &* 0x100000001b3
+        }
+        return hash
     }
 
     /// The pose at `now` for a sequence started at `start` — pure keyframe
@@ -628,6 +655,10 @@ public struct MascotPuppetView: View {
     /// immediately — felt the touch, recognized the affection.
     private let caressCooldown: TimeInterval = 0.8
 
+    /// This mascot's own blink seed — a stable hash of its sprite name,
+    /// so the mascots on screen never blink in chorus.
+    private var blinkSeed: UInt64 { PuppetMotion.stableSeed(spriteName) }
+
     private var slotHalfX: Double { slotSize.width / 2 }
     /// The head band: above this y a touch is "on top", below it "on the
     /// body" (caresses need the head; the crush releases past the top).
@@ -637,9 +668,6 @@ public struct MascotPuppetView: View {
 
     @State private var steps: [MotionStep] = []
     @State private var animationStart: Date?
-    /// When the last blink started — the render clock drives the lid
-    /// down and up from here (see blinkAmount). nil = no blink running.
-    @State private var lastBlinkAt: Date?
     @State private var isBusy = false
     @State private var lastPokeAt = Date.distantPast
     @State private var playedRequestID = 0
@@ -662,9 +690,6 @@ public struct MascotPuppetView: View {
     /// While a hard finger stays on top, the crush keeps deepening —
     /// nil when the finger lifts or leaves the head zone.
     @State private var crushingSince: Date?
-    /// The blink loop, so it can be cancelled when the view goes away —
-    /// an uncancelled loop would keep ticking on a dead view forever.
-    @State private var blinkTask: Task<Void, Never>?
     /// The sprite, loaded once per view: the canvas redraws 30×/s and
     /// must never touch the disk per frame.
     @State private var loadedSprite: NSImage?
@@ -768,9 +793,14 @@ public struct MascotPuppetView: View {
                         )
                     }
                     let gestureElapsed = animationStart.map { timeline.date.timeIntervalSince($0) } ?? 0
-                    let blink = lastBlinkAt.map {
-                        PuppetMotion.blinkAmount(elapsed: timeline.date.timeIntervalSince($0))
-                    } ?? 0
+                    // The blink gate is DERIVED from the clock — no
+                    // Task, no state, nothing a view lifecycle can kill
+                    // (a Task-bound blink died with every view recycle;
+                    // this one cannot).
+                    let bucketStart = PuppetMotion.blinkBucketStart(now: timeline.date)
+                    let blink = !reduceMotion && PuppetMotion.blinkGate(now: timeline.date, seed: blinkSeed)
+                        ? PuppetMotion.blinkAmount(elapsed: timeline.date.timeIntervalSince(bucketStart))
+                        : 0
                     let eyes = PuppetMotion.derivedEyeState(
                         context: activeContext,
                         poke: activePoke,
@@ -811,14 +841,8 @@ public struct MascotPuppetView: View {
                 loadedSprite = NSImage(contentsOf: url)
             }
             guard !reduceMotion else { return }
-            startBlinking()
             // The expand already published a contextual request; play it.
             play(mind.animationRequest)
-        }
-        .onDisappear {
-            // The loop dies with the view — no zombie blinks.
-            blinkTask?.cancel()
-            blinkTask = nil
         }
         .onChange(of: mind.animationRequest) { _, request in
             play(request)
@@ -1239,23 +1263,6 @@ public struct MascotPuppetView: View {
                 context.stroke(lid, with: .color(ink.opacity(opacity)), lineWidth: max(1.5, eyeHeight * 0.1))
             case .closed, .open:
                 break
-            }
-        }
-    }
-
-    /// "Olhos piscando sempre": an irregular blink loop that runs the
-    /// whole time the mascot is on screen, pausing while a bob/poke plays.
-    /// One loop per view — recycled views never stack loops. Each cycle
-    /// only stamps the start time; the render clock animates the lid.
-    private func startBlinking() {
-        guard blinkTask == nil else { return }
-        blinkTask = Task { @MainActor in
-            while !Task.isCancelled {
-                var rng = SystemRandomNumberGenerator()
-                let interval = PuppetMotion.blinkInterval(rng: &rng)
-                try? await Task.sleep(for: .seconds(interval))
-                guard !isBusy, !reduceMotion else { continue }
-                lastBlinkAt = Date()
             }
         }
     }
