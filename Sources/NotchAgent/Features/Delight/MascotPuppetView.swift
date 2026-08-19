@@ -329,6 +329,22 @@ public enum PuppetMotion {
         min(max(cursorOffset, -1), 1) * 4
     }
 
+    /// The ground shadow's size factor: lifting the sprite (negative
+    /// offsetY = up) shrinks the contact patch — the depth cue that sells
+    /// every jump. 0 = full size, floor at 0.6 of the size for a 24pt+
+    /// lift (the highest any pose reaches is 14pt).
+    public static func shadowScale(offsetY: Double) -> Double {
+        let lift = min(max(-offsetY, 0), 24)
+        return 1 - lift / 24 * 0.4
+    }
+
+    /// The ground shadow's strength: full contact at 0.35, fading to 0.20
+    /// at the top of a jump — a higher mascot casts a lighter shadow.
+    public static func shadowOpacity(offsetY: Double) -> Double {
+        let lift = min(max(-offsetY, 0), 24)
+        return 0.35 - lift / 24 * 0.15
+    }
+
     /// The eyes are DERIVED, not stored: blink always wins, a startle
     /// opens wide before settling into annoyance, drowsy contexts wear
     /// heavy lids, excited contexts open wide.
@@ -419,6 +435,20 @@ public struct MascotPuppetView: View {
                 // wide (367×255); drawing into the square slot stretches
                 // them vertically.
                 let spriteRect = Self.spriteRect(imageSize: spriteImage?.size, canvasSize: size)
+                // Ground shadow first, under the sprite layer: it shrinks
+                // and fades as the mascot lifts, and never follows the
+                // pose's rotation — contact lives on the ground.
+                let shadowScale = PuppetMotion.shadowScale(offsetY: pose.offsetY)
+                let shadowRect = CGRect(
+                    x: spriteRect.midX - spriteRect.width * 0.30 * shadowScale,
+                    y: spriteRect.maxY - 1.5,
+                    width: spriteRect.width * 0.60 * shadowScale,
+                    height: max(1.5, spriteRect.height * 0.09 * shadowScale)
+                )
+                context.fill(
+                    Path(ellipseIn: shadowRect),
+                    with: .color(Color.black.opacity(PuppetMotion.shadowOpacity(offsetY: pose.offsetY)))
+                )
                 context.drawLayer { layer in
                     // Squash/stretch coupled to the motion: stretch in the
                     // air, squash on impact — volume-preserving.

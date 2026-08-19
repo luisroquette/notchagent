@@ -393,4 +393,46 @@ final class PuppetMotionTests: XCTestCase {
             previous = pose
         }
     }
+
+    // MARK: Ground shadow (the one depth cue in a flat 2D slot)
+
+    func testShadowFullAtRest() {
+        // On the ground the shadow is at full size and full strength.
+        XCTAssertEqual(PuppetMotion.shadowScale(offsetY: 0), 1, accuracy: 0.0001)
+        XCTAssertEqual(PuppetMotion.shadowOpacity(offsetY: 0), 0.35, accuracy: 0.0001)
+    }
+
+    func testShadowShrinksAndFadesWithLift() {
+        // Lifting (negative offsetY = up) shrinks the shadow and fades it —
+        // the higher the mascot, the weaker its contact with the ground.
+        let low = PuppetMotion.shadowScale(offsetY: -6)
+        let high = PuppetMotion.shadowScale(offsetY: -14)
+        XCTAssertLessThan(low, 1, "any lift must shrink the shadow")
+        XCTAssertLessThan(high, low, "more lift must shrink it further")
+        XCTAssertLessThan(PuppetMotion.shadowOpacity(offsetY: -14), PuppetMotion.shadowOpacity(offsetY: -6))
+    }
+
+    func testShadowClampsAtBothEnds() {
+        // Sinking below the ground never grows the shadow past full; a
+        // lift past the ceiling never shrinks it below its floor.
+        XCTAssertEqual(PuppetMotion.shadowScale(offsetY: 10), 1, accuracy: 0.0001)
+        let floored = PuppetMotion.shadowScale(offsetY: -40)
+        XCTAssertEqual(floored, PuppetMotion.shadowScale(offsetY: -24), accuracy: 0.0001)
+        XCTAssertGreaterThan(floored, 0.5, "the shadow must stay visible at any jump height")
+        XCTAssertGreaterThan(PuppetMotion.shadowOpacity(offsetY: -40), 0.1)
+    }
+
+    func testShadowContinuousAcrossFlight() {
+        // Sampling a full jump arc in small steps: no adjacent pair may
+        // differ by more than a small bound — the shadow breathes, it
+        // never teleports.
+        var previous = PuppetMotion.shadowScale(offsetY: 0)
+        var y = 0.0
+        while y > -24 {
+            y -= 0.5
+            let scale = PuppetMotion.shadowScale(offsetY: y)
+            XCTAssertLessThanOrEqual(abs(scale - previous), 0.02, "shadow jumped at lift \(y)")
+            previous = scale
+        }
+    }
 }
