@@ -65,6 +65,9 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var codexSessionTokenBudget: Int?
     /// Weather ambience (Now page): feature switch + location resolution.
     public var weatherEnabled: Bool = true
+    /// Delight layer (mascot reactions, moments, sound/haptics, time tint):
+    /// one master switch — off means a sober panel.
+    public var delightEnabled: Bool = true
     /// Manual city override; nil = automatic resolution.
     public var weatherCity: String?
     /// Persisted after the FIRST successful resolution (geo-IP runs once
@@ -106,6 +109,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         case claudeWeeklyTokenBudget
         case codexSessionTokenBudget
         case weatherEnabled
+        case delightEnabled
         case weatherCity
         case weatherLat
         case weatherLon
@@ -162,6 +166,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         claudeWeeklyTokenBudget = try container.decodeIfPresent(Int.self, forKey: .claudeWeeklyTokenBudget)
         codexSessionTokenBudget = try container.decodeIfPresent(Int.self, forKey: .codexSessionTokenBudget) ?? 5_000_000_000
         weatherEnabled = try container.decodeIfPresent(Bool.self, forKey: .weatherEnabled) ?? true
+        delightEnabled = try container.decodeIfPresent(Bool.self, forKey: .delightEnabled) ?? true
         weatherCity = try container.decodeIfPresent(String.self, forKey: .weatherCity)
         weatherLat = try container.decodeIfPresent(Double.self, forKey: .weatherLat)
         weatherLon = try container.decodeIfPresent(Double.self, forKey: .weatherLon)

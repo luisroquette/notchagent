@@ -131,6 +131,12 @@ struct SettingsView: View {
                         : "Weather background in the panel (off = plain black)",
                     isOn: $preferences.settings.weatherEnabled
                 )
+                Toggle(
+                    pt
+                        ? "Efeitos e reações do painel (mascote, som e tinta do fundo)"
+                        : "Panel effects and reactions (mascot, sound and background tint)",
+                    isOn: $preferences.settings.delightEnabled
+                )
                 TextField(
                     pt ? "Cidade manual (opcional)" : "City override (optional)",
                     text: Binding(
