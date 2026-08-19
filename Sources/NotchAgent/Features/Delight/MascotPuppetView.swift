@@ -273,6 +273,18 @@ public enum PuppetMotion {
         return 1 + stretch
     }
 
+    /// Idle breathing: a slow ±2% vertical swell on a 3s cycle — the
+    /// mascot is alive even when nothing is happening.
+    public static func breathingScale(now: Date) -> Double {
+        1 + 0.02 * sin(2 * .pi * now.timeIntervalSinceReferenceDate / 3.0)
+    }
+
+    /// The idle head-turn: the mascot leans toward the cursor, up to ±4°.
+    /// `cursorOffset` is -1…1 across the slot (negative = cursor left).
+    public static func headTurnRotation(cursorOffset: Double) -> Double {
+        min(max(cursorOffset, -1), 1) * 4
+    }
+
     /// The eyes are DERIVED, not stored: blink always wins, a startle
     /// opens wide before settling into annoyance, drowsy contexts wear
     /// heavy lids, excited contexts open wide.
@@ -324,6 +336,7 @@ public struct MascotPuppetView: View {
     @State private var useFollowThrough = false
     @State private var activeContext: MascotContext?
     @State private var activePoke: PokeVariant?
+    @State private var cursorOffset: Double = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(MascotMind.self) private var mind
@@ -361,12 +374,22 @@ public struct MascotPuppetView: View {
                         steps: steps, start: animationStart, now: timeline.date,
                         easing: easing, durationScale: durationScale
                     )
+                    // Ambient presence, idle only: slow breathing and the
+                    // head leaning toward the cursor. Animations own the
+                    // pose while they play.
+                    let idle = steps.isEmpty
+                    let breathing = idle && !reduceMotion
+                        ? PuppetMotion.breathingScale(now: timeline.date)
+                        : 1
+                    let headTurn = idle && !reduceMotion
+                        ? PuppetMotion.headTurnRotation(cursorOffset: cursorOffset)
+                        : 0
                     // Anchor at the sprite's bottom-center: translate,
                     // scale, rotate, translate back, then the pose offset
                     // (canvas y is down, so a negative offsetY lifts).
                     layer.translateBy(x: spriteRect.midX, y: spriteRect.maxY)
-                    layer.scaleBy(x: 1 / sqrt(squash), y: pose.scaleY * squash)
-                    layer.rotate(by: .degrees(pose.rotationDegrees))
+                    layer.scaleBy(x: pow(squash, -0.5), y: pose.scaleY * squash * breathing)
+                    layer.rotate(by: .degrees(pose.rotationDegrees + headTurn))
                     layer.translateBy(x: -spriteRect.midX, y: -spriteRect.maxY)
                     layer.translateBy(x: 0, y: pose.offsetY)
 
@@ -406,6 +429,16 @@ public struct MascotPuppetView: View {
             guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
             lastPokeAt = now
             mind.notePoked()
+        }
+        .onContinuousHover { phase in
+            // The head follows the cursor while it's over the mascot;
+            // leaving the slot resets the gaze.
+            switch phase {
+            case .active(let location):
+                cursorOffset = min(max((location.x - 32.0) / 32.0, -1), 1)
+            case .ended:
+                cursorOffset = 0
+            }
         }
     }
 

@@ -280,6 +280,41 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertLessThan(minSquash, 0.995, "landings must squash the body")
     }
 
+    // MARK: ambient presence (breathing + head turn)
+
+    func testBreathingScaleBoundsAndPeriod() {
+        // The breath runs on the continuous reference clock — its PHASE at
+        // any anchor date is arbitrary. What must hold: the ±2% bounds,
+        // the 3s period, and a full inhale/exhale sweep inside one cycle.
+        let t0 = Date(timeIntervalSince1970: 1_756_000_000)
+        var maxScale = 0.0
+        var minScale = 2.0
+        for i in 0...300 {
+            let scale = PuppetMotion.breathingScale(now: t0.addingTimeInterval(Double(i) / 100))
+            maxScale = max(maxScale, scale)
+            minScale = min(minScale, scale)
+            XCTAssertGreaterThanOrEqual(scale, 0.98)
+            XCTAssertLessThanOrEqual(scale, 1.02)
+        }
+        XCTAssertGreaterThanOrEqual(maxScale, 1.019, "a cycle must reach the inhale peak")
+        XCTAssertLessThanOrEqual(minScale, 0.981, "a cycle must reach the exhale trough")
+        XCTAssertEqual(
+            PuppetMotion.breathingScale(now: t0.addingTimeInterval(3)),
+            PuppetMotion.breathingScale(now: t0),
+            accuracy: 0.0001,
+            "3s cycle repeats"
+        )
+    }
+
+    func testHeadTurnFollowsCursorAndClamps() {
+        XCTAssertEqual(PuppetMotion.headTurnRotation(cursorOffset: 0), 0)
+        XCTAssertEqual(PuppetMotion.headTurnRotation(cursorOffset: 1), 4)
+        XCTAssertEqual(PuppetMotion.headTurnRotation(cursorOffset: -1), -4, "cursor left turns left")
+        XCTAssertEqual(PuppetMotion.headTurnRotation(cursorOffset: 0.5), 2)
+        XCTAssertEqual(PuppetMotion.headTurnRotation(cursorOffset: 3), 4, "clamped")
+        XCTAssertEqual(PuppetMotion.headTurnRotation(cursorOffset: -3), -4, "clamped")
+    }
+
     // MARK: pose interpolation (the frame-by-frame driver)
 
     private let t0 = Date(timeIntervalSince1970: 1_756_000_000)
