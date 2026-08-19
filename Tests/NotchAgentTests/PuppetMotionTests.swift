@@ -28,7 +28,7 @@ final class PuppetMotionTests: XCTestCase {
     }
 
     func testBobVariantsAreVisibleVariedAndSettle() {
-        XCTAssertEqual(BobVariant.allCases.count, 8, "the opening move needs variety")
+        XCTAssertEqual(BobVariant.allCases.count, 9, "the opening move needs variety")
         for variant in BobVariant.allCases {
             let steps = PuppetMotion.bobSteps(variant)
             // A bow is exactly 3 beats (lean, hold, rise) — three is the
@@ -532,5 +532,89 @@ final class PuppetMotionTests: XCTestCase {
             let steps = PuppetMotion.directedPokeSteps(.shrinkSulk, pokeSide: side)
             XCTAssertLessThanOrEqual(abs(steps[0].rotationDegrees), 10, "lean of \(steps[0].rotationDegrees)° reads as a fall")
         }
+    }
+
+    // MARK: Touch intensity (the same poke, struck with force)
+
+    func testPokeIntensityDefaultIsIdentity() {
+        for variant in PokeVariant.allCases {
+            XCTAssertEqual(
+                PuppetMotion.pokeSteps(variant),
+                PuppetMotion.pokeSteps(variant, intensity: 1),
+                "\(variant.rawValue) at intensity 1 must be the original"
+            )
+        }
+    }
+
+    func testPokeIntensityScalesAmplitudes() {
+        // A bump (1.6×) must read bigger than the gentle tap on the
+        // combined amplitude of the pose — each variant uses different
+        // fields (some only turn, some only lift), so the comparison is
+        // over the sum of what each actually does.
+        func amplitude(_ steps: [MotionStep]) -> Double {
+            steps.map {
+                abs($0.offsetY) + abs($0.rotationDegrees) + abs($0.scaleY - 1) * 20
+            }.max() ?? 0
+        }
+        for variant in PokeVariant.allCases {
+            let gentle = PuppetMotion.pokeSteps(variant)
+            let forceful = PuppetMotion.pokeSteps(variant, intensity: 1.6)
+            XCTAssertGreaterThan(
+                amplitude(forceful),
+                amplitude(gentle),
+                "\(variant.rawValue) bump must strike harder"
+            )
+        }
+    }
+
+    func testPokeIntensityClampsExtremes() {
+        // Even a ludicrous intensity stays a readable pose — no field
+        // may blow past the clamp's physical bounds.
+        let steps = PuppetMotion.pokeSteps(.startleJump, intensity: 10)
+        for step in steps {
+            XCTAssertLessThanOrEqual(abs(step.offsetY), 60, "offset exploded to \(step.offsetY)")
+            XCTAssertLessThanOrEqual(abs(step.rotationDegrees), 60, "rotation exploded to \(step.rotationDegrees)")
+            XCTAssertGreaterThan(step.scaleY, 0.3, "scale crushed to \(step.scaleY)")
+        }
+    }
+
+    func testDirectedPokeLeanScalesWithIntensity() {
+        // A bump from the side leans away harder than a gentle tap.
+        let gentle = PuppetMotion.directedPokeSteps(.startleJump, pokeSide: -1)
+        let forceful = PuppetMotion.directedPokeSteps(.startleJump, pokeSide: -1, intensity: 1.6)
+        XCTAssertGreaterThan(
+            abs(forceful[0].rotationDegrees),
+            abs(gentle[0].rotationDegrees),
+            "a bump's opening lean must beat a tap's"
+        )
+    }
+
+    // MARK: Nuzzle (the caress the mascot likes)
+
+    func testNuzzleSwaysGentlyAndSettles() {
+        let steps = PuppetMotion.bobSteps(.nuzzle)
+        XCTAssertGreaterThanOrEqual(steps.count, 3, "a nuzzle is too short to read as pleasure")
+        XCTAssertEqual(steps.last?.scaleY, 1, "nuzzle must settle back to rest")
+        XCTAssertEqual(steps.last?.rotationDegrees, 0)
+        XCTAssertEqual(steps.last?.offsetY, 0)
+    }
+
+    func testNuzzleLeanFollowsTheCaressSide() {
+        // The caress strokes one side — the mascot leans INTO it.
+        let left = PuppetMotion.nuzzleSteps(lean: 6)
+        let right = PuppetMotion.nuzzleSteps(lean: -6)
+        XCTAssertEqual(left[0].rotationDegrees, 6, accuracy: 0.001)
+        XCTAssertEqual(right[0].rotationDegrees, -6, accuracy: 0.001)
+        XCTAssertEqual(left[0].scaleY, right[0].scaleY, "the swell does not depend on side")
+    }
+
+    func testNuzzleLeanClamps() {
+        // A wild average position never twists the nuzzle past ±8°, and
+        // a caress barely off-center still leans a visible ±5° — an
+        // invisible answer would read as indifference.
+        XCTAssertEqual(PuppetMotion.nuzzleSteps(lean: 20)[0].rotationDegrees, 8, accuracy: 0.001)
+        XCTAssertEqual(PuppetMotion.nuzzleSteps(lean: -20)[0].rotationDegrees, -8, accuracy: 0.001)
+        XCTAssertEqual(PuppetMotion.nuzzleSteps(lean: 2)[0].rotationDegrees, 5, accuracy: 0.001)
+        XCTAssertEqual(PuppetMotion.nuzzleSteps(lean: -2)[0].rotationDegrees, -5, accuracy: 0.001)
     }
 }

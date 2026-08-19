@@ -22,7 +22,7 @@ public struct MotionStep: Equatable, Sendable {
 /// Opening greetings: the mascot always moves when the panel opens, never
 /// the same way twice.
 public enum BobVariant: String, CaseIterable, Sendable {
-    case swingUpDown, swayPendulum, wobbleFall, hopBob, bow, shiver, doubleTake, yawnStretch
+    case swingUpDown, swayPendulum, wobbleFall, hopBob, bow, shiver, doubleTake, yawnStretch, nuzzle
 }
 
 /// Touch reactions: poking the mascot ALWAYS gets an annoyed response.
@@ -114,12 +114,50 @@ public enum PuppetMotion {
             MotionStep(scaleY: 1.06, rotationDegrees: -6, duration: 0.5),
             MotionStep(duration: 0.5),
         ]
+        case .nuzzle: [
+            // The caress the mascot LIKES: a soft sway with a swell of
+            // pleasure. Eyes close via the view; the opening lean toward
+            // the caress side comes from `nuzzleSteps`.
+            MotionStep(scaleY: 1.1, rotationDegrees: 7, duration: 0.3),
+            MotionStep(scaleY: 1.1, rotationDegrees: -7, duration: 0.3),
+            MotionStep(scaleY: 1.1, rotationDegrees: 6, duration: 0.25),
+            MotionStep(duration: 0.4),
+        ]
         }
+    }
+
+    /// The nuzzle with its directional opening: the mascot leans INTO
+    /// the caress side first (positive = lean right). Capped at ±8° and
+    /// floored at ±5° — below that the lean is invisible at slot size,
+    /// and an invisible caress answer would read as indifference.
+    public static func nuzzleSteps(lean: Double) -> [MotionStep] {
+        var steps = bobSteps(.nuzzle)
+        let clamped = min(max(lean, -8), 8)
+        let visible = abs(clamped) < 5 ? (clamped < 0 ? -5 : 5) : clamped
+        steps[0] = MotionStep(
+            scaleY: steps[0].scaleY,
+            rotationDegrees: visible,
+            duration: steps[0].duration
+        )
+        return steps
     }
 
     /// Poke sequences: startled, annoyed, sulking — all visibly "didn't
     /// like that", all settling back.
-    public static func pokeSteps(_ variant: PokeVariant) -> [MotionStep] {
+    public static func pokeSteps(_ variant: PokeVariant, intensity: Double = 1) -> [MotionStep] {
+        let scaled = min(max(intensity, 0.3), 3)
+        return basePokeSteps(variant).map { step in
+            MotionStep(
+                scaleY: 1 + (step.scaleY - 1) * scaled,
+                rotationDegrees: step.rotationDegrees * scaled,
+                offsetY: step.offsetY * scaled,
+                duration: step.duration
+            )
+        }
+    }
+
+    /// The variant's raw steps at intensity 1 — the tap baseline.
+    private static func basePokeSteps(_ variant: PokeVariant) -> [MotionStep] {
         switch variant {
         case .startleJump: [
             MotionStep(scaleY: 0.9, offsetY: -6, duration: 0.08),
@@ -141,14 +179,18 @@ public enum PuppetMotion {
         }
     }
 
-    /// The poke reaction knows WHERE the finger came from: it opens with
-    /// a lean AWAY from the poke (a poke from the left — `pokeSide` -1 —
-    /// tilts the mascot right, positive rotation in canvas space), then
-    /// the variant's own body plays untouched. The lean is capped at 9° —
-    /// a reaction, never a fall.
-    public static func directedPokeSteps(_ variant: PokeVariant, pokeSide: Double) -> [MotionStep] {
-        let lean = MotionStep(rotationDegrees: -pokeSide * 9, duration: 0.1)
-        return [lean] + pokeSteps(variant)
+    /// The poke reaction knows WHERE the finger came from AND how hard it
+    /// struck: it opens with a lean AWAY from the poke (a poke from the
+    /// left — `pokeSide` -1 — tilts the mascot right, positive rotation
+    /// in canvas space), then the variant's own body plays at the given
+    /// intensity. A tap leans 9°, a bump leans harder.
+    public static func directedPokeSteps(
+        _ variant: PokeVariant,
+        pokeSide: Double,
+        intensity: Double = 1
+    ) -> [MotionStep] {
+        let lean = MotionStep(rotationDegrees: -pokeSide * 9 * intensity, duration: 0.1)
+        return [lean] + pokeSteps(variant, intensity: intensity)
     }
 
     /// Always-on blinking: a blink every 2.5–5.5s, irregular on purpose.
@@ -425,6 +467,9 @@ public struct MascotPuppetView: View {
     /// never act out global events — only the active model's mascot does.
     public let reactive: Bool
     private let pokeCooldown: TimeInterval = 2
+    /// Shorter than the poke's: a tap may flow into a caress almost
+    /// immediately — felt the touch, recognized the affection.
+    private let caressCooldown: TimeInterval = 0.8
 
     @State private var steps: [MotionStep] = []
     @State private var animationStart: Date?
@@ -442,6 +487,12 @@ public struct MascotPuppetView: View {
     @State private var cursorOffset: Double = 0
     @State private var pokeCursor = 0
     @State private var wasHovering = false
+    // Touch sensing: the hover trail feeds the classifier — the first
+    // ~150ms decide tap vs bump, the ongoing trail watches for caresses.
+    @State private var entrySamples: [TouchSense.Sample] = []
+    @State private var caressSamples: [TouchSense.Sample] = []
+    @State private var entryAt: Date?
+    @State private var lastCaressAt = Date.distantPast
     // Interruption blend: the pose where the last gesture was cut and
     // when — the new sequence crossfades in from there instead of
     // snapping.
@@ -541,7 +592,8 @@ public struct MascotPuppetView: View {
                         context: activeContext,
                         poke: activePoke,
                         elapsed: animationStart.map { timeline.date.timeIntervalSince($0) } ?? 0,
-                        blinking: isBlinking
+                        // A nuzzle closes the eyes — pleasure, not alarm.
+                        blinking: isBlinking || (activeBob == .nuzzle && animationStart != nil)
                     )
                     drawFace(state: eyes, context: layer, rect: spriteRect)
                 }
@@ -559,27 +611,64 @@ public struct MascotPuppetView: View {
         }
         .onContinuousHover { phase in
             // The head follows the cursor while it's over the mascot;
-            // leaving the slot resets the gaze. ENTRY is where the poke
-            // lives: the first .active frame carries the position, so the
-            // reaction knows which side the finger came from.
+            // leaving the slot resets the gaze. The whole trail feeds the
+            // touch classifier: the first ~150ms decide tap vs bump, and
+            // the ongoing trail watches for caresses on the head.
             switch phase {
             case .active(let location):
                 cursorOffset = min(max((location.x - 32.0) / 32.0, -1), 1)
+                let now = Date()
+                let sample = TouchSense.Sample(at: now, x: location.x, y: location.y)
                 if !wasHovering {
                     wasHovering = true
-                    triggerPoke(fromLeft: location.x < 32.0)
+                    entrySamples = [sample]
+                    caressSamples = [sample]
+                    entryAt = now
+                } else {
+                    entrySamples.append(sample)
+                    if let entry = entryAt,
+                       now.timeIntervalSince(entry) >= TouchSense.classificationWindow {
+                        entryAt = nil
+                        finishTouch(samples: entrySamples)
+                    }
+                    // Caress watch: keep only the recent window, and if
+                    // the trail reads as stroking the head, react to it.
+                    caressSamples.append(sample)
+                    caressSamples.removeAll { now.timeIntervalSince($0.at) > TouchSense.caressWindow }
+                    if TouchSense.isCaress(caressSamples, headZoneMaxY: 32) {
+                        triggerCaress(samples: caressSamples)
+                        caressSamples = []
+                    }
                 }
             case .ended:
+                // A bump that crosses and leaves inside the window still
+                // gets classified — the short trail already proves speed.
+                if entryAt != nil {
+                    finishTouch(samples: entrySamples)
+                }
                 wasHovering = false
                 cursorOffset = 0
+                entryAt = nil
+                entrySamples = []
+                caressSamples = []
             }
         }
     }
 
+    /// The classification window closed: read tap vs bump from the entry
+    /// trail and react. The average entry x says which side the finger
+    /// came from.
+    private func finishTouch(samples: [TouchSense.Sample]) {
+        let kind = TouchSense.classify(samples)
+        let averageX = samples.map(\.x).reduce(0, +) / Double(max(samples.count, 1))
+        triggerPoke(kind: kind, fromLeft: averageX < 32.0)
+    }
+
     /// A poke ALWAYS gets an annoyed reaction, and the reaction knows
-    /// WHERE it came from — the mascot leans away from the finger.
-    /// Personal: local round-robin, this mascot only.
-    private func triggerPoke(fromLeft: Bool) {
+    /// WHERE it came from AND how hard it struck — a gentle tap plays the
+    /// variant at full force, a bump plays it at 1.6×. Personal: local
+    /// round-robin, this mascot only.
+    private func triggerPoke(kind: TouchSense.TouchKind, fromLeft: Bool) {
         guard !reduceMotion else { return }
         let now = Date()
         guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
@@ -596,7 +685,36 @@ public struct MascotPuppetView: View {
         useFollowThrough = DelightCatalog.followThrough(for: .poke)
         activeContext = .poke
         activePoke = variant
-        play(poke: variant, pokeSide: fromLeft ? -1 : 1)
+        play(
+            poke: variant,
+            pokeSide: fromLeft ? -1 : 1,
+            intensity: kind == .bump ? 1.6 : 1
+        )
+    }
+
+    /// A caress is the one touch the mascot LIKES: eyes close (via the
+    /// derived eye state), the body swells a little and leans into the
+    /// side being stroked. Its own cooldown lets a tap flow into a
+    /// caress: felt the touch, recognized the affection, leaned in.
+    private func triggerCaress(samples: [TouchSense.Sample]) {
+        guard !reduceMotion else { return }
+        let now = Date()
+        guard now.timeIntervalSince(lastCaressAt) >= caressCooldown else { return }
+        lastCaressAt = now
+        let averageX = samples.map(\.x).reduce(0, +) / Double(max(samples.count, 1))
+        let lean = (averageX - 32.0) / 32.0 * 8
+        easing = DelightCatalog.easing(for: .calm)
+        durationScale = PuppetMotion.durationScale(for: .calm)
+        useAnticipation = false
+        useFollowThrough = true
+        activeContext = .calm
+        activePoke = nil
+        activeBob = .nuzzle
+        begin(sequence: PuppetMotion.staged(
+            PuppetMotion.nuzzleSteps(lean: lean),
+            anticipation: false,
+            followThrough: true
+        ))
     }
 
     /// Plays a published request: contextual bob or poke, skipping replays
@@ -792,10 +910,10 @@ public struct MascotPuppetView: View {
         ))
     }
 
-    private func play(poke variant: PokeVariant, pokeSide: Double = 0) {
+    private func play(poke variant: PokeVariant, pokeSide: Double = 0, intensity: Double = 1) {
         let steps = pokeSide != 0
-            ? PuppetMotion.directedPokeSteps(variant, pokeSide: pokeSide)
-            : PuppetMotion.pokeSteps(variant)
+            ? PuppetMotion.directedPokeSteps(variant, pokeSide: pokeSide, intensity: intensity)
+            : PuppetMotion.pokeSteps(variant, intensity: intensity)
         begin(sequence: PuppetMotion.staged(
             steps,
             anticipation: useAnticipation,
