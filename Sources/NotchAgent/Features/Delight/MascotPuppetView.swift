@@ -34,6 +34,12 @@ public enum EyeState: Equatable {
     case open, closed, annoyed
 }
 
+/// Velocity personality per context: how the pose travels between
+/// keyframes. Same steps, different feel.
+public enum EasingProfile: String, CaseIterable, Sendable {
+    case standard, sharp, sluggish, elastic
+}
+
 public enum PuppetMotion {
     /// Eye centers relative to the sprite size — derived from the four
     /// mascot assets (same face layout in all families ≈ 0.26/0.72 x,
@@ -108,21 +114,30 @@ public enum PuppetMotion {
     }
 
     /// The pose at `now` for a sequence started at `start` — pure keyframe
-    /// interpolation with smoothstep easing. nil start = identity. After the
-    /// last step the pose holds identity (the sequence settled).
-    public static func pose(steps: [MotionStep], start: Date?, now: Date) -> MotionStep {
+    /// interpolation. nil start = identity. After the last step the pose
+    /// holds identity (the sequence settled). `easing` gives the travel its
+    /// personality; `durationScale` slows/speeds the whole sequence
+    /// (drowsy drags, tense snaps).
+    public static func pose(
+        steps: [MotionStep],
+        start: Date?,
+        now: Date,
+        easing: EasingProfile = .standard,
+        durationScale: Double = 1
+    ) -> MotionStep {
         guard let start, !steps.isEmpty else { return .identity }
         let elapsed = now.timeIntervalSince(start)
         guard elapsed >= 0 else { return steps[0] }
         var accumulated: Double = 0
         var previous = MotionStep.identity
         for step in steps {
-            let stepEnd = accumulated + step.duration
+            let effectiveDuration = step.duration * durationScale
+            let stepEnd = accumulated + effectiveDuration
             if elapsed < stepEnd {
-                let f = step.duration > 0
-                    ? max(0, min(1, (elapsed - accumulated) / step.duration))
+                let f = effectiveDuration > 0
+                    ? max(0, min(1, (elapsed - accumulated) / effectiveDuration))
                     : 1
-                let eased = f * f * (3 - 2 * f)
+                let eased = ease(f, profile: easing)
                 return MotionStep(
                     scaleY: previous.scaleY + (step.scaleY - previous.scaleY) * eased,
                     rotationDegrees: previous.rotationDegrees + (step.rotationDegrees - previous.rotationDegrees) * eased,
@@ -134,6 +149,38 @@ public enum PuppetMotion {
             previous = step
         }
         return .identity
+    }
+
+    /// The travel personality: standard smoothstep, sharp (tense — most of
+    /// the motion lands early), sluggish (drowsy — slowerstep, drags at
+    /// both ends) and elastic (playful — overshoots past the keyframe and
+    /// springs back).
+    public static func ease(_ fraction: Double, profile: EasingProfile) -> Double {
+        let t = min(max(fraction, 0), 1)
+        switch profile {
+        case .standard:
+            return t * t * (3 - 2 * t)
+        case .sharp:
+            // Ease-out quadratic: most of the travel lands in the first
+            // third — a snap, not a glide.
+            return t * (2 - t)
+        case .sluggish:
+            return t * t * t * (t * (6 * t - 15) + 10)
+        case .elastic:
+            let c1 = 1.70158
+            let c3 = c1 + 1
+            return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
+        }
+    }
+
+    /// How much slower/faster a context plays its steps.
+    public static func durationScale(for context: MascotContext) -> Double {
+        switch context {
+        case .drowsy, .midnightMoment: 1.7
+        case .tense: 0.7
+        case .playful, .celebration: 0.9
+        default: 1.0
+        }
     }
 }
 
@@ -158,6 +205,8 @@ public struct MascotPuppetView: View {
     @State private var isBusy = false
     @State private var lastPokeAt = Date.distantPast
     @State private var playedRequestID = 0
+    @State private var easing: EasingProfile = .standard
+    @State private var durationScale: Double = 1
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(MascotMind.self) private var mind
@@ -176,7 +225,13 @@ public struct MascotPuppetView: View {
         TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
             let pose = reduceMotion
                 ? MotionStep.identity
-                : PuppetMotion.pose(steps: steps, start: animationStart, now: timeline.date)
+                : PuppetMotion.pose(
+                    steps: steps,
+                    start: animationStart,
+                    now: timeline.date,
+                    easing: easing,
+                    durationScale: durationScale
+                )
             Canvas { context, size in
                 context.drawLayer { layer in
                     // Aspect-preserving sprite rect, centered — the assets
@@ -226,10 +281,13 @@ public struct MascotPuppetView: View {
     }
 
     /// Plays a published request: contextual bob or poke, skipping replays
-    /// of an id the puppet already performed.
+    /// of an id the puppet already performed. The request's context sets
+    /// the travel personality (easing + duration scale).
     private func play(_ request: AnimationRequest?) {
         guard let request, request.id > playedRequestID, !reduceMotion else { return }
         playedRequestID = request.id
+        easing = DelightCatalog.easing(for: request.context)
+        durationScale = PuppetMotion.durationScale(for: request.context)
         if let bob = request.bob {
             play(bob: bob)
         } else if let poke = request.poke {
@@ -343,7 +401,7 @@ public struct MascotPuppetView: View {
         steps = sequence
         animationStart = Date()
         isBusy = true
-        scheduleFinish(after: sequence)
+        scheduleFinish(after: sequence, scaledBy: durationScale)
     }
 
     private func play(poke variant: PokeVariant) {
@@ -352,15 +410,19 @@ public struct MascotPuppetView: View {
         steps = sequence
         animationStart = Date()
         isBusy = true
-        scheduleFinish(after: sequence) {
+        scheduleFinish(after: sequence, scaledBy: durationScale) {
             self.eyeState = .open
         }
     }
 
-    /// Releases the busy flag once the sequence's total duration passed —
+    /// Releases the busy flag once the sequence's scaled duration passed —
     /// the pose itself returns to identity purely (see `pose`).
-    private func scheduleFinish(after sequence: [MotionStep], onFinish: (() -> Void)? = nil) {
-        let total = sequence.reduce(0) { $0 + $1.duration }
+    private func scheduleFinish(
+        after sequence: [MotionStep],
+        scaledBy scale: Double = 1,
+        onFinish: (() -> Void)? = nil
+    ) {
+        let total = sequence.reduce(0) { $0 + $1.duration } * scale
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(total))
             isBusy = false

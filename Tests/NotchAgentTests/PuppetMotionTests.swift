@@ -95,6 +95,70 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertEqual(rect, CGRect(x: 0, y: 0, width: 64, height: 64))
     }
 
+    // MARK: easing profiles (fluidez por contexto)
+
+    func testEaseEndpointsForAllProfiles() {
+        for profile in EasingProfile.allCases {
+            XCTAssertEqual(PuppetMotion.ease(0, profile: profile), 0, accuracy: 0.0001)
+            XCTAssertEqual(PuppetMotion.ease(1, profile: profile), 1, accuracy: 0.0001)
+        }
+    }
+
+    func testEasePersonalitiesOrder() {
+        // A quarter of the way in: sharp covers the most ground, sluggish
+        // the least (at 0.5 both smoothsteps coincide).
+        let sharp = PuppetMotion.ease(0.25, profile: .sharp)
+        let standard = PuppetMotion.ease(0.25, profile: .standard)
+        let sluggish = PuppetMotion.ease(0.25, profile: .sluggish)
+        XCTAssertGreaterThan(sharp, standard, "tense travel must be ahead")
+        XCTAssertGreaterThan(standard, sluggish, "drowsy travel must drag")
+    }
+
+    func testElasticEaseOvershoots() {
+        var maxEase = 0.0
+        for i in 0...100 {
+            maxEase = max(maxEase, PuppetMotion.ease(Double(i) / 100, profile: .elastic))
+        }
+        XCTAssertGreaterThan(maxEase, 1.05, "elastic must overshoot past the keyframe")
+    }
+
+    func testDurationScalePerContext() {
+        XCTAssertGreaterThan(PuppetMotion.durationScale(for: .drowsy), 1, "drowsy drags")
+        XCTAssertLessThan(PuppetMotion.durationScale(for: .tense), 1, "tense snaps")
+        XCTAssertEqual(PuppetMotion.durationScale(for: .calm), 1, accuracy: 0.0001)
+    }
+
+    func testPoseRespectsDurationScale() {
+        let steps = [MotionStep(offsetY: -10, duration: 1.0)]
+        let slow = PuppetMotion.pose(
+            steps: steps, start: t0, now: t0.addingTimeInterval(0.5), durationScale: 1.7
+        )
+        let normal = PuppetMotion.pose(
+            steps: steps, start: t0, now: t0.addingTimeInterval(0.5), durationScale: 1.0
+        )
+        XCTAssertLessThan(abs(slow.offsetY), abs(normal.offsetY), "drowsy travel lags at the same instant")
+    }
+
+    func testPoseElasticOvershootsKeyframe() {
+        let steps = [MotionStep(offsetY: -10, duration: 1.0)]
+        var maxOffset = 0.0
+        for i in 0...100 {
+            let pose = PuppetMotion.pose(
+                steps: steps, start: t0, now: t0.addingTimeInterval(Double(i) / 100), easing: .elastic
+            )
+            maxOffset = max(maxOffset, abs(pose.offsetY))
+        }
+        XCTAssertGreaterThan(maxOffset, 10.0, "elastic pose passes the keyframe then springs back")
+    }
+
+    func testCatalogEasingMapping() {
+        XCTAssertEqual(DelightCatalog.easing(for: .tense), .sharp)
+        XCTAssertEqual(DelightCatalog.easing(for: .poke), .sharp)
+        XCTAssertEqual(DelightCatalog.easing(for: .drowsy), .sluggish)
+        XCTAssertEqual(DelightCatalog.easing(for: .playful), .elastic)
+        XCTAssertEqual(DelightCatalog.easing(for: .calm), .standard)
+    }
+
     // MARK: pose interpolation (the frame-by-frame driver)
 
     private let t0 = Date(timeIntervalSince1970: 1_756_000_000)

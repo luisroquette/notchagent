@@ -67,6 +67,17 @@ public enum DelightCatalog {
         return options[index]
     }
 
+    /// The travel personality per context: tense snaps, drowsy drags,
+    /// playful overshoots.
+    public static func easing(for context: MascotContext) -> EasingProfile {
+        switch context {
+        case .tense, .poke: .sharp
+        case .drowsy, .midnightMoment: .sluggish
+        case .playful, .celebration: .elastic
+        default: .standard
+        }
+    }
+
     /// Mood → context for an ordinary expand (greeting wins when it's the
     /// first expand of the day).
     public static func expandContext(mood: MascotMood, firstExpandOfDay: Bool) -> MascotContext {
