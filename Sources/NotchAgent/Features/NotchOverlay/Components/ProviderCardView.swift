@@ -127,6 +127,14 @@ struct ProviderCardView: View {
 
     /// Maps an active model name to its mascot family asset; unknown or
     /// missing models fall back to sonnet.
+    /// The session-token headline belongs to CODEX (its session reports no
+    /// percent). REGRESSÃO 2325122: generalized to every provider, Claude
+    /// without a session percent started showing its WEEKLY token total
+    /// ("663.8M") as the headline instead of the percentage.
+    static func sessionHeadlineAllowed(for provider: ProviderID) -> Bool {
+        provider == .codex
+    }
+
     static func mascotName(for model: String?) -> String {
         let families = ["fable", "opus", "haiku", "sonnet"]
         let lower = model?.lowercased() ?? ""
@@ -150,7 +158,9 @@ struct ProviderCardView: View {
 
         VStack(alignment: .leading, spacing: 7) {
             if let metric = GaugeMetric.from(snapshot) {
-                if metric.isWeekly, metric.remaining > 0, let sessionPrimary = Self.sessionPrimaryLayout(snapshot) {
+                if metric.isWeekly, metric.remaining > 0,
+                   Self.sessionHeadlineAllowed(for: provider),
+                   let sessionPrimary = Self.sessionPrimaryLayout(snapshot) {
                     // Weekly-only plan with headroom left: the current
                     // session's real tokens take the headline (same "current
                     // window" concept as Claude's 5h percent, without
