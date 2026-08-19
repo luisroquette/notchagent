@@ -2,17 +2,20 @@ import SwiftUI
 
 /// The ambience is TWO layers, mounted by NotchContainerView:
 /// - `WeatherSkyView` sits BEHIND the content and above the black notch
-///   cap, so the night veil, stars and moon mix into the cap itself.
+///   cap, so the procedural sky, stars and moon mix into the cap itself.
 /// - `WeatherForegroundOverlay` sits ABOVE everything (cards, mascots,
 ///   buttons) — rain and snow fall ON the UI, like the iOS lock screen.
 ///   It never intercepts hits.
 ///
-/// Every condition is alive, the way it is in nature: stars twinkle,
-/// rain falls, the sun breathes and its rays rotate, clouds drift, snow
-/// floats down, the moon's halo pulses. All motion is deterministic
-/// (golden-ratio seeds + time), stable across frame rates, and every
-/// TimelineView dies with the layer — zero CPU anywhere else. Reduce
-/// Motion swaps each animated piece for its static twin.
+/// The sky is a procedural gradient: SolarPhase (dawn/day/dusk/night from
+/// sunrise/sunset) drives SkyPalette (Rayleigh sunset, blue hour,
+/// per-condition desaturation), recomputed every 30s so dusk cools in
+/// real time. Everything else is alive too — stars twinkle, the sun
+/// breathes with rotating rays, clouds drift, precipitation falls with
+/// per-intensity physics, the moon shows its REAL phase. All motion is
+/// deterministic (golden-ratio seeds + time), stable across frame rates,
+/// and every TimelineView dies with the layer — zero CPU anywhere else.
+/// Reduce Motion swaps each animated piece for its static twin.
 
 // MARK: - Sky (behind the content, over the notch cap)
 
@@ -24,61 +27,41 @@ struct WeatherSkyView: View {
         Group {
             switch phase {
             case .fresh(let snapshot):
-                switch snapshot.condition {
-                case .rain, .drizzle, .heavyRain, .freezingRain,
-                     .thunderstorm, .severeThunderstorm:
-                    rainWash
-                case .snow:
-                    snowWash
-                case .heavySnow:
-                    snowWash.opacity(1.6)
-                case .fog:
-                    fogWash
-                case .cloudy:
-                    ZStack {
-                        cloudVeil
-                        if reduceMotion {
-                            StaticClouds(density: 1.0)
+                ZStack {
+                    // The procedural sky: solar phase drives the palette,
+                    // the condition drives its desaturation. Sits at low
+                    // opacity so the dark panel stays the protagonist.
+                    SkyGradientView(snapshot: snapshot)
+                        .opacity(0.4)
+
+                    switch snapshot.condition {
+                    case .clear:
+                        if snapshot.isDay {
+                            if reduceMotion { StaticSunGlow() } else { SunView() }
                         } else {
-                            CloudDrift(density: 1.0)
+                            nightSky(snapshot, starDensity: 1.0)
                         }
-                    }
-                case .partlyCloudy:
-                    if snapshot.isDay {
-                        ZStack {
-                            cloudVeil.opacity(0.5)
-                            if reduceMotion {
-                                StaticClouds(density: 0.7)
-                                sunGlow
-                            } else {
-                                CloudDrift(density: 0.7)
-                                SunView().opacity(0.55)
-                            }
-                        }
-                    } else {
-                        ZStack(alignment: .topTrailing) {
-                            nightVeil
-                            StarField(density: 0.6)
-                            MoonView(pulsing: !reduceMotion)
-                        }
-                    }
-                case .clear:
-                    if snapshot.isDay {
+                    case .partlyCloudy:
                         if reduceMotion {
-                            sunGlow
+                            StaticClouds(density: 0.7)
                         } else {
-                            SunView()
+                            CloudDrift(density: 0.7)
                         }
-                    } else {
-                        ZStack(alignment: .topTrailing) {
-                            nightVeil
-                            if reduceMotion {
-                                StarDust(density: 1.0)
-                            } else {
-                                StarField(density: 1.0)
-                            }
-                            MoonView(pulsing: !reduceMotion)
+                        if snapshot.isDay {
+                            if reduceMotion { StaticSunGlow().opacity(0.5) } else { SunView().opacity(0.55) }
+                        } else {
+                            nightSky(snapshot, starDensity: 0.5)
                         }
+                    case .cloudy:
+                        if reduceMotion { StaticClouds(density: 1.0) } else { CloudDrift(density: 1.0) }
+                    case .fog:
+                        if reduceMotion { StaticFog() } else { FogDrift(density: 1.0) }
+                    case .drizzle, .rain, .heavyRain, .freezingRain:
+                        if reduceMotion { StaticClouds(density: 1.2) } else { CloudDrift(density: 1.2) }
+                    case .snow, .heavySnow:
+                        if reduceMotion { StaticClouds(density: 1.1) } else { CloudDrift(density: 1.1) }
+                    case .thunderstorm, .severeThunderstorm:
+                        StormClouds(pulsing: !reduceMotion)
                     }
                 }
             case .unavailable:
@@ -88,59 +71,54 @@ struct WeatherSkyView: View {
         .allowsHitTesting(false)
     }
 
-    /// Rain also tints the whole panel: the wet-glass wash lives in the
-    /// sky layer so the cap gets it too.
-    private var rainWash: some View {
-        Color(red: 0.45, green: 0.6, blue: 0.9).opacity(0.07)
+    /// Stars + the real-phase moon, shared by clear and partly-cloudy
+    /// nights.
+    @ViewBuilder
+    private func nightSky(_ snapshot: WeatherSnapshot, starDensity: Double) -> some View {
+        if reduceMotion {
+            StarDust(density: starDensity)
+        } else {
+            StarField(density: starDensity)
+        }
+        MoonView(phase: MoonPhase.illumination(at: Date()), pulsing: !reduceMotion)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
     }
+}
 
-    private var snowWash: some View {
-        Color.white.opacity(0.06)
+/// The procedural gradient, recomputed every 30s: as the local clock
+/// crosses the dawn/dusk windows, the palette slides from night to golden
+/// fire to day — in real time, like Apple Weather.
+private struct SkyGradientView: View {
+    let snapshot: WeatherSnapshot
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { timeline in
+            let solar = SolarPhase.at(
+                now: timeline.date,
+                sunrise: snapshot.sunrise,
+                sunset: snapshot.sunset,
+                isDay: snapshot.isDay
+            )
+            let palette = SkyPalette.make(
+                phase: solar.phase,
+                transition: solar.transition,
+                condition: snapshot.condition
+            )
+            LinearGradient(
+                colors: [
+                    Color(red: palette.top.r, green: palette.top.g, blue: palette.top.b),
+                    Color(red: palette.bottom.r, green: palette.bottom.g, blue: palette.bottom.b),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
     }
+}
 
-    /// Fog washes the whole panel into a soft grey — no hard edges left.
-    private var fogWash: some View {
-        LinearGradient(
-            colors: [
-                Color(white: 0.68).opacity(0.20),
-                Color(white: 0.60).opacity(0.12),
-                Color(white: 0.55).opacity(0.06),
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
-
-    /// A grey overcast wash falling from the top — reads as "closed sky"
-    /// against the dark panel without dimming the numbers.
-    private var cloudVeil: some View {
-        LinearGradient(
-            colors: [
-                Color(white: 0.62).opacity(0.24),
-                Color(white: 0.62).opacity(0.08),
-                .clear,
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
-
-    /// Cool blue wash for clear nights — the panel reads as "night" before
-    /// anything else.
-    private var nightVeil: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.30, green: 0.45, blue: 0.85).opacity(0.14),
-                Color(red: 0.20, green: 0.30, blue: 0.60).opacity(0.06),
-                .clear,
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    }
-
-    /// Static Reduce-Motion sun: a warm glow, no motion.
-    private var sunGlow: some View {
+/// Static Reduce-Motion sun: a warm glow, no motion.
+private struct StaticSunGlow: View {
+    var body: some View {
         RadialGradient(
             colors: [
                 Color.orange.opacity(0.16),
@@ -257,7 +235,7 @@ private struct SunView: View {
     }
 }
 
-// MARK: - Clouds (cloudy / partly cloudy)
+// MARK: - Clouds (cloudy / partly cloudy / precipitation)
 
 /// Clouds drifting sideways at their own paces — the closed sky moves.
 private struct CloudDrift: View {
@@ -321,10 +299,111 @@ private struct StaticClouds: View {
     }
 }
 
+/// Heavy dark storm clouds for thunder — loaded blocks that get lit from
+/// the inside when the lightning fires.
+private struct StormClouds: View {
+    let pulsing: Bool
+
+    var body: some View {
+        if pulsing {
+            TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                Canvas { context, size in
+                    drawClouds(context: context, size: size, flash: flashAlpha(t: t))
+                }
+            }
+        } else {
+            Canvas { context, size in
+                drawClouds(context: context, size: size, flash: 0)
+            }
+        }
+    }
+
+    /// Lightning cadence: brief double-flash every ~6s.
+    private func flashAlpha(t: Double) -> Double {
+        let cycle = t.truncatingRemainder(dividingBy: 6)
+        if cycle < 0.12 { return 0.55 }
+        if cycle > 0.18 && cycle < 0.24 { return 0.35 }
+        return 0
+    }
+
+    private func drawClouds(context: GraphicsContext, size: CGSize, flash: Double) {
+        let count = 4
+        for index in 0..<count {
+            let seed = Double(index) * 1.61803398875
+            let cloudWidth = 150.0 + seed.truncatingRemainder(dividingBy: 1) * 90
+            let x = (seed * 300.0).truncatingRemainder(dividingBy: max(size.width, 1)) - cloudWidth * 0.3
+            let y = 16.0 + seed.truncatingRemainder(dividingBy: 1) * 60
+            // Dark body, lit from inside by the flash.
+            let base = Color(white: 0.10).opacity(0.55)
+            let lit = Color(white: 0.85).opacity(flash)
+            for lobe in 0..<3 {
+                let lx = x + Double(lobe) * cloudWidth * 0.35
+                let ly = y + (lobe == 1 ? -14 : 5)
+                let w = cloudWidth * (lobe == 1 ? 0.55 : 0.42)
+                let h = w * 0.45
+                let rect = CGRect(x: lx, y: ly, width: w, height: h)
+                context.fill(Path(ellipseIn: rect), with: .color(base))
+                if flash > 0, lobe == 1 {
+                    let inner = rect.insetBy(dx: w * 0.2, dy: h * 0.25)
+                    context.fill(Path(ellipseIn: inner), with: .color(lit))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Fog
+
+/// Soft fog masses dragged close to the foreground — suspension in air.
+private struct FogDrift: View {
+    let density: Double
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+            Canvas { context, size in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let count = Int(4 * density)
+                for index in 0..<count {
+                    let seed = Double(index) * 1.61803398875
+                    let fogWidth = 200.0 + seed.truncatingRemainder(dividingBy: 1) * 120
+                    let speed = 4.0 + seed.truncatingRemainder(dividingBy: 1) * 5
+                    let span = size.width + fogWidth * 2
+                    let x = (seed * 500.0 + t * speed).truncatingRemainder(dividingBy: span) - fogWidth
+                    let y = 40.0 + seed.truncatingRemainder(dividingBy: 1) * (size.height - 60)
+                    let alpha = 0.05 + seed.truncatingRemainder(dividingBy: 1) * 0.05
+                    let rect = CGRect(x: x, y: y, width: fogWidth, height: 46)
+                    context.fill(Path(ellipseIn: rect), with: .color(Color(white: 0.72).opacity(alpha)))
+                }
+            }
+        }
+    }
+}
+
+/// Static Reduce-Motion fog: parked masses.
+private struct StaticFog: View {
+    var body: some View {
+        Canvas { context, size in
+            for index in 0..<4 {
+                let seed = Double(index) * 1.61803398875
+                let fogWidth = 200.0 + seed.truncatingRemainder(dividingBy: 1) * 120
+                let x = (seed * 500.0).truncatingRemainder(dividingBy: max(size.width + fogWidth * 2, 1)) - fogWidth
+                let y = 40.0 + seed.truncatingRemainder(dividingBy: 1) * (size.height - 60)
+                let alpha = 0.05 + seed.truncatingRemainder(dividingBy: 1) * 0.05
+                let rect = CGRect(x: x, y: y, width: fogWidth, height: 46)
+                context.fill(Path(ellipseIn: rect), with: .color(Color(white: 0.72).opacity(alpha)))
+            }
+        }
+    }
+}
+
 // MARK: - Moon (clear / partly cloudy nights)
 
-/// Crescent moon parked in the empty cap strip, halo breathing slowly.
+/// The moon as it REALLY is tonight: continuous illumination phase
+/// (synodic age) rendered with the classic two-circle terminator, halo
+/// breathing slowly.
 private struct MoonView: View {
+    let phase: Double
     let pulsing: Bool
 
     var body: some View {
@@ -338,7 +417,7 @@ private struct MoonView: View {
                             .fill(Color(red: 0.75, green: 0.85, blue: 1.0).opacity(0.10 + 0.03 * sin(t * 0.5)))
                             .frame(width: halo, height: halo)
                             .blur(radius: 16)
-                        crescent
+                        disc
                     }
                 }
             } else {
@@ -347,7 +426,7 @@ private struct MoonView: View {
                         .fill(Color(red: 0.75, green: 0.85, blue: 1.0).opacity(0.12))
                         .frame(width: 68, height: 68)
                         .blur(radius: 16)
-                    crescent
+                    disc
                 }
             }
         }
@@ -355,20 +434,29 @@ private struct MoonView: View {
         .padding(.trailing, 26)
     }
 
-    private var crescent: some View {
-        Circle()
-            .fill(Color(red: 0.94, green: 0.96, blue: 1.0).opacity(0.9))
-            .frame(width: 18, height: 18)
-            .overlay(
-                Circle()
-                    .fill(Color(red: 0.20, green: 0.26, blue: 0.45).opacity(0.45))
-                    .frame(width: 8, height: 8)
-                    .offset(x: -4, y: -3)
-            )
+    /// Full lit disc + a sky-colored circle offset by the phase: new moon
+    /// hides everything, full moon hides nothing, quarters split the disc.
+    private var disc: some View {
+        let lit = (1 - cos(2 * .pi * phase)) / 2
+        // Terminator offset: -18 (full, shadow left) … 0 (new, dark) …
+        // +18 (full, shadow right) — sign flips across the half-way point.
+        let offset = (0.5 - phase) * 2 * 18
+        let sky = Color(red: 0.06, green: 0.09, blue: 0.22)
+        return ZStack {
+            Circle()
+                .fill(Color(red: 0.94, green: 0.96, blue: 1.0).opacity(0.9 * lit + 0.08))
+                .frame(width: 18, height: 18)
+            Circle()
+                .fill(sky)
+                .frame(width: 19, height: 19)
+                .offset(x: offset)
+        }
+        .frame(width: 18, height: 18)
+        .clipShape(Circle())
     }
 }
 
-// MARK: - Particles (rain / storm / snow)
+// MARK: - Particles (precipitation)
 
 /// Canvas rain/storm/snow. Deterministic per-particle pseudo-randomness
 /// (golden-ratio seed per index) — no RNG in the render loop, so the
@@ -390,6 +478,23 @@ private struct ParticleField: View {
                 let count = Self.count(for: condition)
                 // Wind pushes particles sideways: ~1.2 px/s per km/h.
                 let windDrift = windSpeedKmh * 1.2
+
+                // Heavy rain splashes off the bottom edge: bright specks
+                // bouncing up where the drops "hit the ground".
+                if condition == .heavyRain || condition == .severeThunderstorm {
+                    for index in 0..<10 {
+                        let seed = Double(index) * 1.61803398875
+                        let bx = (seed * 131.0).truncatingRemainder(dividingBy: max(size.width, 1))
+                        let bounce = abs(sin(t * 3 + seed * 13.0))
+                        let by = size.height - 6 - bounce * 8
+                        let side = 1.6 + seed.truncatingRemainder(dividingBy: 1)
+                        let rect = CGRect(x: bx, y: by, width: side, height: side)
+                        context.fill(
+                            Path(ellipseIn: rect),
+                            with: .color(Color(red: 0.75, green: 0.83, blue: 0.98).opacity(0.16 * alphaScale * bounce))
+                        )
+                    }
+                }
 
                 for index in 0..<count {
                     let seed = Double(index) * 1.61803398875
