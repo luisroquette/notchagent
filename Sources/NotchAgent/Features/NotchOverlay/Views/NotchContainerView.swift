@@ -7,6 +7,7 @@ struct NotchContainerView: View {
     @Environment(UsageStore.self) private var store
     @Environment(WeatherStore.self) private var weather
     @Environment(PreferencesStore.self) private var preferences
+    @Environment(MascotMind.self) private var mind
 
     /// Weather ambience lives on EVERY expanded page — the compact bar
     /// stays untouched. Threshold takeovers cover the whole panel, so the
@@ -32,6 +33,20 @@ struct NotchContainerView: View {
                 panelShape
                     .fill(viewModel.isExpanded ? Theme.panel : Color.black)
                     .shadow(color: .black.opacity(viewModel.isExpanded ? 0.45 : 0.2), radius: viewModel.isExpanded ? 14 : 4, y: 4)
+
+                // Time-of-day wash: only when the weather sky is OFF — the
+                // sky already owns the ambience; the wash fills its absence.
+                if TimeTintVisibleRule.evaluate(
+                    delightEnabled: preferences.settings.delightEnabled,
+                    weatherEnabled: preferences.settings.weatherEnabled
+                ) {
+                    TimelineView(.periodic(from: .now, by: 300)) { timeline in
+                        TimeTintView(key: DelightSignals.timeTint(at: timeline.date))
+                            .clipShape(panelShape)
+                            .transition(.opacity)
+                    }
+                    .accessibilityHidden(true)
+                }
 
                 // Sky BEHIND the content: the weather fills the whole panel,
                 // top strip included — no dead zone at the top edge.
@@ -80,6 +95,13 @@ struct NotchContainerView: View {
                 }
             }
             .animation(.spring(duration: 0.38, bounce: 0.16), value: viewModel.isExpanded)
+            .onChange(of: viewModel.isExpanded) { _, expanded in
+                if expanded {
+                    mind.noteExpanded()
+                } else {
+                    mind.noteCollapsed()
+                }
+            }
 
             Spacer(minLength: 0)
         }
