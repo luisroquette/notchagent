@@ -211,16 +211,18 @@ public struct MascotFaceView: View {
 /// to a poke with displeasure, and blinks constantly. Self-contained —
 /// local state only, no engine dependency.
 ///
-/// Motion is driven by a frame-by-frame TimelineView instead of
-/// withAnimation springs: this panel window proved unreliable for
-/// implicit/spring animations, while timer-driven state (the runner game)
-/// animates fine. `PuppetMotion.pose` interpolates the keyframes purely.
+/// Motion is driven by a 60fps Task loop mutating `pose` — deliberately
+/// NOT withAnimation springs or TimelineView(.animation): this panel
+/// window proved frozen for display-link/CoreAnimation-driven updates
+/// (the runner game too), while plain state changes (the clock) render
+/// fine. `PuppetMotion.pose` interpolates the keyframes purely.
 public struct MascotPuppetView<Content: View>: View {
     private let content: Content
     private let pokeCooldown: TimeInterval = 2
 
     @State private var steps: [MotionStep] = []
     @State private var animationStart: Date?
+    @State private var pose: MotionStep = .identity
     @State private var eyeState: EyeState = .open
     @State private var isBusy = false
     @State private var lastPokeAt = Date.distantPast
@@ -232,27 +234,39 @@ public struct MascotPuppetView<Content: View>: View {
     }
 
     public var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
-            let pose = reduceMotion
-                ? MotionStep.identity
-                : PuppetMotion.pose(steps: steps, start: animationStart, now: timeline.date)
-            content
-                .scaleEffect(y: pose.scaleY, anchor: .bottom)
-                .rotationEffect(.degrees(pose.rotationDegrees))
-                .offset(y: pose.offsetY)
-                .overlay { MascotFaceView(state: eyeState) }
-        }
-        .onAppear {
-            guard !reduceMotion else { return }
-            startBlinking()
-            play(bob: BobVariant.allCases.randomElement()!)
-        }
-        .onHover { hovering in
-            guard hovering, !reduceMotion else { return }
-            let now = Date()
-            guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
-            lastPokeAt = now
-            play(poke: PokeVariant.allCases.randomElement()!)
+        content
+            .scaleEffect(y: pose.scaleY, anchor: .bottom)
+            .rotationEffect(.degrees(pose.rotationDegrees))
+            .offset(y: pose.offsetY)
+            .overlay { MascotFaceView(state: eyeState) }
+            .onAppear {
+                guard !reduceMotion else { return }
+                startFrameLoop()
+                startBlinking()
+                play(bob: BobVariant.allCases.randomElement()!)
+            }
+            .onHover { hovering in
+                guard hovering, !reduceMotion else { return }
+                let now = Date()
+                guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
+                lastPokeAt = now
+                play(poke: PokeVariant.allCases.randomElement()!)
+            }
+    }
+
+    /// The frame driver: recomputes the interpolated pose ~60×/s and
+    /// publishes it as plain state — the update path this window renders.
+    private func startFrameLoop() {
+        Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(16))
+                guard let start = animationStart, !steps.isEmpty else { continue }
+                let now = Date()
+                let next = PuppetMotion.pose(steps: steps, start: start, now: now)
+                if next != pose {
+                    pose = next
+                }
+            }
         }
     }
 
