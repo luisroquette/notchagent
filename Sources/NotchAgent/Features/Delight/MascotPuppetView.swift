@@ -586,6 +586,9 @@ public struct MascotPuppetView: View {
     /// The blink loop, so it can be cancelled when the view goes away —
     /// an uncancelled loop would keep ticking on a dead view forever.
     @State private var blinkTask: Task<Void, Never>?
+    /// The sprite, loaded once per view: the canvas redraws 30×/s and
+    /// must never touch the disk per frame.
+    @State private var loadedSprite: NSImage?
     // Interruption blend: the pose where the last gesture was cut and
     // when — the new sequence crossfades in from there instead of
     // snapping.
@@ -608,11 +611,7 @@ public struct MascotPuppetView: View {
         self.slotSize = slotSize
     }
 
-    private var spriteImage: NSImage? {
-        guard let url = Bundle.main.url(forResource: "Mascots/\(spriteName)", withExtension: "png")
-        else { return nil }
-        return NSImage(contentsOf: url)
-    }
+    private var spriteImage: NSImage? { loadedSprite }
 
     public var body: some View {
         TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
@@ -711,6 +710,10 @@ public struct MascotPuppetView: View {
             entrySamples = []
             caressSamples = []
             crushingSince = nil
+            if loadedSprite == nil,
+               let url = Bundle.main.url(forResource: "Mascots/\(spriteName)", withExtension: "png") {
+                loadedSprite = NSImage(contentsOf: url)
+            }
             guard !reduceMotion else { return }
             startBlinking()
             // The expand already published a contextual request; play it.
