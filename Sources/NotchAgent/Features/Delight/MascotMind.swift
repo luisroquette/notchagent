@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 import Observation
 
@@ -22,7 +21,6 @@ public final class MascotMind {
     private var isPanelOpen = false
     private var burnHigh = false
     private var previousMetrics: [ProviderID: GaugeMetric] = [:]
-    private let sounds = DelightSounds()
 
     init(
         settings: PreferencesStore,
@@ -150,15 +148,6 @@ public final class MascotMind {
     private func perform(_ gesture: MascotGesture) {
         guard isPanelOpen else { return }
         activeGesture = gesture
-        let eligible = DelightSounds.eligibility(
-            enabled: true,
-            reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
-            screenReader: NSWorkspace.shared.isVoiceOverEnabled
-        )
-        if eligible {
-            sounds.play(gesture)
-            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
-        }
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(1.5))
             self?.activeGesture = .none

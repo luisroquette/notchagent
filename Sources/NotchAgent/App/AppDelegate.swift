@@ -36,6 +36,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 AppEnvironment.shared.scheduler.refreshNow()
             }
         }
+        // Deterministic expand to page 0 — the hover path depends on
+        // NSTrackingArea events, which synthetic cursor moves may not emit;
+        // this flag removes that variable from manual verification. Pinned:
+        // the hover-out collapse timer would otherwise fold a panel that
+        // just force-expanded under a stationary cursor.
+        if arguments.contains("--debug-expand") {
+            DispatchQueue.main.async {
+                AppEnvironment.shared.notchViewModel.expandedPage = 0
+                AppEnvironment.shared.notchViewModel.isPinned = true
+                AppEnvironment.shared.notchViewModel.forceExpand()
+            }
+        }
         Log.app.info("application launched")
     }
 
