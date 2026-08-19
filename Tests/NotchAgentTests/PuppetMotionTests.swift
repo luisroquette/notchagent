@@ -435,4 +435,53 @@ final class PuppetMotionTests: XCTestCase {
             previous = scale
         }
     }
+
+    // MARK: Interruption blend (a mid-gesture cut reads as a glitch)
+
+    func testBlendStartsAtPreviousPose() {
+        let previous = MotionStep(scaleY: 0.9, rotationDegrees: 12, offsetY: -8, duration: 0)
+        let current = MotionStep(scaleY: 1.05, rotationDegrees: -4, offsetY: 2, duration: 0)
+        let at = PuppetMotion.blendedPose(from: previous, to: current, switchedAt: t0, now: t0)
+        XCTAssertEqual(at, previous, "the very first blend frame is exactly where the puppet was")
+    }
+
+    func testBlendConvergesToCurrentPose() {
+        let previous = MotionStep(scaleY: 0.9, rotationDegrees: 12, offsetY: -8, duration: 0)
+        let current = MotionStep(scaleY: 1.05, rotationDegrees: -4, offsetY: 2, duration: 0)
+        let after = PuppetMotion.blendedPose(from: previous, to: current, switchedAt: t0, now: t0.addingTimeInterval(0.3))
+        XCTAssertEqual(after, current, "after the blend window the new sequence owns the pose")
+    }
+
+    func testBlendMidpointInterpolatesLinearly() {
+        let previous = MotionStep(scaleY: 0.8, rotationDegrees: 10, offsetY: -10, duration: 0)
+        let current = MotionStep(scaleY: 1.0, rotationDegrees: 0, offsetY: 0, duration: 0)
+        let mid = PuppetMotion.blendedPose(from: previous, to: current, switchedAt: t0, now: t0.addingTimeInterval(0.075))
+        XCTAssertEqual(mid.scaleY, 0.9, accuracy: 0.01)
+        XCTAssertEqual(mid.rotationDegrees, 5, accuracy: 0.01)
+        XCTAssertEqual(mid.offsetY, -5, accuracy: 0.01)
+    }
+
+    func testBlendNeverOvershootsItsEndpoints() {
+        // Every field stays between the two poses across the whole blend —
+        // the crossfade is a bridge, never a bounce past either pose.
+        let previous = MotionStep(scaleY: 1.08, rotationDegrees: -12, offsetY: -14, duration: 0)
+        let current = MotionStep(scaleY: 0.9, rotationDegrees: 6, offsetY: 3, duration: 0)
+        var t = 0.0
+        while t <= 0.15 {
+            let p = PuppetMotion.blendedPose(from: previous, to: current, switchedAt: t0, now: t0.addingTimeInterval(t))
+            XCTAssertGreaterThanOrEqual(p.scaleY, min(previous.scaleY, current.scaleY) - 0.001)
+            XCTAssertLessThanOrEqual(p.scaleY, max(previous.scaleY, current.scaleY) + 0.001)
+            XCTAssertGreaterThanOrEqual(p.offsetY, min(previous.offsetY, current.offsetY) - 0.001)
+            XCTAssertLessThanOrEqual(p.offsetY, max(previous.offsetY, current.offsetY) + 0.001)
+            XCTAssertGreaterThanOrEqual(p.rotationDegrees, min(previous.rotationDegrees, current.rotationDegrees) - 0.001)
+            XCTAssertLessThanOrEqual(p.rotationDegrees, max(previous.rotationDegrees, current.rotationDegrees) + 0.001)
+            t += 0.005
+        }
+    }
+
+    func testBlendWithoutSwitchReturnsCurrentPose() {
+        let current = MotionStep(scaleY: 1.02, rotationDegrees: 3, offsetY: -4, duration: 0)
+        let p = PuppetMotion.blendedPose(from: .identity, to: current, switchedAt: nil, now: t0)
+        XCTAssertEqual(p, current, "no interruption = no blend layer")
+    }
 }

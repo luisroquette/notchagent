@@ -345,6 +345,30 @@ public enum PuppetMotion {
         return 0.35 - lift / 24 * 0.15
     }
 
+    /// Interruption blend: when a new gesture cuts an in-flight one
+    /// (a poke mid-bob, an alert mid-hop), the puppet crossfades over
+    /// `blendDuration` from where it was to where the new sequence says
+    /// it should be. A cut reads as a glitch; a bridge reads as intent.
+    /// nil `switchedAt` = no interruption happened — return `current`.
+    public static func blendedPose(
+        from previous: MotionStep,
+        to current: MotionStep,
+        switchedAt: Date?,
+        now: Date,
+        blendDuration: Double = 0.15
+    ) -> MotionStep {
+        guard let switchedAt else { return current }
+        let elapsed = now.timeIntervalSince(switchedAt)
+        guard elapsed >= 0, elapsed < blendDuration else { return current }
+        let f = elapsed / blendDuration
+        return MotionStep(
+            scaleY: previous.scaleY + (current.scaleY - previous.scaleY) * f,
+            rotationDegrees: previous.rotationDegrees + (current.rotationDegrees - previous.rotationDegrees) * f,
+            offsetY: previous.offsetY + (current.offsetY - previous.offsetY) * f,
+            duration: 0
+        )
+    }
+
     /// The eyes are DERIVED, not stored: blink always wins, a startle
     /// opens wide before settling into annoyance, drowsy contexts wear
     /// heavy lids, excited contexts open wide.
@@ -404,6 +428,14 @@ public struct MascotPuppetView: View {
     @State private var activeBob: BobVariant?
     @State private var cursorOffset: Double = 0
     @State private var pokeCursor = 0
+    // Interruption blend: the pose where the last gesture was cut and
+    // when — the new sequence crossfades in from there instead of
+    // snapping.
+    @State private var interruptedPose: MotionStep = .identity
+    @State private var switchedAt: Date?
+    // Sequence generation: stale finish tasks from an interrupted
+    // gesture must not clear the one playing now.
+    @State private var generation = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(MascotMind.self) private var mind
@@ -423,12 +455,17 @@ public struct MascotPuppetView: View {
         TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
             let pose = reduceMotion
                 ? MotionStep.identity
-                : PuppetMotion.pose(
-                    steps: steps,
-                    start: animationStart,
-                    now: timeline.date,
-                    easing: easing,
-                    durationScale: durationScale
+                : PuppetMotion.blendedPose(
+                    from: interruptedPose,
+                    to: PuppetMotion.pose(
+                        steps: steps,
+                        start: animationStart,
+                        now: timeline.date,
+                        easing: easing,
+                        durationScale: durationScale
+                    ),
+                    switchedAt: switchedAt,
+                    now: timeline.date
                 )
             Canvas { context, size in
                 // Aspect-preserving sprite rect, centered — the assets are
@@ -717,48 +754,63 @@ public struct MascotPuppetView: View {
     }
 
     private func play(bob variant: BobVariant) {
-        let sequence = PuppetMotion.staged(
+        begin(sequence: PuppetMotion.staged(
             PuppetMotion.bobSteps(variant),
             anticipation: useAnticipation,
             followThrough: useFollowThrough
-        )
-        steps = sequence
-        animationStart = Date()
-        isBusy = true
-        scheduleFinish(after: sequence, scaledBy: durationScale) {
-            self.activeContext = nil
-            self.activePoke = nil
-        }
+        ))
     }
 
     private func play(poke variant: PokeVariant) {
-        let sequence = PuppetMotion.staged(
+        begin(sequence: PuppetMotion.staged(
             PuppetMotion.pokeSteps(variant),
             anticipation: useAnticipation,
             followThrough: useFollowThrough
-        )
+        ))
+    }
+
+    /// Starts a sequence. If another gesture was in flight, captures the
+    /// pose at the cut and crossfades the new sequence in from there —
+    /// interruptions read as intent, never as a teleport.
+    private func begin(sequence: [MotionStep]) {
+        if animationStart != nil || !steps.isEmpty {
+            interruptedPose = PuppetMotion.pose(
+                steps: steps,
+                start: animationStart,
+                now: Date(),
+                easing: easing,
+                durationScale: durationScale
+            )
+            switchedAt = Date()
+        }
+        generation += 1
         steps = sequence
         animationStart = Date()
         isBusy = true
-        scheduleFinish(after: sequence, scaledBy: durationScale) {
-            self.activePoke = nil
+        scheduleFinish(after: sequence, scaledBy: durationScale, generation: generation) {
             self.activeContext = nil
+            self.activePoke = nil
         }
     }
 
     /// Releases the busy flag once the sequence's scaled duration passed —
-    /// the pose itself returns to identity purely (see `pose`).
+    /// the pose itself returns to identity purely (see `pose`). A stale
+    /// finish from an interrupted gesture must NOT clear the one playing
+    /// now: it checks its generation first.
     private func scheduleFinish(
         after sequence: [MotionStep],
         scaledBy scale: Double = 1,
+        generation: Int,
         onFinish: (() -> Void)? = nil
     ) {
         let total = sequence.reduce(0) { $0 + $1.duration } * scale
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(total))
+            guard generation == self.generation else { return }
             isBusy = false
             steps = []
             animationStart = nil
+            switchedAt = nil
             onFinish?()
         }
     }
