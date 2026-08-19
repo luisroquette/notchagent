@@ -49,6 +49,12 @@ struct WeatherHeaderView: View {
             }
             Spacer()
             if case .fresh(let snapshot) = phase {
+                // The resolved city is always visible — precision is
+                // checkable at a glance, never silently wrong.
+                Text(snapshot.city)
+                    .font(Theme.body(8.5, weight: .medium))
+                    .foregroundStyle(Theme.textFaint)
+                    .lineLimit(1)
                 Image(systemName: WeatherFormat.symbol(for: snapshot.condition))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Theme.textDim)
