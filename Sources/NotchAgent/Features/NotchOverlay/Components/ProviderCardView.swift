@@ -10,6 +10,7 @@ struct ProviderCardView: View {
     var burn: BurnRate.Projection?
 
     @Environment(UsageStore.self) private var store
+    @Environment(MascotMind.self) private var mind
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -112,8 +113,13 @@ struct ProviderCardView: View {
     private var providerGlyph: some View {
         switch provider {
         case .claudeCode:
-            ClaudeMascot(name: Self.mascotName(for: snapshot?.activeModel))
-                .frame(width: 48, height: 48)
+            MascotPuppetView(
+                gesture: mind.activeGesture,
+                enabled: store.settings.delightEnabled
+            ) {
+                ClaudeMascot(name: Self.mascotName(for: snapshot?.activeModel))
+            }
+            .frame(width: 48, height: 48)
         case .codex:
             OpenAIGlyph()
                 .frame(width: 48, height: 48)
