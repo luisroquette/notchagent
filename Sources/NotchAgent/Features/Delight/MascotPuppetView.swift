@@ -105,6 +105,35 @@ public enum PuppetMotion {
     public static func blinkInterval(rng: inout some RandomNumberGenerator) -> Double {
         Double.random(in: 2.5...5.5, using: &rng)
     }
+
+    /// The pose at `now` for a sequence started at `start` — pure keyframe
+    /// interpolation with smoothstep easing. nil start = identity. After the
+    /// last step the pose holds identity (the sequence settled).
+    public static func pose(steps: [MotionStep], start: Date?, now: Date) -> MotionStep {
+        guard let start, !steps.isEmpty else { return .identity }
+        let elapsed = now.timeIntervalSince(start)
+        guard elapsed >= 0 else { return steps[0] }
+        var accumulated: Double = 0
+        var previous = MotionStep.identity
+        for step in steps {
+            let stepEnd = accumulated + step.duration
+            if elapsed < stepEnd {
+                let f = step.duration > 0
+                    ? max(0, min(1, (elapsed - accumulated) / step.duration))
+                    : 1
+                let eased = f * f * (3 - 2 * f)
+                return MotionStep(
+                    scaleY: previous.scaleY + (step.scaleY - previous.scaleY) * eased,
+                    rotationDegrees: previous.rotationDegrees + (step.rotationDegrees - previous.rotationDegrees) * eased,
+                    offsetY: previous.offsetY + (step.offsetY - previous.offsetY) * eased,
+                    duration: 0
+                )
+            }
+            accumulated = stepEnd
+            previous = step
+        }
+        return .identity
+    }
 }
 
 /// The pixel-art face drawn OVER the sprite at the asset's real eye
@@ -180,17 +209,21 @@ public struct MascotFaceView: View {
 
 /// The living mascot: rocks when the panel opens (varied), always reacts
 /// to a poke with displeasure, and blinks constantly. Self-contained —
-/// local state only, no engine dependency, so the animation can never be
-/// silently skipped.
+/// local state only, no engine dependency.
+///
+/// Motion is driven by a frame-by-frame TimelineView instead of
+/// withAnimation springs: this panel window proved unreliable for
+/// implicit/spring animations, while timer-driven state (the runner game)
+/// animates fine. `PuppetMotion.pose` interpolates the keyframes purely.
 public struct MascotPuppetView<Content: View>: View {
     private let content: Content
     private let pokeCooldown: TimeInterval = 2
 
-    @State private var transform: MotionStep = .identity
+    @State private var steps: [MotionStep] = []
+    @State private var animationStart: Date?
     @State private var eyeState: EyeState = .open
     @State private var isBusy = false
     @State private var lastPokeAt = Date.distantPast
-    @State private var playTask: Task<Void, Never>?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -199,23 +232,28 @@ public struct MascotPuppetView<Content: View>: View {
     }
 
     public var body: some View {
-        content
-            .scaleEffect(y: transform.scaleY, anchor: .bottom)
-            .rotationEffect(.degrees(transform.rotationDegrees))
-            .offset(y: transform.offsetY)
-            .overlay { MascotFaceView(state: eyeState) }
-            .onAppear {
-                guard !reduceMotion else { return }
-                startBlinking()
-                play(bob: BobVariant.allCases.randomElement()!)
-            }
-            .onHover { hovering in
-                guard hovering, !reduceMotion else { return }
-                let now = Date()
-                guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
-                lastPokeAt = now
-                play(poke: PokeVariant.allCases.randomElement()!)
-            }
+        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
+            let pose = reduceMotion
+                ? MotionStep.identity
+                : PuppetMotion.pose(steps: steps, start: animationStart, now: timeline.date)
+            content
+                .scaleEffect(y: pose.scaleY, anchor: .bottom)
+                .rotationEffect(.degrees(pose.rotationDegrees))
+                .offset(y: pose.offsetY)
+                .overlay { MascotFaceView(state: eyeState) }
+        }
+        .onAppear {
+            guard !reduceMotion else { return }
+            startBlinking()
+            play(bob: BobVariant.allCases.randomElement()!)
+        }
+        .onHover { hovering in
+            guard hovering, !reduceMotion else { return }
+            let now = Date()
+            guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
+            lastPokeAt = now
+            play(poke: PokeVariant.allCases.randomElement()!)
+        }
     }
 
     /// "Olhos piscando sempre": an irregular blink loop that runs the
@@ -227,37 +265,41 @@ public struct MascotPuppetView<Content: View>: View {
                 let interval = PuppetMotion.blinkInterval(rng: &rng)
                 try? await Task.sleep(for: .seconds(interval))
                 guard !isBusy, !reduceMotion else { continue }
-                withAnimation(.easeInOut(duration: 0.06)) { eyeState = .closed }
+                eyeState = .closed
                 try? await Task.sleep(for: .milliseconds(130))
-                withAnimation(.easeInOut(duration: 0.08)) { eyeState = .open }
+                eyeState = .open
             }
         }
     }
 
     private func play(bob variant: BobVariant) {
-        play(steps: PuppetMotion.bobSteps(variant))
+        let sequence = PuppetMotion.bobSteps(variant)
+        steps = sequence
+        animationStart = Date()
+        isBusy = true
+        scheduleFinish(after: sequence)
     }
 
     private func play(poke variant: PokeVariant) {
+        let sequence = PuppetMotion.pokeSteps(variant)
         eyeState = .annoyed
-        play(steps: PuppetMotion.pokeSteps(variant)) {
-            withAnimation(.easeInOut(duration: 0.15)) { eyeState = .open }
+        steps = sequence
+        animationStart = Date()
+        isBusy = true
+        scheduleFinish(after: sequence) {
+            eyeState = .open
         }
     }
 
-    private func play(steps: [MotionStep], onFinish: (() -> Void)? = nil) {
-        playTask?.cancel()
-        isBusy = true
-        playTask = Task { @MainActor in
-            for step in steps {
-                guard !Task.isCancelled else { break }
-                withAnimation(.spring(duration: step.duration, bounce: 0.4)) {
-                    transform = step
-                }
-                try? await Task.sleep(for: .seconds(step.duration + 0.05))
-            }
-            guard !Task.isCancelled else { return }
+    /// Clears the sequence once its total duration has passed — the pose
+    /// holds identity from then on (the settle step handles the return).
+    private func scheduleFinish(after sequence: [MotionStep], onFinish: (() -> Void)? = nil) {
+        let total = sequence.reduce(0) { $0 + $1.duration }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(total))
             isBusy = false
+            steps = []
+            animationStart = nil
             onFinish?()
         }
     }
