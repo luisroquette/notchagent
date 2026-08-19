@@ -68,7 +68,9 @@ struct ClaudeMascot: View {
 /// The OpenAI knot logo as a white pixel glyph — extracted verbatim from the
 /// approved V7 mockup. Canvas fallback if the asset is missing.
 struct OpenAIGlyph: View {
-    var tint: Color = Color(red: 0.96, green: 0.96, blue: 0.97)
+    /// Follows the panel theme — near-white on the black panel, dark ink
+    /// on the light one. A fixed white glyph vanishes on a white card.
+    var tint: Color = Theme.textPrimary
 
     private var image: NSImage? {
         guard let url = Bundle.main.url(forResource: "Mascots/openai-glyph", withExtension: "png")
@@ -79,10 +81,15 @@ struct OpenAIGlyph: View {
     var body: some View {
         Group {
             if let image {
+                // Template rendering: the PNG's alpha IS the glyph; the
+                // tint colors it per theme. Without it the baked white
+                // pixels vanish on the light panel.
                 Image(nsImage: image)
+                    .renderingMode(.template)
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
+                    .foregroundStyle(tint)
             } else {
                 Canvas { context, size in
                     let grid: [[Int]] = [
