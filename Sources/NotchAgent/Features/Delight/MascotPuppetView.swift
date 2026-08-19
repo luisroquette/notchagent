@@ -41,11 +41,51 @@ public enum EasingProfile: String, CaseIterable, Sendable {
 }
 
 public enum PuppetMotion {
-    /// Eye centers relative to the sprite size — derived from the four
-    /// mascot assets (same face layout in all families ≈ 0.26/0.72 x,
-    /// 0.35 y). The face overlay draws on top of these points.
-    public static let eyeLeftRelative = CGPoint(x: 0.26, y: 0.35)
-    public static let eyeRightRelative = CGPoint(x: 0.72, y: 0.35)
+    /// The real eye geometry of one mascot asset, MEASURED from the
+    /// PNG pixels (dark-cluster bounding boxes, 19/08): centers and
+    /// size relative to the sprite. The face overlay uses these to
+    /// REPLACE the embedded eyes — a feature patch in body color covers
+    /// the real eye box first, then the new expression draws on it.
+    /// One eye or the other, never both.
+    public struct EyeLayout: Equatable, Sendable {
+        public let leftCenter: CGPoint
+        public let rightCenter: CGPoint
+        public let width: Double
+        public let height: Double
+
+        public init(leftCenter: CGPoint, rightCenter: CGPoint, width: Double, height: Double) {
+            self.leftCenter = leftCenter
+            self.rightCenter = rightCenter
+            self.width = width
+            self.height = height
+        }
+    }
+
+    /// Measured eye layout per family. Haiku/Fable carry small dot eyes
+    /// (~28×43px), Opus/Sonnet the big expressive ones (~45×59px).
+    public static func eyeLayout(for spriteName: String) -> EyeLayout {
+        switch spriteName {
+        case "claude-fable":
+            EyeLayout(leftCenter: CGPoint(x: 0.260, y: 0.347), rightCenter: CGPoint(x: 0.730, y: 0.347), width: 28.0 / 363.0, height: 43.0 / 255.0)
+        case "claude-haiku":
+            EyeLayout(leftCenter: CGPoint(x: 0.264, y: 0.347), rightCenter: CGPoint(x: 0.734, y: 0.347), width: 29.0 / 365.0, height: 43.0 / 255.0)
+        case "claude-opus":
+            EyeLayout(leftCenter: CGPoint(x: 0.286, y: 0.359), rightCenter: CGPoint(x: 0.712, y: 0.359), width: 45.0 / 366.0, height: 59.0 / 255.0)
+        case "claude-sonnet":
+            EyeLayout(leftCenter: CGPoint(x: 0.285, y: 0.359), rightCenter: CGPoint(x: 0.713, y: 0.359), width: 45.0 / 367.0, height: 59.0 / 255.0)
+        default:
+            EyeLayout(leftCenter: CGPoint(x: 0.274, y: 0.353), rightCenter: CGPoint(x: 0.722, y: 0.353), width: 37.0 / 365.0, height: 51.0 / 255.0)
+        }
+    }
+
+    /// The face's body color between the eyes — sampled from all four
+    /// assets (253, 110, 20). The replacement patch must match it or
+    /// the patch itself would read as a third eye.
+    public static let eyePatchColor = Color(
+        red: 253.0 / 255.0,
+        green: 110.0 / 255.0,
+        blue: 20.0 / 255.0
+    )
 
     /// Bob sequences: every variant swings the mascot like it's being
     /// rocked up and down (the wobbleFall one almost drops it), and every
@@ -1049,89 +1089,83 @@ public struct MascotPuppetView: View {
         }
     }
 
-    /// The pixel-art face at the asset's real eye positions — drawn inside
-    /// the sprite's layer so it follows every pose.
+    /// The face overlay at the asset's MEASURED eye positions, drawn
+    /// inside the sprite's layer so it follows every pose. The embedded
+    /// eyes ARE the open state — every other expression REPLACES them:
+    /// a body-color patch covers the real eye box first, then the new
+    /// feature draws in its place. One eye or the other, never both —
+    /// and the swap is a feature transition, not a second pair.
     private func drawFace(state: EyeState, context: GraphicsContext, rect: CGRect) {
-        let eyeWidth = max(2, rect.width * 0.07)
-        let eyeHeight = eyeWidth * 1.1
-        let color = Color.black.opacity(0.88)
+        guard state != .open else { return }
+        let layout = PuppetMotion.eyeLayout(for: spriteName)
+        let ink = Color.black.opacity(0.88)
 
         func point(_ rel: CGPoint) -> CGPoint {
             CGPoint(x: rect.minX + rel.x * rect.width, y: rect.minY + rel.y * rect.height)
         }
 
-        let left = point(PuppetMotion.eyeLeftRelative)
-        let right = point(PuppetMotion.eyeRightRelative)
+        let centers = [point(layout.leftCenter), point(layout.rightCenter)]
+        let eyeWidth = layout.width * rect.width
+        let eyeHeight = layout.height * rect.height
 
-        switch state {
-        case .open:
-            context.fill(
-                Path(ellipseIn: CGRect(
-                    x: left.x - eyeWidth / 2, y: left.y - eyeHeight / 2,
-                    width: eyeWidth, height: eyeHeight
-                )),
-                with: .color(color)
+        for center in centers {
+            let eyeRect = CGRect(
+                x: center.x - eyeWidth / 2,
+                y: center.y - eyeHeight / 2,
+                width: eyeWidth,
+                height: eyeHeight
             )
-            context.fill(
-                Path(ellipseIn: CGRect(
-                    x: right.x - eyeWidth / 2, y: right.y - eyeHeight / 2,
-                    width: eyeWidth, height: eyeHeight
-                )),
-                with: .color(color)
-            )
-        case .closed:
-            // Thick enough to cover the sprite's baked-in eyes.
-            let lineHeight = max(2, rect.height * 0.02)
-            context.fill(
-                Path(CGRect(
-                    x: left.x - eyeWidth * 0.7, y: left.y - lineHeight / 2,
-                    width: eyeWidth * 1.4, height: lineHeight
-                )),
-                with: .color(color)
-            )
-            context.fill(
-                Path(CGRect(
-                    x: right.x - eyeWidth * 0.7, y: right.y - lineHeight / 2,
-                    width: eyeWidth * 1.4, height: lineHeight
-                )),
-                with: .color(color)
-            )
-        case .annoyed:
-            // Slanted "unimpressed" brows: \ / over both eyes.
-            var strokes = Path()
-            for eye in [left, right] {
-                strokes.move(to: CGPoint(x: eye.x - eyeWidth * 0.8, y: eye.y + eyeHeight * 0.6))
-                strokes.addLine(to: CGPoint(x: eye.x + eyeWidth * 0.8, y: eye.y - eyeHeight * 0.6))
-            }
-            context.stroke(strokes, with: .color(color), lineWidth: max(1.5, rect.height * 0.016))
-        case .wide:
-            // Startled: the eyes blow up.
-            let w = eyeWidth * 1.5
-            let h = eyeHeight * 1.4
-            for eye in [left, right] {
+            // The replacement patch: exactly the embedded eye's box, in
+            // the face's own color — the old eye is gone, not layered.
+            context.fill(Path(eyeRect), with: .color(PuppetMotion.eyePatchColor))
+
+            switch state {
+            case .closed:
+                // A shut eye: a thick lid line across the eye box.
+                let lineHeight = max(1.5, eyeHeight * 0.1)
                 context.fill(
-                    Path(ellipseIn: CGRect(
-                        x: eye.x - w / 2, y: eye.y - h / 2,
-                        width: w, height: h
+                    Path(CGRect(
+                        x: center.x - eyeWidth * 0.55,
+                        y: center.y - lineHeight / 2,
+                        width: eyeWidth * 1.1,
+                        height: lineHeight
                     )),
-                    with: .color(color)
+                    with: .color(ink)
                 )
-            }
-        case .droopy:
-            // Heavy lids: half-height eyes with a lid band resting on top.
-            let h = eyeHeight * 0.55
-            for eye in [left, right] {
+            case .annoyed:
+                // Slanted "unimpressed" brows: \ / inside the eye box.
+                var strokes = Path()
+                strokes.move(to: CGPoint(x: center.x - eyeWidth * 0.5, y: center.y + eyeHeight * 0.45))
+                strokes.addLine(to: CGPoint(x: center.x + eyeWidth * 0.5, y: center.y - eyeHeight * 0.45))
+                context.stroke(strokes, with: .color(ink), lineWidth: max(1.5, eyeHeight * 0.1))
+            case .wide:
+                // Startled: the eye blows up past its own box.
                 context.fill(
                     Path(ellipseIn: CGRect(
-                        x: eye.x - eyeWidth / 2, y: eye.y - h / 2,
-                        width: eyeWidth, height: h
+                        x: center.x - eyeWidth * 0.55,
+                        y: center.y - eyeHeight * 0.5,
+                        width: eyeWidth * 1.1,
+                        height: eyeHeight
                     )),
-                    with: .color(color)
+                    with: .color(ink)
+                )
+            case .droopy:
+                // Heavy lids: a half-height eye with a lid band on top.
+                context.fill(
+                    Path(ellipseIn: CGRect(
+                        x: center.x - eyeWidth * 0.5,
+                        y: center.y - eyeHeight * 0.2,
+                        width: eyeWidth,
+                        height: eyeHeight * 0.55
+                    )),
+                    with: .color(ink)
                 )
                 var lid = Path()
-                lid.move(to: CGPoint(x: eye.x - eyeWidth * 0.6, y: eye.y - h * 0.6))
-                lid.addLine(to: CGPoint(x: eye.x + eyeWidth * 0.6, y: eye.y - h * 0.6))
-                context.stroke(lid, with: .color(color), lineWidth: max(1.5, rect.height * 0.016))
+                lid.move(to: CGPoint(x: center.x - eyeWidth * 0.55, y: center.y - eyeHeight * 0.3))
+                lid.addLine(to: CGPoint(x: center.x + eyeWidth * 0.55, y: center.y - eyeHeight * 0.3))
+                context.stroke(lid, with: .color(ink), lineWidth: max(1.5, eyeHeight * 0.1))
+            case .open:
+                break
             }
         }
     }

@@ -69,12 +69,55 @@ final class PuppetMotionTests: XCTestCase {
         XCTAssertGreaterThan(intervals.count, 5, "blinks must be irregular, not metronomic")
     }
 
-    func testEyePositionsMatchAssetDerivation() {
-        // Derived 19/08 from the four mascot PNGs (dark-cluster centers).
-        XCTAssertEqual(PuppetMotion.eyeLeftRelative.x, 0.26, accuracy: 0.03)
-        XCTAssertEqual(PuppetMotion.eyeRightRelative.x, 0.72, accuracy: 0.03)
-        XCTAssertEqual(PuppetMotion.eyeLeftRelative.y, 0.35, accuracy: 0.03)
-        XCTAssertEqual(PuppetMotion.eyeRightRelative.y, 0.35, accuracy: 0.03)
+    // REGRESSÃO: os centros estimados (0.26/0.72 x, 0.35 y) não batiam
+    // com os pixels reais — o overlay desenhava feições AO LADO do olho
+    // embutido do sprite, e o boneco parecia ter dois olhos por olho.
+    // A tabela agora carrega os valores MEDIDOS dos 4 assets.
+    func testEyeLayoutMatchesMeasuredAssetPixels() {
+        let fable = PuppetMotion.eyeLayout(for: "claude-fable")
+        XCTAssertEqual(fable.leftCenter.x, 0.260, accuracy: 0.005)
+        XCTAssertEqual(fable.leftCenter.y, 0.347, accuracy: 0.005)
+        XCTAssertEqual(fable.rightCenter.x, 0.730, accuracy: 0.005)
+        XCTAssertEqual(fable.width, 28.0 / 363.0, accuracy: 0.002)
+
+        let haiku = PuppetMotion.eyeLayout(for: "claude-haiku")
+        XCTAssertEqual(haiku.leftCenter.x, 0.264, accuracy: 0.005)
+        XCTAssertEqual(haiku.rightCenter.x, 0.734, accuracy: 0.005)
+        XCTAssertEqual(haiku.leftCenter.y, 0.347, accuracy: 0.005)
+
+        let opus = PuppetMotion.eyeLayout(for: "claude-opus")
+        XCTAssertEqual(opus.leftCenter.x, 0.286, accuracy: 0.005)
+        XCTAssertEqual(opus.rightCenter.x, 0.712, accuracy: 0.005)
+        XCTAssertEqual(opus.leftCenter.y, 0.359, accuracy: 0.005)
+        XCTAssertEqual(opus.height, 59.0 / 255.0, accuracy: 0.002)
+
+        let sonnet = PuppetMotion.eyeLayout(for: "claude-sonnet")
+        XCTAssertEqual(sonnet.leftCenter.x, 0.285, accuracy: 0.005)
+        XCTAssertEqual(sonnet.rightCenter.x, 0.713, accuracy: 0.005)
+        XCTAssertEqual(sonnet.height, 59.0 / 255.0, accuracy: 0.002)
+    }
+
+    func testEyeLayoutPatchCoversTheEmbeddedEye() {
+        // The replacement patch must be at least as big as the REAL eye
+        // pixels (measured): Haiku/Fable eyes are ~28px wide / 43px tall,
+        // Opus/Sonnet ~45px / 59px. Anything smaller lets the embedded
+        // eye peek around the feature — the 'two eyes' bug.
+        for name in ["claude-fable", "claude-haiku", "claude-opus", "claude-sonnet"] {
+            let layout = PuppetMotion.eyeLayout(for: name)
+            let spriteWidth = name.contains("fable") ? 363.0 : name.contains("haiku") ? 365.0 : name.contains("opus") ? 366.0 : 367.0
+            let eyePxWidth = layout.width * spriteWidth
+            let eyePxHeight = layout.height * 255.0
+            XCTAssertGreaterThanOrEqual(eyePxWidth, 27, "\(name) patch too narrow to cover the embedded eye")
+            XCTAssertGreaterThanOrEqual(eyePxHeight, 42, "\(name) patch too short to cover the embedded eye")
+        }
+    }
+
+    func testUnknownSpriteFallsBackToAverageLayout() {
+        let layout = PuppetMotion.eyeLayout(for: "claude-desconhecida")
+        XCTAssertGreaterThan(layout.width, 0)
+        XCTAssertGreaterThan(layout.height, 0)
+        XCTAssertLessThan(layout.leftCenter.x, 0.5)
+        XCTAssertGreaterThan(layout.rightCenter.x, 0.5)
     }
 
     func testSpriteRectPreservesAssetAspectInSquareSlot() {
