@@ -1,5 +1,35 @@
 # Changelog
 
+## 3.5.0 — 2026-08-19
+
+### Added
+
+- Delight engine: the Claude mascot is alive — contextual animations across
+  9 contexts (greeting, calm, tense, drowsy, playful, relief, celebration,
+  midnight, poke) with persistent round-robin variety. No randomness: every
+  animation belongs to a context.
+- Ambient presence: idle breathing, eyes blinking every 2.5–5.5s, head
+  follows the cursor, pokes always get an annoyed reaction.
+- Context depth: celebration confetti on quota reset, compound yawn with
+  "z z z" at midnight, anticipation + follow-through on most gestures,
+  squash/stretch coupled to motion.
+- The four family mascots on the Claude Models page share the same life;
+  only the active model's mascot acts out global events.
+- The runner game revives with a bounce when the quota resets.
+
+### Changed
+
+- Panel blocks are liquid glass now: translucent gradient, 1px glass edge,
+  specular rim and layered shadows — replaces the flat white cards.
+- Mascot and runner animations render through Canvas + TimelineView(.periodic):
+  view transform modifiers and display-link schedules proved inert in this
+  panel.
+
+### Fixed
+
+- The GPT glyph no longer washes out under the old specular overlay.
+- Mascot sprite keeps its native aspect ratio in the square slot.
+
 ## 3.4.2 — 2026-08-18
 
 ### Changed
