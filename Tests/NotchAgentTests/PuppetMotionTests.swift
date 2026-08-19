@@ -484,4 +484,43 @@ final class PuppetMotionTests: XCTestCase {
         let p = PuppetMotion.blendedPose(from: .identity, to: current, switchedAt: nil, now: t0)
         XCTAssertEqual(p, current, "no interruption = no blend layer")
     }
+
+    // MARK: Directed poke (the reaction knows where the finger came from)
+
+    func testPokeFromLeftLeansAwayToTheRight() {
+        // pokeSide -1 = the poke came from the LEFT; the mascot flees the
+        // finger, tilting to the RIGHT (positive = clockwise in canvas).
+        let steps = PuppetMotion.directedPokeSteps(.startleJump, pokeSide: -1)
+        XCTAssertGreaterThan(steps[0].rotationDegrees, 0, "a left poke must lean right")
+    }
+
+    func testPokeFromRightLeansAwayToTheLeft() {
+        let steps = PuppetMotion.directedPokeSteps(.startleJump, pokeSide: 1)
+        XCTAssertLessThan(steps[0].rotationDegrees, 0, "a right poke must lean left")
+    }
+
+    func testDirectedPokePreservesTheVariantBody() {
+        // The lean is an opening move only — the rest of the poke plays
+        // exactly as its undirected self.
+        for variant in PokeVariant.allCases {
+            let directed = PuppetMotion.directedPokeSteps(variant, pokeSide: -1)
+            XCTAssertEqual(Array(directed.dropFirst()), PuppetMotion.pokeSteps(variant), "\(variant.rawValue) body must survive direction")
+        }
+    }
+
+    func testDirectedPokeSettlesBackToRest() {
+        let steps = PuppetMotion.directedPokeSteps(.annoyedWiggle, pokeSide: 1)
+        XCTAssertEqual(steps.last?.scaleY, 1, "directed poke must settle to rest")
+        XCTAssertEqual(steps.last?.rotationDegrees, 0)
+        XCTAssertEqual(steps.last?.offsetY, 0)
+    }
+
+    func testPokeLeanReadsAsReactionNotFall() {
+        // The lean must stay a reaction (≤ 10°) — past that it reads as
+        // the mascot toppling over.
+        for side: Double in [-1, 1] {
+            let steps = PuppetMotion.directedPokeSteps(.shrinkSulk, pokeSide: side)
+            XCTAssertLessThanOrEqual(abs(steps[0].rotationDegrees), 10, "lean of \(steps[0].rotationDegrees)° reads as a fall")
+        }
+    }
 }

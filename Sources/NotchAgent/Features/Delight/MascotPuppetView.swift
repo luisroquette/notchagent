@@ -141,6 +141,16 @@ public enum PuppetMotion {
         }
     }
 
+    /// The poke reaction knows WHERE the finger came from: it opens with
+    /// a lean AWAY from the poke (a poke from the left — `pokeSide` -1 —
+    /// tilts the mascot right, positive rotation in canvas space), then
+    /// the variant's own body plays untouched. The lean is capped at 9° —
+    /// a reaction, never a fall.
+    public static func directedPokeSteps(_ variant: PokeVariant, pokeSide: Double) -> [MotionStep] {
+        let lean = MotionStep(rotationDegrees: -pokeSide * 9, duration: 0.1)
+        return [lean] + pokeSteps(variant)
+    }
+
     /// Always-on blinking: a blink every 2.5–5.5s, irregular on purpose.
     public static func blinkInterval(rng: inout some RandomNumberGenerator) -> Double {
         Double.random(in: 2.5...5.5, using: &rng)
@@ -428,6 +438,7 @@ public struct MascotPuppetView: View {
     @State private var activeBob: BobVariant?
     @State private var cursorOffset: Double = 0
     @State private var pokeCursor = 0
+    @State private var wasHovering = false
     // Interruption blend: the pose where the last gesture was cut and
     // when — the new sequence crossfades in from there instead of
     // snapping.
@@ -543,29 +554,39 @@ public struct MascotPuppetView: View {
         .onChange(of: mind.animationRequest) { _, request in
             play(request)
         }
-        .onHover { hovering in
-            guard hovering, !reduceMotion else { return }
-            let now = Date()
-            guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
-            lastPokeAt = now
-            // Pokes are PERSONAL: local round-robin, this mascot only.
-            var cursor = pokeCursor
-            let variant = DelightCatalog.selectPoke(cursor: &cursor)
-            pokeCursor = cursor
-            activeContext = .poke
-            activePoke = variant
-            play(poke: variant)
-        }
         .onContinuousHover { phase in
             // The head follows the cursor while it's over the mascot;
-            // leaving the slot resets the gaze.
+            // leaving the slot resets the gaze. ENTRY is where the poke
+            // lives: the first .active frame carries the position, so the
+            // reaction knows which side the finger came from.
             switch phase {
             case .active(let location):
                 cursorOffset = min(max((location.x - 32.0) / 32.0, -1), 1)
+                if !wasHovering {
+                    wasHovering = true
+                    triggerPoke(fromLeft: location.x < 32.0)
+                }
             case .ended:
+                wasHovering = false
                 cursorOffset = 0
             }
         }
+    }
+
+    /// A poke ALWAYS gets an annoyed reaction, and the reaction knows
+    /// WHERE it came from — the mascot leans away from the finger.
+    /// Personal: local round-robin, this mascot only.
+    private func triggerPoke(fromLeft: Bool) {
+        guard !reduceMotion else { return }
+        let now = Date()
+        guard now.timeIntervalSince(lastPokeAt) >= pokeCooldown else { return }
+        lastPokeAt = now
+        var cursor = pokeCursor
+        let variant = DelightCatalog.selectPoke(cursor: &cursor)
+        pokeCursor = cursor
+        activeContext = .poke
+        activePoke = variant
+        play(poke: variant, pokeSide: fromLeft ? -1 : 1)
     }
 
     /// Plays a published request: contextual bob or poke, skipping replays
@@ -761,9 +782,12 @@ public struct MascotPuppetView: View {
         ))
     }
 
-    private func play(poke variant: PokeVariant) {
+    private func play(poke variant: PokeVariant, pokeSide: Double = 0) {
+        let steps = pokeSide != 0
+            ? PuppetMotion.directedPokeSteps(variant, pokeSide: pokeSide)
+            : PuppetMotion.pokeSteps(variant)
         begin(sequence: PuppetMotion.staged(
-            PuppetMotion.pokeSteps(variant),
+            steps,
             anticipation: useAnticipation,
             followThrough: useFollowThrough
         ))
