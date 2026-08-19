@@ -45,7 +45,7 @@ struct WeatherSkyView: View {
                         if reduceMotion {
                             StaticClouds(density: 0.7)
                         } else {
-                            CloudDrift(density: 0.7)
+                            CloudDrift(density: 0.7, windKmh: snapshot.windSpeedKmh)
                         }
                         if snapshot.isDay {
                             if reduceMotion { StaticSunGlow().opacity(0.5) } else { SunView().opacity(0.55) }
@@ -53,13 +53,13 @@ struct WeatherSkyView: View {
                             nightSky(snapshot, starDensity: 0.5)
                         }
                     case .cloudy:
-                        if reduceMotion { StaticClouds(density: 1.0) } else { CloudDrift(density: 1.0) }
+                        if reduceMotion { StaticClouds(density: 1.0) } else { CloudDrift(density: 1.0, windKmh: snapshot.windSpeedKmh) }
                     case .fog:
                         if reduceMotion { StaticFog() } else { FogDrift(density: 1.0) }
                     case .drizzle, .rain, .heavyRain, .freezingRain:
-                        if reduceMotion { StaticClouds(density: 1.2) } else { CloudDrift(density: 1.2) }
+                        if reduceMotion { StaticClouds(density: 1.2) } else { CloudDrift(density: 1.2, windKmh: snapshot.windSpeedKmh) }
                     case .snow, .heavySnow:
-                        if reduceMotion { StaticClouds(density: 1.1) } else { CloudDrift(density: 1.1) }
+                        if reduceMotion { StaticClouds(density: 1.1) } else { CloudDrift(density: 1.1, windKmh: snapshot.windSpeedKmh) }
                     case .thunderstorm, .severeThunderstorm:
                         StormClouds(pulsing: !reduceMotion)
                     }
@@ -167,7 +167,7 @@ struct WeatherForegroundOverlay: View {
                             StarField(density: 0.45, alphaScale: 0.7)
                         }
                     } else {
-                        Color.clear
+                        windDust(snapshot)
                     }
                 case .partlyCloudy:
                     if !snapshot.isDay {
@@ -177,16 +177,62 @@ struct WeatherForegroundOverlay: View {
                             StarField(density: 0.3, alphaScale: 0.6)
                         }
                     } else {
-                        Color.clear
+                        windDust(snapshot)
                     }
                 case .cloudy, .fog:
-                    Color.clear
+                    windDust(snapshot)
                 }
             case .unavailable:
                 Color.clear
             }
         }
         .allowsHitTesting(false)
+    }
+
+    /// Strong wind without precipitation: dust streaks racing across —
+    /// the air itself becomes visible. Only above 25 km/h.
+    @ViewBuilder
+    private func windDust(_ snapshot: WeatherSnapshot) -> some View {
+        if snapshot.windSpeedKmh > 25 {
+            if reduceMotion {
+                Color.clear
+            } else {
+                DustDrift(intensity: min(1.2, snapshot.windSpeedKmh / 40))
+            }
+        } else {
+            Color.clear
+        }
+    }
+}
+
+/// Horizontal dust streaks for windy dry conditions — fast, thin, faint.
+private struct DustDrift: View {
+    let intensity: Double
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
+            Canvas { context, size in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let count = Int(14 * intensity)
+                for index in 0..<count {
+                    let seed = Double(index) * 1.61803398875
+                    let speed = 180.0 + seed.truncatingRemainder(dividingBy: 1) * 120
+                    let span = size.width + 160
+                    let x = (seed * 260.0 + t * speed).truncatingRemainder(dividingBy: span) - 80
+                    let y = (seed * 331.0).truncatingRemainder(dividingBy: max(size.height, 1))
+                    let length = 26.0 + seed.truncatingRemainder(dividingBy: 1) * 34
+                    let alpha = (0.05 + seed.truncatingRemainder(dividingBy: 1) * 0.05) * intensity
+                    var path = Path()
+                    path.move(to: CGPoint(x: x, y: y))
+                    path.addLine(to: CGPoint(x: x + length, y: y + 2))
+                    context.stroke(
+                        path,
+                        with: .color(Color(red: 0.72, green: 0.68, blue: 0.60).opacity(alpha)),
+                        style: StrokeStyle(lineWidth: 1.1, lineCap: .round)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -230,6 +276,27 @@ private struct SunView: View {
                         style: StrokeStyle(lineWidth: 3, lineCap: .round)
                     )
                 }
+
+                // Lens flare: tiny ghost rings receding along the light
+                // axis, drifting gently — the camera-glass refraction the
+                // Apple renderer adds over every bright sun.
+                let flareSway = sin(t * 0.35) * 2.5
+                for ring in 0..<4 {
+                    let distance = 26.0 + Double(ring) * 26.0
+                    let radius = 5.0 + Double(ring) * 2.2
+                    let alpha = 0.11 - Double(ring) * 0.022
+                    let rect = CGRect(
+                        x: cx - distance - radius,
+                        y: cy - radius + flareSway,
+                        width: radius * 2,
+                        height: radius * 2
+                    )
+                    context.stroke(
+                        Path(ellipseIn: rect),
+                        with: .color(Color(red: 1.0, green: 0.85, blue: 0.6).opacity(max(0.02, alpha))),
+                        style: StrokeStyle(lineWidth: 0.8)
+                    )
+                }
             }
         }
     }
@@ -240,6 +307,7 @@ private struct SunView: View {
 /// Clouds drifting sideways at their own paces — the closed sky moves.
 private struct CloudDrift: View {
     let density: Double
+    var windKmh: Double = 0
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { timeline in
@@ -249,7 +317,9 @@ private struct CloudDrift: View {
                 for index in 0..<count {
                     let seed = Double(index) * 1.61803398875
                     let cloudWidth = 120.0 + seed.truncatingRemainder(dividingBy: 1) * 80
-                    let speed = 6.0 + seed.truncatingRemainder(dividingBy: 1) * 8
+                    // Wind pushes the sky: ~5% faster per km/h over 20.
+                    let baseSpeed = 6.0 + seed.truncatingRemainder(dividingBy: 1) * 8
+                    let speed = baseSpeed * (1 + max(0, windKmh - 20) / 20 * 0.5)
                     let span = size.width + cloudWidth * 2
                     let x = (seed * 400.0 + t * speed).truncatingRemainder(dividingBy: span) - cloudWidth
                     let y = 26.0 + seed.truncatingRemainder(dividingBy: 1) * 90
