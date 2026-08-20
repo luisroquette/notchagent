@@ -91,9 +91,10 @@ and move `NotchAgent.app` to `/Applications`:
 open /Applications/NotchAgent.app
 ```
 
-The 3.5.1 ZIP is signed with a local Apple Development identity (not
-notarized). On first open, Gatekeeper may warn — right-click the app in
-Finder and choose **Open**.
+The 3.5.1 ZIP is signed with **Developer ID and notarized by Apple**
+(stapled ticket, Gatekeeper verifies it as `Notarized Developer ID`). Its
+published SHA-256 is
+`f60db27add72be1da02c7ce74f691c7decf5c62457c1c609ee24c9a1be3c0e36`.
 
 **Or build from source** (Xcode 15+ / Swift 6 toolchain):
 
