@@ -1,4 +1,14 @@
 #!/bin/zsh
 set -euo pipefail
 root=$(git rev-parse --show-toplevel)
-exec "$root/Scripts/audit-public-release.sh"
+
+echo "[pre-push] audit-public-release..."
+"$root/Scripts/audit-public-release.sh"
+
+echo "[pre-push] swift test..."
+(cd "$root" && swift test) > /tmp/notchagent-pre-push.log 2>&1 || {
+    tail -20 /tmp/notchagent-pre-push.log
+    echo "[pre-push] BLOQUEADO: testes falharam. Push cancelado."
+    exit 1
+}
+echo "[pre-push] OK"
