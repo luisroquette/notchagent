@@ -48,12 +48,14 @@ final class ExhaustedWeeklyBeatsEstimatedSessionTests: XCTestCase {
         XCTAssertFalse(metric?.isWeekly ?? true)
     }
 
-    func testOfficialSessionStillBeatsExhaustedWeekly() {
-        // Claude: percent oficial da janela de 5h tem precedência — o weekly
-        // exausto aparece como bloco secundário, não rouba o headline.
+    func testExhaustedWeeklyBeatsOfficialSessionToo() {
+        // Contrato revisto 19/08/2026 (pedido explícito do dono): a janela de
+        // 5h é SUBORDINADA à semanal. Sessão OFICIAL com folga + semanal
+        // exausto → o semanal vira o headline. Nunca mais "100% left" verde
+        // com o semanal a 0%. Ver ExhaustedWeeklyBeatsOfficialSessionTests.
         let metric = GaugeMetric.from(snapshot(sessionPercent: 50, sessionFromQuota: true, weeklyPercent: 100))
-        XCTAssertEqual(metric?.used, 50)
-        XCTAssertFalse(metric?.isWeekly ?? true)
+        XCTAssertEqual(metric?.used, 100)
+        XCTAssertTrue(metric?.isWeekly ?? false)
     }
 
     func testLegacyNilFromQuotaFieldTreatedAsEstimate() {

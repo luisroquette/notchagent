@@ -1004,8 +1004,19 @@ struct NotchExpandedView: View {
         let window = BurnRate.window(startedAt: session?.startedAt, resetsAt: session?.resetsAt)
         let samples = store.percentHistory[provider] ?? []
         let projection = store.burnProjection(for: provider)
-        let used = session?.usedPercent
-        let verdict = burnVerdict(projection: projection, hasSamples: !samples.isEmpty)
+        // Same gauge as the wings: when the weekly cap is exhausted, the
+        // session's "100% left" headline is a lie — the 5h window resets
+        // into a still-blocked account (REGRESSÃO 19/08/2026: the burn page
+        // contradicted the runner's GAME OVER on the same screen).
+        let metric = GaugeMetric.from(snapshot)
+        let weeklyBlocked = metric?.isWeekly == true && (metric?.used ?? 0) >= GaugeMetric.exhaustionThreshold
+        let weeklyReset = snapshot?.weekly?.resetsAt
+        let used = weeklyBlocked ? metric?.used : session?.usedPercent
+        let verdict = Self.burnVerdict(
+            projection: projection,
+            hasSamples: !samples.isEmpty,
+            weeklyExhausted: weeklyBlocked
+        )
         let dominantModel = session?.usedPercentIsFromQuota == true
             ? session?.modelTokens.flatMap { ModelProjection.dominantModel(modelTokens: $0) }
             : nil
@@ -1023,17 +1034,23 @@ struct NotchExpandedView: View {
                     }
                     if let used {
                         HStack(alignment: .firstTextBaseline, spacing: 5) {
-                            Text("\(snapshot.map(ProviderCardView.sessionPercentPrefix) ?? "")\(Int((100 - used).rounded()))%")
+                            Text("\(weeklyBlocked ? "" : (snapshot.map(ProviderCardView.sessionPercentPrefix) ?? ""))\(Int((100 - used).rounded()))%")
                                 .font(Theme.numeral(24))
                                 .monospacedDigit()
                                 .foregroundStyle(Theme.riskTint(
                                     used: used,
-                                    projectedToRunOut: projection?.exhaustsAt != nil,
+                                    projectedToRunOut: !weeklyBlocked && projection?.exhaustsAt != nil,
                                     warningAt: store.settings.warningThresholdPercent,
                                     criticalAt: store.settings.criticalThresholdPercent
                                 ))
                             GaugeLabel(text: "LEFT", color: Theme.textDim, size: 8)
-                            if let resets = session?.resetsAt {
+                            if weeklyBlocked, let resets = weeklyReset {
+                                GaugeLabel(
+                                    text: "· WEEKLY CAP RESETS \(Format.time(resets)) · IN \(Format.countdown(to: resets))",
+                                    color: Theme.textFaint,
+                                    size: 8
+                                )
+                            } else if let resets = session?.resetsAt {
                                 GaugeLabel(
                                     text: "· RESETS \(Format.time(resets)) · IN \(Format.countdown(to: resets))",
                                     color: Theme.textFaint,
@@ -1085,10 +1102,14 @@ struct NotchExpandedView: View {
         }
     }
 
-    private func burnVerdict(
+    static func burnVerdict(
         projection: BurnRate.Projection?,
-        hasSamples: Bool
+        hasSamples: Bool,
+        weeklyExhausted: Bool = false
     ) -> (text: String, color: Color) {
+        if weeklyExhausted {
+            return ("Weekly limit exhausted — the 5h window cannot burn.", Theme.danger)
+        }
         if let text = BurnRate.verdict(projection) {
             return (text, projection?.exhaustsAt != nil ? Theme.warning : Theme.caution)
         }

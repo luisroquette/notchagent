@@ -243,16 +243,19 @@ public struct GaugeMetric: Sendable, Equatable {
             let isWeekly = snapshot?.session?.usedPercent == nil && snapshot?.weekly?.usedPercent != nil
             return GaugeMetric(used: 100, isWeekly: isWeekly)
         }
+        // The weekly cap is the ceiling of the session window: once it's
+        // exhausted, a just-reset 5h window still resets into a blocked
+        // account. REGRESSÃO 19/08/2026: this check used to apply only to
+        // budget-ESTIMATED session percents — an OFFICIAL (quota-backed)
+        // session percent masked the exhausted weekly and repainted the
+        // wings/runner as "full tank" on every 5h reset. Exhausted weekly
+        // always wins; the session only headlines while the weekly has
+        // headroom.
+        let weeklyExhausted = (snapshot?.weekly?.usedPercent ?? 0) >= exhaustionThreshold
+        if weeklyExhausted {
+            return GaugeMetric(used: 100, isWeekly: true)
+        }
         if let percent = snapshot?.session?.usedPercent {
-            // A budget-estimated session percent (nil/false on
-            // usedPercentIsFromQuota) must never mask an exhausted official
-            // weekly cap: "0% OF WEEKLY LIMIT LEFT" blocks every model,
-            // whatever the local 5B-token budget estimate says.
-            let sessionIsEstimated = snapshot?.session?.usedPercentIsFromQuota != true
-            let weeklyExhausted = (snapshot?.weekly?.usedPercent ?? 0) >= exhaustionThreshold
-            if sessionIsEstimated && weeklyExhausted {
-                return GaugeMetric(used: 100, isWeekly: true)
-            }
             return GaugeMetric(used: percent, isWeekly: false)
         }
         if let percent = snapshot?.weekly?.usedPercent {
