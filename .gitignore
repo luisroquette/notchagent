@@ -27,3 +27,6 @@ firmware/notchagent_desk/build/
 # Local tool-installed hooks (graphify etc.) bake in machine-specific
 # absolute paths — never meant to be tracked or scanned for public release.
 /.githooks/
+
+# Planos de trabalho de sessões (podem conter caminhos/nomes locais — nunca publicados)
+docs/superpowers/
