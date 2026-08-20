@@ -16,6 +16,22 @@ jq -e '.pins[] | select(.identity == "sparkle") | .state.version == "2.9.4"' \
     exit 1
 }
 
+# The live appcast must announce the version in VERSION. If it diverges,
+# every installed app is frozen on an old release and updates are dead.
+live_feed=$(curl -fsSL --max-time 15 \
+    'https://raw.githubusercontent.com/luisroquette/notchagent/master/appcast.xml' \
+    2>/dev/null || echo '')
+feed_version=$(printf '%s' "$live_feed" | grep -oE '<sparkle:shortVersionString>[^<]+' \
+    | head -1 | sed 's/.*>//')
+[[ -n "$feed_version" ]] || {
+    echo "FAIL: live appcast unreachable — cannot verify the update channel." >&2
+    exit 1
+}
+[[ "$feed_version" == "$(cat VERSION)" ]] || {
+    echo "FAIL: live appcast announces $feed_version but VERSION is $(cat VERSION). Installed apps are frozen." >&2
+    exit 1
+}
+
 plutil -lint Resources/DeskFirmwareEsptool.entitlements.plist >/dev/null
 rg -q 'com\.apple\.security\.cs\.disable-library-validation' \
     Resources/DeskFirmwareEsptool.entitlements.plist || {
@@ -85,4 +101,4 @@ otool -l "$executable" | grep -q '@executable_path/../Frameworks' || {
     exit 1
 }
 
-echo "PASS: Sparkle pin, fail-closed release configuration, embedded framework, signature, rpath, and automatic-update plist validated."
+echo "PASS: Sparkle pin, live appcast == VERSION, fail-closed release configuration, embedded framework, signature, rpath, and automatic-update plist validated."
