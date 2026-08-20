@@ -256,14 +256,14 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 
 - Notch geometry is inferred (`safeAreaInsets` + auxiliary areas) — there's no official API; a fallback pill covers Apple changes.
 - Costs are estimates from a public table; subscription plans don't bill per token.
-- The public 3.1.2 build is a notarized Beta 1. Stable promotion remains gated by the complete 24-hour physical soak and pilot evidence.
+- The 3.5.1 ZIP and DMG are Developer ID signed and notarized. The Desk hardware gates (24-hour physical soak, pilot evidence) apply to the Desk product, not the app distribution.
 - Local source builds are not the notarized release; they use the first available Apple Development identity unless `NOTCHAGENT_SIGN_IDENTITY` selects another identity.
 - `Limited` on the MODELS page reflects the account's unified rate limit at probe time, not the model itself being unavailable.
 
 ## Distribution status
 
-- [x] NotchAgent 3.1.2 · Desk Beta 1 · automated test suite
-- [x] Public prerelease [v3.1.2](https://github.com/luisroquette/notchagent/releases/tag/v3.1.2)
+- [x] NotchAgent 3.5.1 · notarized ZIP + DMG · automated test suite
+- [x] Public release [v3.5.1](https://github.com/luisroquette/notchagent/releases/tag/v3.5.1)
 - [x] Homebrew Cask install
 - [x] Packaged `.app` with icon + launch-at-login + notifications
 - [x] Developer ID signature + notarization + stapled ticket

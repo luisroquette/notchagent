@@ -11,6 +11,10 @@ version — and the bundle version tracks the build number again.
 - Desk wire protocol declared 1.3 (additive `currentHour` /
   `currentHourElapsedFraction` snapshot fields; pairs with Desk firmware
   0.8.0, and stays compatible with 1.2 hosts and firmware).
+- Distribution: ZIP and DMG are now signed with **Developer ID** and
+  **notarized by Apple** (stapled ticket; Gatekeeper reports
+  `Notarized Developer ID`). Sparkle appcast announces 3.5.1, Homebrew
+  Cask updated, /Applications install refreshed.
 
 ### Fixed
 
