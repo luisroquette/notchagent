@@ -45,18 +45,44 @@ final class WeatherFormatTests: XCTestCase {
         }
     }
 
-    func testSymbolPerCondition() {
-        XCTAssertEqual(WeatherFormat.symbol(for: .clear), "sun.max.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .partlyCloudy), "cloud.sun.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .cloudy), "cloud.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .fog), "cloud.fog.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .drizzle), "cloud.drizzle.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .rain), "cloud.rain.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .heavyRain), "cloud.heavyrain.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .freezingRain), "cloud.sleet.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .snow), "cloud.snow.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .heavySnow), "snowflake")
-        XCTAssertEqual(WeatherFormat.symbol(for: .thunderstorm), "cloud.bolt.rain.fill")
-        XCTAssertEqual(WeatherFormat.symbol(for: .severeThunderstorm), "cloud.bolt.fill")
+    // REFACTOR 19/08/2026: SF Symbols replaced by procedural 8-bit grids
+    // (WeatherPixelArt) — every condition, day AND night, must render.
+    func testPixelArtCoversEveryCondition() {
+        for condition in WeatherCondition.allCases {
+            for isDay in [true, false] {
+                let grid = WeatherPixelArt.grid(for: condition, isDay: isDay)
+                XCTAssertEqual(grid.count, 8, "\(condition) \(isDay) must be an 8-row grid")
+                XCTAssertTrue(grid.allSatisfy { $0.count == 8 }, "\(condition) \(isDay) rows must be 8 wide")
+                XCTAssertTrue(
+                    grid.contains { row in row.contains(1) },
+                    "\(condition) \(isDay) must draw at least one pixel"
+                )
+            }
+        }
+    }
+
+    func testPixelArtDayNightDifferForSunAndCloud() {
+        XCTAssertNotEqual(
+            WeatherPixelArt.grid(for: .clear, isDay: true),
+            WeatherPixelArt.grid(for: .clear, isDay: false),
+            "clear sky shows a sun by day and a moon by night"
+        )
+        XCTAssertNotEqual(
+            WeatherPixelArt.grid(for: .partlyCloudy, isDay: true),
+            WeatherPixelArt.grid(for: .partlyCloudy, isDay: false),
+            "partly cloudy keeps the day/night distinction"
+        )
+    }
+
+    func testPixelArtConditionsAreDistinct() {
+        // Every condition must be visually distinguishable — a collapsed
+        // glyph (two conditions sharing one grid) fails here.
+        var seen: Set<String> = []
+        for condition in WeatherCondition.allCases {
+            let key = WeatherPixelArt.grid(for: condition, isDay: true)
+                .map { row in row.map(String.init).joined() }
+                .joined(separator: "/")
+            XCTAssertTrue(seen.insert(key).inserted, "\(condition) shares its glyph with another condition")
+        }
     }
 }

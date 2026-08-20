@@ -5,18 +5,8 @@ import SwiftUI
 struct NotchContainerView: View {
     @Environment(NotchViewModel.self) private var viewModel
     @Environment(UsageStore.self) private var store
-    @Environment(WeatherStore.self) private var weather
     @Environment(PreferencesStore.self) private var preferences
     @Environment(MascotMind.self) private var mind
-
-    /// Weather ambience lives on EVERY expanded page — the compact bar
-    /// stays untouched. Threshold takeovers cover the whole panel, so the
-    /// animations go silent behind them instead of burning frames.
-    private var ambienceActive: Bool {
-        viewModel.isExpanded
-            && !viewModel.isAlertPresented
-            && preferences.settings.weatherEnabled
-    }
 
     private var panelShape: NotchShape {
         NotchShape(
@@ -34,8 +24,9 @@ struct NotchContainerView: View {
                     .fill(viewModel.isExpanded ? Theme.panel : Color.black)
                     .shadow(color: .black.opacity(viewModel.isExpanded ? 0.45 : 0.2), radius: viewModel.isExpanded ? 14 : 4, y: 4)
 
-                // Time-of-day wash: only when the weather sky is OFF — the
-                // sky already owns the ambience; the wash fills its absence.
+                // Time-of-day wash: only when weather is OFF — with weather
+                // on, the panel stays the uniform dark plate (minimal strip
+                // at the top, no full-panel ambience).
                 if TimeTintVisibleRule.evaluate(
                     delightEnabled: preferences.settings.delightEnabled,
                     weatherEnabled: preferences.settings.weatherEnabled
@@ -48,40 +39,12 @@ struct NotchContainerView: View {
                     .accessibilityHidden(true)
                 }
 
-                // Sky BEHIND the content: the weather fills the whole panel,
-                // top strip included — no dead zone at the top edge.
-                if ambienceActive {
-                    WeatherSkyView(phase: weather.phase)
-                        .clipShape(panelShape)
-                        .accessibilityHidden(true)
-                        .transition(.opacity)
-                }
-
-                // A soft dark halo hugs the physical camera housing — the
-                // translucent cap lets the sky show THROUGH it, so the
-                // weather reaches the screen's top edge instead of being
-                // cut by a hard black band.
-                if viewModel.isExpanded, viewModel.geometry.hasNotch {
-                    NotchShape(bottomRadius: 10)
-                        .fill(Color.black.opacity(0.55))
-                        .blur(radius: 3)
-                        .frame(
-                            width: viewModel.geometry.notchWidth + 28,
-                            height: viewModel.geometry.topInset
-                        )
-                }
-
+                // REFACTOR 19/08/2026: the full-panel weather sky and
+                // precipitation layers lived here (bright blue gradient +
+                // large sun behind every card). Weather is now a minimal
+                // 8-bit strip at the TOP of the panel (WeatherHeaderView) —
+                // the panel background stays the uniform dark plate.
                 content
-
-                // Precipitation ABOVE everything — rain falls ON the cards
-                // and mascots, like the iOS lock screen. Hit-testing is off,
-                // so the layer is pure visual.
-                if ambienceActive {
-                    WeatherForegroundOverlay(phase: weather.phase)
-                        .clipShape(panelShape)
-                        .accessibilityHidden(true)
-                        .transition(.opacity)
-                }
             }
             .frame(width: viewModel.currentSize.width, height: viewModel.currentSize.height)
             .onHover { hovering in
