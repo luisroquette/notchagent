@@ -3,7 +3,7 @@ import Foundation
 enum NotchAgentDeskProtocol {
     static let product = "NotchAgent Desk"
     static let protocolMajor: UInt8 = 1
-    static let protocolMinor: UInt8 = 2
+    static let protocolMinor: UInt8 = 3
     static let maximumPayloadBytes = 16 * 1_024
 
     enum FrameType: UInt8, Codable, Sendable {
