@@ -5,11 +5,11 @@
 > **This is the desktop software repository.** The physical ESP32-S3 product,
 > firmware, USB protocol, compatibility matrix, and factory contracts now live
 > in [`luisroquette/notchagent-desk`](https://github.com/luisroquette/notchagent-desk).
-> Product pages: [NotchAgent app](https://cfgauss.com.br/shop/notchagent) ·
+> Product pages: [NotchAgent app](https://notchagent.app) ·
 > [NotchAgent Desk](https://cfgauss.com.br/shop/notchagent-desk).
 
 <p align="center">
-  <a href="https://luisroquette.github.io/notchagent/"><img src="https://img.shields.io/badge/website-live-FF654F?style=flat-square" alt="NotchAgent website" /></a>
+  <a href="https://notchagent.app"><img src="https://img.shields.io/badge/website-live-FF654F?style=flat-square" alt="NotchAgent website" /></a>
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.5.1-38D6C7?style=flat-square" alt="Version v3.5.1" /></a>
   <a href="#install"><img src="https://img.shields.io/badge/install-notarized%20DMG-F3B85A?style=flat-square" alt="Install the notarized DMG" /></a>
@@ -63,6 +63,8 @@ and [compatibility matrix](https://github.com/luisroquette/notchagent-desk/blob/
 ![Low-fuel alert: an escalating takeover fires at 25/15/10/5% left, in light theme here](docs/img/alert-almost-empty.png)
 
 ## Install
+
+**Download page: [notchagent.app](https://notchagent.app)** — free, open source, one click.
 
 **Notarized DMG** (recommended, no Terminal):
 
@@ -276,8 +278,8 @@ Commercial release builds use `NOTCHAGENT_UPDATE_FEED_URL` and
 `Scripts/generate-update-appcast.sh` creates the signed appcast locally; it does
 not upload or publish files. Keep Sparkle's private EdDSA key in the macOS
 Keychain.
-- [x] Product site on [GitHub Pages](https://luisroquette.github.io/notchagent/)
-- [ ] Licensing (Paddle/Lemon Squeezy) — business decision
+- [x] Product site on [notchagent.app](https://notchagent.app)
+- [x] Free and open source — no licensing planned
 
 ## Observability
 
