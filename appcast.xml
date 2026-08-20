@@ -3,13 +3,13 @@
     <channel>
         <title>NotchAgent</title>
         <item>
-            <title>3.1.2</title>
-            <pubDate>Fri, 14 Aug 2026 21:10:51 -0300</pubDate>
-            <sparkle:version>5</sparkle:version>
-            <sparkle:shortVersionString>3.1.2</sparkle:shortVersionString>
+            <title>3.5.1</title>
+            <pubDate>Thu, 20 Aug 2026 11:08:06 -0300</pubDate>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>3.5.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/luisroquette/notchagent/releases/download/v3.1.2/NotchAgent-Desk-Beta1-3.1.2.zip" length="15078703" type="application/octet-stream" sparkle:edSignature="LC8BiXmf1BeyPVyle10EzABPzU0yRO8D52RhQ6NxRhgoFBBxoliC4iKjssCIoDcyLROeBsqSo6OQY+x+cSnkAQ=="/>
+            <enclosure url="https://github.com/luisroquette/notchagent/releases/download/v3.5.1/NotchAgent-3.5.1.zip" length="17964858" type="application/octet-stream" sparkle:edSignature="deVfmeK3ZxGL2KUvo18N/zgBNlK9wUhzB29YZlhE1qzbbbPY1cBBJsZx6CajvKAkVBJ6ucCkbKTLXXX4K/G1CA=="/>
         </item>
     </channel>
 </rss>
