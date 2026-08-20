@@ -80,4 +80,32 @@ final class QuotaHierarchyContractTests: XCTestCase {
         let game = source.components(separatedBy: "var runnerGame").last ?? ""
         XCTAssertTrue(game.contains("GaugeMetric.from(snapshot)"), "o runner deve derivar do gauge compartilhado")
     }
+
+    /// 4. LAYOUT INVARIÁVEL da página Now (20/08/2026): o card de Claude E
+    /// o de Codex mostram SEMPRE o bloco da sessão 5h ACIMA do bloco da
+    /// janela semanal — nunca um substitui o outro, nunca um some. O layout
+    /// adaptativo antigo (uma janela por vez, headline trocando conforme o
+    /// gauge) é proibido no fonte.
+    func testProviderCardRendersSessionAboveWeeklyUnconditionally() {
+        let source = source("Sources/NotchAgent/Features/NotchOverlay/Components/ProviderCardView.swift")
+        let metrics = source.components(separatedBy: "private func metrics").last ?? ""
+
+        let sessionCall = metrics.range(of: "sessionWindowBlock(snapshot)")?.lowerBound
+        let weeklyCall = metrics.range(of: "weeklyWindowBlock(snapshot)")?.lowerBound
+        XCTAssertNotNil(sessionCall, "metrics deve chamar sessionWindowBlock")
+        XCTAssertNotNil(weeklyCall, "metrics deve chamar weeklyWindowBlock")
+        XCTAssertLessThan(sessionCall!, weeklyCall!, "a sessão 5h SEMPRE acima da janela semanal")
+        XCTAssertFalse(
+            source.contains("sessionPrimaryLayout"),
+            "layout adaptativo de tokens proibido — o bloco de cima é sempre a sessão"
+        )
+        XCTAssertFalse(
+            source.contains("weeklyOverridesHeadline"),
+            "override de headline proibido — as duas janelas coexistem sempre"
+        )
+        XCTAssertFalse(
+            source.contains("if metric.isWeekly, metric.remaining > 0"),
+            "nenhuma condição pode trocar qual janela aparece no card"
+        )
+    }
 }

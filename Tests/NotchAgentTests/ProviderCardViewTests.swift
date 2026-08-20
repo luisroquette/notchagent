@@ -1,94 +1,20 @@
 import XCTest
 @testable import NotchAgent
 
+/// LAYOUT INVARIÁVEL (20/08/2026): o card da página Now mostra SEMPRE dois
+/// blocos fixos — sessão 5h acima, janela semanal abaixo — para Claude E
+/// Codex. Os helpers adaptativos antigos (secondaryScope,
+/// sessionPrimaryLayout, weeklyOverridesHeadline) foram removidos junto com
+/// o layout que os usava; o guard estrutural
+/// QuotaHierarchyContractTests exige a ordem física dos blocos no fonte.
 final class ProviderCardViewTests: XCTestCase {
-    private func snapshot(session: Double?, weekly: Double?, weeklyResets: Date? = nil) -> UsageSnapshot {
-        UsageSnapshot(
-            provider: .claudeCode,
-            health: .ok,
-            session: session.map { SessionUsage(resetsAt: Date(), usedPercent: $0) },
-            weekly: weekly.map { WeeklyUsage(usedPercent: $0, resetsAt: weeklyResets) }
-        )
-    }
-
-    func testSecondaryScopeReturnsWeeklyWhenBothScopesPresent() {
-        let reset = Date(timeIntervalSince1970: 1_700_000_000)
-        let scope = ProviderCardView.secondaryScope(snapshot(session: 10, weekly: 55, weeklyResets: reset))
-        XCTAssertEqual(scope?.usedPercent, 55)
-        XCTAssertEqual(scope?.resetsAt, reset)
-    }
-
-    func testSecondaryScopeNilWhenOnlySession() {
-        XCTAssertNil(ProviderCardView.secondaryScope(snapshot(session: 10, weekly: nil)))
-    }
-
-    func testSecondaryScopeNilWhenOnlyWeekly() {
-        // Headline já É o weekly nesse caso — não duplicar.
-        XCTAssertNil(ProviderCardView.secondaryScope(snapshot(session: nil, weekly: 55)))
-    }
-
-    func testSecondaryScopeNilWhenNeither() {
-        XCTAssertNil(ProviderCardView.secondaryScope(snapshot(session: nil, weekly: nil)))
-    }
-
-    func testSecondaryScopeNilWhenWeeklyHasNoPercent() {
-        // Weekly com só tokens (sem percent oficial) não pode fabricar número.
-        let snap = UsageSnapshot(
-            provider: .claudeCode,
-            health: .ok,
-            session: SessionUsage(resetsAt: Date(), usedPercent: 10),
-            weekly: WeeklyUsage(usedPercent: nil, resetsAt: Date())
-        )
-        XCTAssertNil(ProviderCardView.secondaryScope(snap))
-    }
-}
-
-// MARK: - Session-primary layout (weekly-only plans, e.g. Codex Pro)
-
-extension ProviderCardViewTests {
-    private func weeklyOnlySnapshot(sessionTokens: TokenUsage, sessionPercent: Double? = nil) -> UsageSnapshot {
-        UsageSnapshot(
-            provider: .codex,
-            health: .ok,
-            session: SessionUsage(
-                tokens: sessionTokens,
-                startedAt: Date(timeIntervalSince1970: 1_700_000_100),
-                usedPercent: sessionPercent
-            ),
-            weekly: WeeklyUsage(usedPercent: 55, resetsAt: Date(timeIntervalSince1970: 1_700_000_000))
-        )
-    }
-
-    func testSessionPrimaryLayoutWhenWeeklyOnlyAndSessionTokens() {
-        let snap = weeklyOnlySnapshot(sessionTokens: TokenUsage(input: 5_000, output: 2_000))
-        let layout = ProviderCardView.sessionPrimaryLayout(snap)
-        XCTAssertEqual(layout?.tokens.total, 7_000)
-        XCTAssertEqual(layout?.startedAt, Date(timeIntervalSince1970: 1_700_000_100))
-    }
-
-    func testSessionPrimaryLayoutNilWhenSessionPercentExists() {
-        let snap = weeklyOnlySnapshot(sessionTokens: TokenUsage(input: 5_000, output: 2_000), sessionPercent: 10)
-        XCTAssertNil(ProviderCardView.sessionPrimaryLayout(snap))
-    }
-
-    func testSessionPrimaryLayoutNilWhenSessionHasNoTokens() {
-        XCTAssertNil(ProviderCardView.sessionPrimaryLayout(weeklyOnlySnapshot(sessionTokens: .zero)))
-    }
-
-    func testSessionPrimaryLayoutNilWhenNoGauge() {
-        let snap = UsageSnapshot(provider: .codex, health: .ok)
-        XCTAssertNil(ProviderCardView.sessionPrimaryLayout(snap))
-    }
-}
-
-// MARK: - Session percent estimate labeling (budget fallback)
-
-extension ProviderCardViewTests {
     private func snapshotWithSessionOrigin(_ fromQuota: Bool?) -> UsageSnapshot {
         var session = SessionUsage(resetsAt: Date(), usedPercent: 40)
         session.usedPercentIsFromQuota = fromQuota
         return UsageSnapshot(provider: .claudeCode, health: .ok, session: session)
     }
+
+    // MARK: - Session percent estimate labeling (budget fallback)
 
     func testSessionPercentPrefixEmptyWhenOfficialOrUnknown() {
         XCTAssertEqual(ProviderCardView.sessionPercentPrefix(snapshotWithSessionOrigin(true)), "")
@@ -100,20 +26,18 @@ extension ProviderCardViewTests {
     }
 
     func testSessionLabelMarksEstimate() {
-        let metric = GaugeMetric(used: 40, isWeekly: false)
-        XCTAssertEqual(ProviderCardView.sessionLabel(snapshotWithSessionOrigin(false), metric: metric), "OF 5H SESSION LEFT · ESTIMATED")
-        XCTAssertEqual(ProviderCardView.sessionLabel(snapshotWithSessionOrigin(true), metric: metric), "OF 5H SESSION LEFT")
+        XCTAssertEqual(ProviderCardView.sessionLabel(snapshotWithSessionOrigin(false)), "OF 5H SESSION LEFT · ESTIMATED")
+        XCTAssertEqual(ProviderCardView.sessionLabel(snapshotWithSessionOrigin(true)), "OF 5H SESSION LEFT")
     }
 
-    func testSessionLabelWeeklyNeverMarked() {
-        let metric = GaugeMetric(used: 40, isWeekly: true)
-        XCTAssertEqual(ProviderCardView.sessionLabel(snapshotWithSessionOrigin(false), metric: metric), "OF WEEKLY LIMIT LEFT")
+    func testSessionLabelNeverSwitchesWindows() {
+        // O label do bloco de cima é SEMPRE a sessão 5h — nunca "WEEKLY",
+        // qualquer que seja o estado do gauge (o bloco semanal vive abaixo).
+        XCTAssertEqual(ProviderCardView.sessionLabel(snapshotWithSessionOrigin(true)), "OF 5H SESSION LEFT")
     }
-}
 
-// MARK: - Provider mascot mapping
+    // MARK: - Provider mascot mapping
 
-extension ProviderCardViewTests {
     func testMascotNameMapsActiveModelFamily() {
         XCTAssertEqual(ProviderCardView.mascotName(for: "claude-sonnet-4-6"), "claude-sonnet")
         XCTAssertEqual(ProviderCardView.mascotName(for: "claude-fable-5"), "claude-fable")
@@ -124,66 +48,5 @@ extension ProviderCardViewTests {
     func testMascotNameFallsBackToSonnet() {
         XCTAssertEqual(ProviderCardView.mascotName(for: nil), "claude-sonnet")
         XCTAssertEqual(ProviderCardView.mascotName(for: "gpt-5.3-codex-spark"), "claude-sonnet")
-    }
-}
-
-// MARK: - Weekly override badge
-
-extension ProviderCardViewTests {
-    private func overrideSnapshot(
-        sessionPercent: Double?,
-        sessionFromQuota: Bool?,
-        weeklyPercent: Double?,
-        quotaStatus: QuotaStatus? = nil
-    ) -> UsageSnapshot {
-        UsageSnapshot(
-            provider: .codex,
-            health: .ok,
-            session: sessionPercent.map {
-                SessionUsage(usedPercent: $0, usedPercentIsFromQuota: sessionFromQuota)
-            },
-            weekly: weeklyPercent.map { WeeklyUsage(usedPercent: $0) },
-            quotaStatus: quotaStatus
-        )
-    }
-
-    func testOverrideTrueWhenWeeklyExhaustedBlocksEstimate() {
-        // Caso real: estimativa verde de budget + semanal oficial a 0% left.
-        XCTAssertTrue(ProviderCardView.weeklyOverridesHeadline(
-            overrideSnapshot(sessionPercent: 0.14, sessionFromQuota: false, weeklyPercent: 100)
-        ))
-    }
-
-    func testOverrideFalseWhenWeeklyHasHeadroom() {
-        XCTAssertFalse(ProviderCardView.weeklyOverridesHeadline(
-            overrideSnapshot(sessionPercent: 5, sessionFromQuota: false, weeklyPercent: 25)
-        ))
-    }
-
-    func testOverrideFalseWhenSessionPercentIsOfficial() {
-        // Claude: percent oficial da janela não é "bloqueado" pelo semanal.
-        XCTAssertFalse(ProviderCardView.weeklyOverridesHeadline(
-            overrideSnapshot(sessionPercent: 50, sessionFromQuota: true, weeklyPercent: 100)
-        ))
-    }
-
-    func testOverrideFalseWhenQuotaStatusBlocked() {
-        // BLOCKED já tem seu próprio chip no header — badge seria redundante.
-        XCTAssertFalse(ProviderCardView.weeklyOverridesHeadline(
-            overrideSnapshot(sessionPercent: 0.14, sessionFromQuota: false, weeklyPercent: 100, quotaStatus: .blocked)
-        ))
-    }
-
-    func testOverrideFalseWhenNoSessionPercent() {
-        // Headline já é o weekly — nada sendo sobrescrito.
-        XCTAssertFalse(ProviderCardView.weeklyOverridesHeadline(
-            overrideSnapshot(sessionPercent: nil, sessionFromQuota: nil, weeklyPercent: 100)
-        ))
-    }
-
-    func testOverrideFalseWhenNoWeeklyPercent() {
-        XCTAssertFalse(ProviderCardView.weeklyOverridesHeadline(
-            overrideSnapshot(sessionPercent: 0.14, sessionFromQuota: false, weeklyPercent: nil)
-        ))
     }
 }

@@ -34,62 +34,20 @@ struct ProviderCardView: View {
         )
     }
 
-    /// Secondary window shown under the headline when the provider has BOTH
-    /// a session scope and a weekly scope (e.g. Claude/Anthropic plans with a
-    /// 5h window AND a weekly cap). Nil when the headline already IS the
-    /// weekly, or when no official weekly percent exists.
-    struct SecondaryScope: Equatable {
-        let usedPercent: Double
-        let resetsAt: Date?
-    }
-
-    static func secondaryScope(_ snapshot: UsageSnapshot) -> SecondaryScope? {
-        guard snapshot.session?.usedPercent != nil,
-              let weekly = snapshot.weekly?.usedPercent else { return nil }
-        return SecondaryScope(usedPercent: weekly, resetsAt: snapshot.weekly?.resetsAt)
-    }
-
-    /// Plans that report only a weekly cap (Codex Pro: the rollout carries a
-    /// single 7-day window, no 5h/daily window at all) get the SAME two-block
-    /// scheme as Claude, inverted: the current session's real tokens take the
-    /// headline, and the weekly cap becomes the secondary block. No daily
-    /// percent is ever fabricated.
-    struct SessionPrimary: Equatable {
-        let tokens: TokenUsage
-        let startedAt: Date?
-    }
-
-    static func sessionPrimaryLayout(_ snapshot: UsageSnapshot) -> SessionPrimary? {
-        guard let metric = GaugeMetric.from(snapshot), metric.isWeekly,
-              let session = snapshot.session, session.tokens.total > 0 else { return nil }
-        return SessionPrimary(tokens: session.tokens, startedAt: session.startedAt)
-    }
-
     /// "~" prefix when the 5h percent is a local budget estimate, not the
     /// provider's authoritative quota.
     static func sessionPercentPrefix(_ snapshot: UsageSnapshot) -> String {
         snapshot.session?.usedPercentIsFromQuota == false ? "~" : ""
     }
 
-    static func sessionLabel(_ snapshot: UsageSnapshot, metric: GaugeMetric) -> String {
-        guard !metric.isWeekly else { return "OF WEEKLY LIMIT LEFT" }
-        return snapshot.session?.usedPercentIsFromQuota == false
+    /// Fixed label for the TOP block — always the 5h session window.
+    /// LAYOUT INVARIÁVEL (20/08/2026): the card always shows session above
+    /// weekly; this label never switches windows (see
+    /// QuotaHierarchyContractTests).
+    static func sessionLabel(_ snapshot: UsageSnapshot) -> String {
+        snapshot.session?.usedPercentIsFromQuota == false
             ? "OF 5H SESSION LEFT · ESTIMATED"
             : "OF 5H SESSION LEFT"
-    }
-
-    /// True when the official weekly cap is blocking the number that would
-    /// otherwise headline this card — the weekly is exhausted while the
-    /// session percent is only a local budget estimate. Official session
-    /// percents (Claude) and BLOCKED statuses keep their own treatment and
-    /// never light this badge.
-    static func weeklyOverridesHeadline(_ snapshot: UsageSnapshot) -> Bool {
-        guard snapshot.quotaStatus != .blocked,
-              snapshot.session?.usedPercent != nil,
-              snapshot.session?.usedPercentIsFromQuota != true,
-              let weekly = snapshot.weekly?.usedPercent,
-              weekly >= GaugeMetric.exhaustionThreshold else { return false }
-        return true
     }
 
     private var header: some View {
@@ -97,9 +55,6 @@ struct ProviderCardView: View {
             providerGlyph
             GaugeLabel(text: provider.shortName, color: Theme.textSecondary, size: 9)
             Spacer()
-            if let snapshot, Self.weeklyOverridesHeadline(snapshot) {
-                PulsingBadge(text: "WEEKLY LIMIT OVERRIDE")
-            }
             if let chip = quotaChip {
                 StatusPill(text: chip.text, color: chip.color)
             }
@@ -107,7 +62,8 @@ struct ProviderCardView: View {
     }
 
     /// Brand glyph per provider: the Claude mascot (active model family) and
-    /// the OpenAI knot, so the two cards are told apart at a glance.
+    /// the OpenAI knot, so the two cards are told apart at a glance. Both
+    /// ride the same puppet — breathing, poke, hop, crush, shadow.
     @ViewBuilder
     private var providerGlyph: some View {
         switch provider {
@@ -127,13 +83,6 @@ struct ProviderCardView: View {
 
     /// Maps an active model name to its mascot family asset; unknown or
     /// missing models fall back to sonnet.
-    /// The session-token headline belongs to CODEX (its session reports no
-    /// percent). REGRESSÃO 2325122: generalized to every provider, Claude
-    /// without a session percent started showing its WEEKLY token total
-    /// ("663.8M") as the headline instead of the percentage.
-    static func sessionHeadlineAllowed(for provider: ProviderID) -> Bool {
-        provider == .codex
-    }
 
     /// REGRESSÃO: with the probe on but no Claude Code OAuth on the
     /// machine, the probe delivers no quota and the card showed the raw
@@ -166,100 +115,14 @@ struct ProviderCardView: View {
 
     @ViewBuilder
     private func metrics(_ snapshot: UsageSnapshot) -> some View {
-        let settings = store.settings
-
         VStack(alignment: .leading, spacing: 7) {
-            if let metric = GaugeMetric.from(snapshot) {
-                if metric.isWeekly, metric.remaining > 0,
-                   Self.sessionHeadlineAllowed(for: provider),
-                   let sessionPrimary = Self.sessionPrimaryLayout(snapshot) {
-                    // Weekly-only plan with headroom left: the current
-                    // session's real tokens take the headline (same "current
-                    // window" concept as Claude's 5h percent, without
-                    // fabricating one), and the weekly cap drops to the
-                    // secondary block below. When the weekly cap is exhausted
-                    // (remaining == 0) the percent headline below takes over —
-                    // a red "0% OF WEEKLY LIMIT LEFT" beats a token count.
-                    Text(Format.tokens(sessionPrimary.tokens.total))
-                        .font(Theme.numeral(24))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.textPrimary)
-                        .contentTransition(.numericText())
-                    GaugeLabel(text: "CURRENT SESSION · NO DAILY CAP REPORTED")
-                    if let startedAt = sessionPrimary.startedAt {
-                        GaugeLabel(text: "STARTED \(Format.relative(startedAt))", color: Theme.textFaint, size: 8)
-                    }
-                    if let weeklyPercent = snapshot.weekly?.usedPercent {
-                        weeklySecondaryBlock(
-                            secondary: SecondaryScope(usedPercent: weeklyPercent, resetsAt: snapshot.weekly?.resetsAt),
-                            warningAt: settings.warningThresholdPercent,
-                            criticalAt: settings.criticalThresholdPercent
-                        )
-                    }
-                } else {
-                    let tint = Theme.riskTint(
-                        used: metric.used,
-                        projectedToRunOut: !metric.isWeekly && burn?.exhaustsAt != nil,
-                        warningAt: settings.warningThresholdPercent,
-                        criticalAt: settings.criticalThresholdPercent
-                    )
-                    // "~" marks a budget estimate; a weekly headline is
-                    // official, so it never gets the tilde.
-                    let prefix = metric.isWeekly ? "" : Self.sessionPercentPrefix(snapshot)
-                    Text("\(prefix)\(Int(metric.remaining.rounded()))%")
-                        .font(Theme.numeral(30))
-                        .monospacedDigit()
-                        .foregroundStyle(tint)
-                        .contentTransition(.numericText())
-                    GaugeLabel(text: Self.sessionLabel(snapshot, metric: metric))
-                    SegmentedMeter(percent: metric.remaining, segments: 12, tint: tint, height: 8)
-
-                    if let resets = resetDate(snapshot, metric: metric) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            GaugeLabel(text: "RESETS • \(Format.time(resets))")
-                            Text(Format.countdown(to: resets))
-                                .font(Theme.body(15, weight: .bold))
-                                .monospacedDigit()
-                                .foregroundStyle(Theme.textPrimary)
-                        }
-                    }
-
-                    // Secondary window: same visual pattern as the headline,
-                    // smaller scale — the weekly cap under the 5h session window.
-                    if !metric.isWeekly, let secondary = Self.secondaryScope(snapshot) {
-                        weeklySecondaryBlock(
-                            secondary: secondary,
-                            warningAt: settings.warningThresholdPercent,
-                            criticalAt: settings.criticalThresholdPercent
-                        )
-                    }
-                }
-            } else if Self.quotaUnavailable(
-                for: provider,
-                probeEnabled: settings.claudeQuotaProbeEnabled,
-                hasQuota: snapshot.quotaStatus != nil || snapshot.session?.usedPercentIsFromQuota == true
-            ) {
-                // The probe is on but no quota arrived (no Claude Code
-                // OAuth on this machine) — honest "unavailable" beats a
-                // token count that reads as the quota itself.
-                Text("QUOTA INDISPONÍVEL")
-                    .font(Theme.numeral(18))
-                    .foregroundStyle(Theme.warning)
-                GaugeLabel(text: "FAÇA LOGIN NO CLAUDE CODE PARA VER O %", color: Theme.textFaint, size: 8)
-            } else if let tokens = fallbackTokens(snapshot) {
-                // No official quota exists for this window (e.g. Codex plans
-                // that only expose a weekly %) — show the SAME "current
-                // window" concept the percent-based cards show, just in
-                // tokens instead of a fabricated percentage.
-                Text(Format.tokens(tokens))
-                    .font(Theme.numeral(24))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textPrimary)
-                GaugeLabel(text: "CURRENT SESSION · NO CAP REPORTED")
-                if let startedAt = snapshot.session?.startedAt {
-                    GaugeLabel(text: "STARTED \(Format.relative(startedAt))", color: Theme.textFaint, size: 8)
-                }
-            }
+            // LAYOUT INVARIÁVEL (20/08/2026): o bloco da sessão 5h SEMPRE
+            // acima, o bloco da janela semanal SEMPRE abaixo — para Claude E
+            // Codex, em qualquer estado de quota. Nunca um substitui o outro,
+            // nunca um some. QuotaHierarchyContractTests lê este fonte e
+            // exige essa ordem.
+            sessionWindowBlock(snapshot)
+            weeklyWindowBlock(snapshot)
 
             if let usage = usageLine(snapshot) {
                 Text(usage)
@@ -292,6 +155,95 @@ struct ProviderCardView: View {
                     .foregroundStyle(Theme.textFaint)
                     .lineLimit(2)
             }
+        }
+    }
+
+    /// TOP block, always present: the 5h session window — official percent
+    /// (or budget estimate marked "~"), else session tokens when the plan
+    /// reports no daily cap, else an honest empty state.
+    @ViewBuilder
+    private func sessionWindowBlock(_ snapshot: UsageSnapshot) -> some View {
+        let settings = store.settings
+        if let percent = snapshot.session?.usedPercent {
+            let tint = Theme.riskTint(
+                used: percent,
+                projectedToRunOut: burn?.exhaustsAt != nil,
+                warningAt: settings.warningThresholdPercent,
+                criticalAt: settings.criticalThresholdPercent
+            )
+            let prefix = Self.sessionPercentPrefix(snapshot)
+            Text("\(prefix)\(Int(max(0, 100 - percent).rounded()))%")
+                .font(Theme.numeral(30))
+                .monospacedDigit()
+                .foregroundStyle(tint)
+                .contentTransition(.numericText())
+            GaugeLabel(text: Self.sessionLabel(snapshot))
+            SegmentedMeter(percent: max(0, 100 - percent), segments: 12, tint: tint, height: 8)
+            if let resets = snapshot.session?.resetsAt {
+                VStack(alignment: .leading, spacing: 2) {
+                    GaugeLabel(text: "RESETS • \(Format.time(resets))")
+                    Text(Format.countdown(to: resets))
+                        .font(Theme.body(15, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textPrimary)
+                }
+            }
+        } else if Self.quotaUnavailable(
+            for: provider,
+            probeEnabled: settings.claudeQuotaProbeEnabled,
+            hasQuota: snapshot.quotaStatus != nil || snapshot.session?.usedPercentIsFromQuota == true
+        ) {
+            // The probe is on but no quota arrived (no Claude Code OAuth on
+            // this machine) — honest "unavailable" beats a token count that
+            // reads as the quota itself.
+            Text("QUOTA INDISPONÍVEL")
+                .font(Theme.numeral(18))
+                .foregroundStyle(Theme.warning)
+            GaugeLabel(text: "FAÇA LOGIN NO CLAUDE CODE PARA VER O %", color: Theme.textFaint, size: 8)
+        } else if snapshot.session?.tokens.total ?? 0 > 0 {
+            // Session with no daily cap reported (Codex plans that only
+            // expose a weekly window): real session tokens, never a
+            // fabricated percentage.
+            Text(Format.tokens(snapshot.session!.tokens.total))
+                .font(Theme.numeral(24))
+                .monospacedDigit()
+                .foregroundStyle(Theme.textPrimary)
+            GaugeLabel(text: "CURRENT SESSION · NO DAILY CAP REPORTED")
+            if let startedAt = snapshot.session?.startedAt {
+                GaugeLabel(text: "STARTED \(Format.relative(startedAt))", color: Theme.textFaint, size: 8)
+            }
+        } else {
+            Text("—")
+                .font(Theme.numeral(24))
+                .monospacedDigit()
+                .foregroundStyle(Theme.textDim)
+            GaugeLabel(text: "5H SESSION · NO DATA", color: Theme.textFaint, size: 8)
+        }
+    }
+
+    /// BOTTOM block, always present: the weekly window.
+    @ViewBuilder
+    private func weeklyWindowBlock(_ snapshot: UsageSnapshot) -> some View {
+        let settings = store.settings
+        if let percent = snapshot.weekly?.usedPercent {
+            weeklySecondaryBlock(
+                secondary: (percent, snapshot.weekly?.resetsAt),
+                warningAt: settings.warningThresholdPercent,
+                criticalAt: settings.criticalThresholdPercent
+            )
+        } else {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text("—")
+                        .font(Theme.numeral(15))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textDim)
+                    GaugeLabel(text: "OF WEEKLY LIMIT LEFT", color: Theme.textFaint, size: 8)
+                    Spacer(minLength: 0)
+                }
+                SegmentedMeter(percent: 0, segments: 12, tint: Theme.textDim, height: 4)
+            }
+            .padding(.top, 1)
         }
     }
 
@@ -338,15 +290,10 @@ struct ProviderCardView: View {
         }
     }
 
-    private func resetDate(_ snapshot: UsageSnapshot, metric: GaugeMetric) -> Date? {
-        metric.isWeekly ? snapshot.weekly?.resetsAt : snapshot.session?.resetsAt
-    }
-
-    /// The weekly cap rendered as a secondary block — smaller scale of the
-    /// headline pattern, shared by the Claude layout (under the 5h percent)
-    /// and the Codex layout (under the session-token headline).
+    /// The weekly cap rendered as the bottom block — smaller scale of the
+    /// session block above. Used only by `weeklyWindowBlock`.
     @ViewBuilder
-    private func weeklySecondaryBlock(secondary: SecondaryScope, warningAt: Double, criticalAt: Double) -> some View {
+    private func weeklySecondaryBlock(secondary: (usedPercent: Double, resetsAt: Date?), warningAt: Double, criticalAt: Double) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             let tint = Theme.riskTint(
                 used: secondary.usedPercent,
@@ -374,12 +321,6 @@ struct ProviderCardView: View {
             }
         }
         .padding(.top, 1)
-    }
-
-    private func fallbackTokens(_ snapshot: UsageSnapshot) -> Int? {
-        if let tokens = snapshot.session?.tokens.total, tokens > 0 { return tokens }
-        if let tokens = snapshot.weekly?.tokens.total, tokens > 0 { return tokens }
-        return nil
     }
 
     private func usageLine(_ snapshot: UsageSnapshot) -> String? {
@@ -442,36 +383,6 @@ struct ProviderCardView: View {
         case .stale(let date): "stale \(Format.relative(date))"
         case .failure(let date, _): "failed \(Format.relative(date))"
         case .idle: ""
-        }
-    }
-}
-
-/// Pulsing red badge in the card header — the weekly cap overrode the
-/// number below, so this is the only place that still blinks for attention.
-/// Respects Reduce Motion (static when accessibility asks for calm).
-private struct PulsingBadge: View {
-    let text: String
-    @State private var pulsing = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 8, weight: .bold))
-            Text(text)
-                .font(Theme.body(8.5, weight: .bold))
-        }
-        .foregroundStyle(Theme.danger)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(Capsule().fill(Theme.danger.opacity(0.15)))
-        .overlay(Capsule().strokeBorder(Theme.danger.opacity(0.55), lineWidth: 1))
-        .opacity(pulsing ? 0.4 : 1)
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
-                pulsing = true
-            }
         }
     }
 }

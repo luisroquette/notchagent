@@ -4,28 +4,11 @@ import XCTest
 /// REGRESSÃO (commit 2325122): o headline de tokens do card foi
 /// generalizado do Codex para QUALQUER provider — o Claude sem percentual
 /// de sessão passou a exibir o TOTAL SEMANAL de tokens ("663.8M") como se
-/// fosse a sessão corrente, no lugar do headline de percentual. O headline
-/// de tokens pertence ao Codex; os demais mantêm o percentual.
+/// fosse a sessão corrente, no lugar do headline de percentual. Com o
+/// LAYOUT INVARIÁVEL (20/08/2026) a regra ficou estrutural: o bloco de
+/// cima é SEMPRE a sessão (percentual ou tokens da SESSÃO, nunca tokens
+/// de outra janela) e o bloco de baixo é SEMPRE o semanal.
 final class ProviderCardHeadlineTests: XCTestCase {
-    func testTokenHeadlineAllowedOnlyForCodex() {
-        XCTAssertTrue(
-            ProviderCardView.sessionHeadlineAllowed(for: .codex),
-            "Codex keeps its session-token headline"
-        )
-        XCTAssertFalse(
-            ProviderCardView.sessionHeadlineAllowed(for: .claudeCode),
-            "Claude must keep the percentage headline"
-        )
-        XCTAssertFalse(
-            ProviderCardView.sessionHeadlineAllowed(for: .geminiCLI),
-            "Gemini must keep the percentage headline"
-        )
-        XCTAssertFalse(
-            ProviderCardView.sessionHeadlineAllowed(for: .apiAccounts),
-            "API accounts must keep the percentage headline"
-        )
-    }
-
     // REGRESSÃO: probe ligado sem credencial OAuth → sem quota → o card
     // exibia tokens como se fossem a cota. Deve declarar indisponibilidade.
     func testQuotaUnavailableOnlyWhenProbeOnAndNoQuota() {
