@@ -30,3 +30,5 @@ firmware/notchagent_desk/build/
 
 # Planos de trabalho de sessões (podem conter caminhos/nomes locais — nunca publicados)
 docs/superpowers/
+# Downloads/artefatos locais do produto (ver materiais/README.md) — nunca publicados
+materiais/
