@@ -1,8 +1,20 @@
 # Changelog
 
-## 3.5.0 — 2026-08-19
+## 3.5.0 — 2026-08-20
+
+The honest-gauge release. The quota window hierarchy became a locked
+contract, the Now page never varies its layout, and the weather ambience
+became a minimal 8-bit strip.
 
 ### Added
+
+- Structural contract guards that READ THE SOURCE CODE: the quota window
+  hierarchy (BLOCKED > weekly exhausted > 5h session > weekly partial) and
+  the invariant card layout are locked by tests that fail on any physical
+  reordering or adaptive-layout reintroduction.
+- Pre-push hook runs the full test suite before every push.
+- Procedural 8-bit weather glyphs for all 12 WMO condition bands, day and
+  night, rendered in a minimal strip at the top of the panel.
 
 - Delight engine: the Claude mascot is alive — contextual animations across
   9 contexts (greeting, calm, tense, drowsy, playful, relief, celebration,
@@ -19,6 +31,13 @@
 
 ### Changed
 
+- The Now page card layout is INVARIANT: the 5h session window always sits
+  above the weekly window, for Claude and Codex, in every quota state. The
+  adaptive layouts (token headline, weekly override badge) were removed.
+- Weather: the full-panel sky and precipitation layers (bright blue
+  gradient, large sun) were removed; weather lives only as the top strip.
+- The OpenAI knot now has eyes — its measured dash notches — with a
+  per-sprite face patch color.
 - Panel blocks are liquid glass now: translucent gradient, 1px glass edge,
   specular rim and layered shadows — replaces the flat white cards.
 - Mascot and runner animations render through Canvas + TimelineView(.periodic):
@@ -27,6 +46,13 @@
 
 ### Fixed
 
+- Exhausted weekly cap always beats the 5h session gauge — an official
+  (quota-backed) fresh session can no longer paint "100% left" in green
+  while the weekly reads 0% (wings, runner, alerts, cards).
+- A BLOCKED session can never print "No burn right now — safe until the
+  reset." next to the runner's GAME OVER.
+- The burn page headline and verdict now follow the shared gauge, never
+  the raw session percent.
 - The GPT glyph no longer washes out under the old specular overlay.
 - Mascot sprite keeps its native aspect ratio in the square slot.
 

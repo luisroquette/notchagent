@@ -11,11 +11,11 @@
 <p align="center">
   <a href="https://luisroquette.github.io/notchagent/"><img src="https://img.shields.io/badge/website-live-FF654F?style=flat-square" alt="NotchAgent website" /></a>
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.4.2-38D6C7?style=flat-square" alt="Version v3.4.2" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.5.0-38D6C7?style=flat-square" alt="Version v3.5.0" /></a>
   <a href="#install"><img src="https://img.shields.io/badge/install-notarized%20DMG-F3B85A?style=flat-square" alt="Install the notarized DMG" /></a>
 </p>
 
-**Current version: 3.4.2** · Beta 1 · Model mascots + Desk hour progress · released 2026-08-18 · [version history](CHANGELOG.md)
+**Current version: 3.5.0** · The honest-gauge release · invariant quota layout, 8-bit weather strip, locked window hierarchy · released 2026-08-20 · [version history](CHANGELOG.md)
 
 A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
 financial monitoring of external API accounts. It shows provider-reported
@@ -42,27 +42,25 @@ and [compatibility matrix](https://github.com/luisroquette/notchagent-desk/blob/
 
 ![The compact notch bar: Claude on the left wing, Codex on the right](docs/img/notch-compact.png)
 
-![Hover the notch to expand the gauge panel](docs/img/desktop-now.png)
+![Hover the notch to expand the gauge panel](docs/img/notch-panel.gif)
 
-| NOW — % left per provider | BURN — will the session last? |
+| NOW — 5h session above weekly, always | BURN — nothing can burn once the window is gone |
 |---|---|
-| ![NOW page](docs/img/panel-now.png) | ![BURN page with projection and scrubbing](docs/img/panel-burn.png) |
+| ![NOW page](docs/img/now-cards.png) | ![BURN page: 5h exhausted](docs/img/burn-5h-exhausted.png) |
 
-| RHYTHM — when do you burn? | MODELS — live probe + cost per model |
+| BURN — weekly cap blocks the session | RHYTHM — when do you burn? |
 |---|---|
-| ![RHYTHM page](docs/img/panel-rhythm.png) | ![MODELS page](docs/img/panel-models.png) |
+| ![BURN page: weekly blocked](docs/img/burn-weekly-blocked.png) | ![RHYTHM page](docs/img/rhythm.png) |
+
+| MODELS — Claude family, live probe | MODELS — OpenAI, per-model weekly caps |
+|---|---|
+| ![Claude models page](docs/img/claude-models.png) | ![OpenAI models page](docs/img/openai-models.png) |
+
+| Dashboard — active session | Settings |
+|---|---|
+| ![Dashboard session](docs/img/dashboard-session.png) | ![Settings](docs/img/settings.png) |
 
 ![Low-fuel alert: an escalating takeover fires at 25/15/10/5% left, in light theme here](docs/img/alert-almost-empty.png)
-
-<details>
-<summary><b>More screenshots</b> — dashboard, burn scrubbing, settings</summary>
-
-![Burn chart hover scrubbing over the desktop](docs/img/desktop-burn.png)
-![Dashboard: session tokens over time + hourly rhythm](docs/img/dashboard-1.png)
-![Dashboard: per-provider breakdown](docs/img/dashboard-2.png)
-![Settings: appearance, login item, alerts, quota probe](docs/img/settings.png)
-
-</details>
 
 ## Install
 
@@ -122,11 +120,11 @@ git config core.hooksPath .githooks
 **The question NotchAgent answers at all times: "how much of my limit is left?"**
 
 - **Compact notch** — Claude on the left wing, Codex on the right: name, `% LEFT` for the window (5H or WK) colored by state, a micro-gauge that drains like a fuel tank.
-- **Expanded panel** (hover to expand, click to pin, **trackpad side-scroll switches pages**, Esc closes) with 4 pages:
-  - **NOW** — per-provider cards: giant `% left`, segmented gauge, "RESETS • 16:30" + a live countdown, tokens/estimated cost, burn verdict, health pills.
-  - **BURN** — 5h-window chart: actual usage (coral line) + dotted projection at the current pace + a verdict like "runs out 16:40 (in 1h 32m)".
+- **Expanded panel** (hover to expand, click to pin, **trackpad side-scroll switches pages**, Esc closes) with a minimal 8-bit weather strip on top and 4 pages:
+  - **NOW** — per-provider cards with an INVARIANT layout: the 5h session window always above the weekly window (percent, segmented gauge, "RESETS • 16:30" + a live countdown, tokens/estimated cost, burn verdict, health pills). An exhausted weekly can never hide or swap a window.
+  - **BURN** — one 5h-window chart per provider: actual usage (coral line) + dotted projection at the current pace + a verdict like "runs out 16:40 (in 1h 32m)". An exhausted window shows "nothing can burn" — never a false "safe until reset".
   - **RHYTHM** — 24 bars by local hour (today/7 days), current hour highlighted.
-  - **MODELS** — Fable, Opus, Sonnet and Haiku with a live probe (`OK 0.9s` / `Limited` / `Error`, 1 model per cycle) + per-model usage and cost from transcripts.
+  - **MODELS** — Claude family and OpenAI models with a live probe (`OK 0.9s` / `Limited` / `Error`, 1 model per cycle) + per-model usage and cost from transcripts.
 - **Escalating alerts at 25/15/10/5% left** — an animated notch takeover that gets more severe as the window runs out (amber pulse → red alarm with a shaking mascot at 5%, dismissed only by clicking), plus a matching system notification. One trigger per threshold per window, re-armed on reset.
 - **Menu bar** — `% left` up top + a popover with a per-provider summary and controls.
 - **Dashboard** — history (Swift Charts), hourly rhythm, daily breakdown, event log.
