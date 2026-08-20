@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.5.1 — 2026-08-20
+
+Desk pairing release. The wire protocol formally declares 1.3 — the additive
+`currentHour` fields the app has sent since 3.4.0 now carry their own minor
+version — and the bundle version tracks the build number again.
+
+### Changed
+
+- Desk wire protocol declared 1.3 (additive `currentHour` /
+  `currentHourElapsedFraction` snapshot fields; pairs with Desk firmware
+  0.8.0, and stays compatible with 1.2 hosts and firmware).
+
+### Fixed
+
+- `CFBundleVersion` now tracks `BUILD_NUMBER` (8 for this release), ending
+  the stale bundle-version drift on signed ZIP installs.
+- Install section links to the signed ZIP release instead of a stale path.
+
 ## 3.5.0 — 2026-08-20
 
 The honest-gauge release. The quota window hierarchy became a locked
