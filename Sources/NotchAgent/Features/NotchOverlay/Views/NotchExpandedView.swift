@@ -1454,8 +1454,13 @@ struct NotchExpandedView: View {
     private func namedQuotaRow(_ quota: NamedQuota) -> some View {
         let remaining = max(0, 100 - quota.usedPercent)
         return HStack(spacing: 10) {
-            OpenAIGlyph()
-                .frame(width: 26, height: 26)
+            // Idle presence only — same as the Claude model rows.
+            MascotPuppetView(
+                spriteName: "openai-glyph",
+                reactive: false,
+                slotSize: CGSize(width: 26, height: 26)
+            )
+            .frame(width: 26, height: 26)
             Text(quota.name)
                 .font(Theme.body(11, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
@@ -1476,8 +1481,13 @@ struct NotchExpandedView: View {
 
     private func modelUsageRow(_ usage: ModelUsage, share: Double, blocked: Bool = false) -> some View {
         HStack(spacing: 10) {
-            OpenAIGlyph()
-                .frame(width: 26, height: 26)
+            // Idle presence only — same as the Claude model rows.
+            MascotPuppetView(
+                spriteName: "openai-glyph",
+                reactive: false,
+                slotSize: CGSize(width: 26, height: 26)
+            )
+            .frame(width: 26, height: 26)
             Text(usage.model)
                 .font(Theme.body(11, weight: .semibold))
                 .foregroundStyle(blocked ? Theme.textDim : Theme.textPrimary)

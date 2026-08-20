@@ -67,37 +67,83 @@ final class PuppetMotionTests: XCTestCase {
     // com os pixels reais — o overlay desenhava feições AO LADO do olho
     // embutido do sprite, e o boneco parecia ter dois olhos por olho.
     // A tabela agora carrega os valores MEDIDOS dos 4 assets.
-    func testEyeLayoutMatchesMeasuredAssetPixels() {
-        let fable = PuppetMotion.eyeLayout(for: "claude-fable")
+    func testEyeLayoutMatchesMeasuredAssetPixels() throws {
+        let fable = try XCTUnwrap(PuppetMotion.eyeLayout(for: "claude-fable"))
         XCTAssertEqual(fable.leftCenter.x, 0.260, accuracy: 0.005)
         XCTAssertEqual(fable.leftCenter.y, 0.347, accuracy: 0.005)
         XCTAssertEqual(fable.rightCenter.x, 0.730, accuracy: 0.005)
         XCTAssertEqual(fable.width, 28.0 / 363.0, accuracy: 0.002)
 
-        let haiku = PuppetMotion.eyeLayout(for: "claude-haiku")
+        let haiku = try XCTUnwrap(PuppetMotion.eyeLayout(for: "claude-haiku"))
         XCTAssertEqual(haiku.leftCenter.x, 0.264, accuracy: 0.005)
         XCTAssertEqual(haiku.rightCenter.x, 0.734, accuracy: 0.005)
         XCTAssertEqual(haiku.leftCenter.y, 0.347, accuracy: 0.005)
 
-        let opus = PuppetMotion.eyeLayout(for: "claude-opus")
+        let opus = try XCTUnwrap(PuppetMotion.eyeLayout(for: "claude-opus"))
         XCTAssertEqual(opus.leftCenter.x, 0.286, accuracy: 0.005)
         XCTAssertEqual(opus.rightCenter.x, 0.712, accuracy: 0.005)
         XCTAssertEqual(opus.leftCenter.y, 0.359, accuracy: 0.005)
         XCTAssertEqual(opus.height, 59.0 / 255.0, accuracy: 0.002)
 
-        let sonnet = PuppetMotion.eyeLayout(for: "claude-sonnet")
+        let sonnet = try XCTUnwrap(PuppetMotion.eyeLayout(for: "claude-sonnet"))
         XCTAssertEqual(sonnet.leftCenter.x, 0.285, accuracy: 0.005)
         XCTAssertEqual(sonnet.rightCenter.x, 0.713, accuracy: 0.005)
         XCTAssertEqual(sonnet.height, 59.0 / 255.0, accuracy: 0.002)
     }
 
-    func testEyeLayoutPatchCoversTheEmbeddedEye() {
+    // REGRESSÃO: os olhos do nó são os DOIS DASHES transparentes do rosto
+    // (medidos 19/08) — o layout aponta exatamente pra eles e o teste lê
+    // o PNG real: os centros DEVEM cair em pixel transparente. Se alguém
+    // mover o layout pro corpo azul, falha.
+    func testOpenAIKnotEyesAreTheDashHoles() throws {
+        let knot = try XCTUnwrap(PuppetMotion.eyeLayout(for: "openai-glyph"))
+        XCTAssertEqual(knot.leftCenter.x, 0.271, accuracy: 0.01)
+        XCTAssertEqual(knot.leftCenter.y, 0.388, accuracy: 0.01)
+        XCTAssertEqual(knot.rightCenter.x, 0.656, accuracy: 0.01)
+        XCTAssertEqual(knot.rightCenter.y, 0.398, accuracy: 0.01)
+        XCTAssertEqual(knot.width, 0.125, accuracy: 0.01)
+        XCTAssertEqual(knot.height, 0.143, accuracy: 0.01)
+
+        guard let url = AssetBundle.url(forResource: "Mascots/openai-glyph", withExtension: "png"),
+              let image = NSImage(contentsOf: url),
+              let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let data = cg.dataProvider?.data, let ptr = CFDataGetBytePtr(data)
+        else {
+            XCTFail("glyph must load with readable pixels")
+            return
+        }
+        let bytesPerRow = cg.bytesPerRow
+        let alphaOffset = cg.bitmapInfo.contains(.byteOrder32Little) ? 3 : 0
+        let bytesPerPixel = cg.bitsPerPixel / 8
+
+        func alpha(_ relX: Double, _ relY: Double) -> Int {
+            let x = min(Int(relX * Double(cg.width)), cg.width - 1)
+            let y = min(Int(relY * Double(cg.height)), cg.height - 1)
+            return Int(ptr[y * bytesPerRow + x * bytesPerPixel + alphaOffset])
+        }
+
+        XCTAssertLessThan(alpha(knot.leftCenter.x, knot.leftCenter.y), 128,
+                          "left eye center must land on the transparent dash, not the body")
+        XCTAssertLessThan(alpha(knot.rightCenter.x, knot.rightCenter.y), 128,
+                          "right eye center must land on the transparent dash, not the body")
+    }
+
+    // O patch do nó é o azul LOCAL do rosto (129,151,244) — o laranja do
+    // Claude preencheria os dashes com uma mancha laranja (o patch é a
+    // cor do corpo, não uma cor genérica de rosto).
+    func testKnotPatchIsLocalBodyBlue() {
+        let knotPatch = PuppetMotion.eyePatchColor(for: "openai-glyph")
+        let claudePatch = PuppetMotion.eyePatchColor(for: "claude-haiku")
+        XCTAssertNotEqual(knotPatch, claudePatch, "the knot's patch must not be Claude orange")
+    }
+
+    func testEyeLayoutPatchCoversTheEmbeddedEye() throws {
         // The replacement patch must be at least as big as the REAL eye
         // pixels (measured): Haiku/Fable eyes are ~28px wide / 43px tall,
         // Opus/Sonnet ~45px / 59px. Anything smaller lets the embedded
         // eye peek around the feature — the 'two eyes' bug.
         for name in ["claude-fable", "claude-haiku", "claude-opus", "claude-sonnet"] {
-            let layout = PuppetMotion.eyeLayout(for: name)
+            let layout = try XCTUnwrap(PuppetMotion.eyeLayout(for: name))
             let spriteWidth = name.contains("fable") ? 363.0 : name.contains("haiku") ? 365.0 : name.contains("opus") ? 366.0 : 367.0
             let eyePxWidth = layout.width * spriteWidth
             let eyePxHeight = layout.height * 255.0
@@ -106,8 +152,8 @@ final class PuppetMotionTests: XCTestCase {
         }
     }
 
-    func testUnknownSpriteFallsBackToAverageLayout() {
-        let layout = PuppetMotion.eyeLayout(for: "claude-desconhecida")
+    func testUnknownSpriteFallsBackToAverageLayout() throws {
+        let layout = try XCTUnwrap(PuppetMotion.eyeLayout(for: "claude-desconhecida"))
         XCTAssertGreaterThan(layout.width, 0)
         XCTAssertGreaterThan(layout.height, 0)
         XCTAssertLessThan(layout.leftCenter.x, 0.5)

@@ -65,12 +65,14 @@ struct ClaudeMascot: View {
     }
 }
 
-/// The OpenAI knot logo as a white pixel glyph — extracted verbatim from the
-/// approved V7 mockup. Canvas fallback if the asset is missing.
+/// The OpenAI knot as an 8-bit pixel sprite — extracted verbatim from the
+/// approved blue-gradient 3D reference (19/08). The sprite carries its own
+/// blue palette, so no template/tint: the knot reads on dark AND light
+/// panels. Canvas fallback if the asset is missing.
 struct OpenAIGlyph: View {
-    /// Follows the panel theme — near-white on the black panel, dark ink
-    /// on the light one. A fixed white glyph vanishes on a white card.
-    var tint: Color = Theme.textPrimary
+    /// Mid tone of the sprite's blue gradient — the fallback knot draws
+    /// in this tone so a missing asset still reads as the knot.
+    private static let knotBlue = Color(red: 129.0 / 255.0, green: 151.0 / 255.0, blue: 244.0 / 255.0)
 
     private var image: NSImage? {
         guard let url = AssetBundle.url(forResource: "Mascots/openai-glyph", withExtension: "png")
@@ -81,15 +83,10 @@ struct OpenAIGlyph: View {
     var body: some View {
         Group {
             if let image {
-                // Template rendering: the PNG's alpha IS the glyph; the
-                // tint colors it per theme. Without it the baked white
-                // pixels vanish on the light panel.
                 Image(nsImage: image)
-                    .renderingMode(.template)
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
-                    .foregroundStyle(tint)
             } else {
                 Canvas { context, size in
                     let grid: [[Int]] = [
@@ -124,7 +121,7 @@ struct OpenAIGlyph: View {
                                 width: pixel * 0.92,
                                 height: pixel * 0.92
                             )
-                            context.fill(Path(rect), with: .color(tint))
+                            context.fill(Path(rect), with: .color(Self.knotBlue))
                         }
                     }
                 }

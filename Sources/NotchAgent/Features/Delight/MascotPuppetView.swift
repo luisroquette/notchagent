@@ -63,8 +63,18 @@ public enum PuppetMotion {
 
     /// Measured eye layout per family. Haiku/Fable carry small dot eyes
     /// (~28×43px), Opus/Sonnet the big expressive ones (~45×59px).
-    public static func eyeLayout(for spriteName: String) -> EyeLayout {
+    /// The OpenAI knot's eyes are its two transparent dash notches on the
+    /// face (measured 19/08): the patch fills them in body color and the
+    /// expression draws on top — the same replacement as every Claude eye.
+    public static func eyeLayout(for spriteName: String) -> EyeLayout? {
         switch spriteName {
+        case "openai-glyph":
+            EyeLayout(
+                leftCenter: CGPoint(x: 0.271, y: 0.388),
+                rightCenter: CGPoint(x: 0.656, y: 0.398),
+                width: 0.125,
+                height: 0.143
+            )
         case "claude-fable":
             EyeLayout(leftCenter: CGPoint(x: 0.260, y: 0.347), rightCenter: CGPoint(x: 0.730, y: 0.347), width: 28.0 / 363.0, height: 43.0 / 255.0)
         case "claude-haiku":
@@ -78,14 +88,16 @@ public enum PuppetMotion {
         }
     }
 
-    /// The face's body color between the eyes — sampled from all four
-    /// assets (253, 110, 20). The replacement patch must match it or
-    /// the patch itself would read as a third eye.
-    public static let eyePatchColor = Color(
-        red: 253.0 / 255.0,
-        green: 110.0 / 255.0,
-        blue: 20.0 / 255.0
-    )
+    /// The face's body color between the eyes — sampled from the real
+    /// assets: the Claude sprites share (253, 110, 20); the knot's dash
+    /// eyes sit on its mid-blue face (129, 151, 244). The replacement
+    /// patch must match it or the patch itself would read as a third eye.
+    public static func eyePatchColor(for spriteName: String) -> Color {
+        if spriteName == "openai-glyph" {
+            return Color(red: 129.0 / 255.0, green: 151.0 / 255.0, blue: 244.0 / 255.0)
+        }
+        return Color(red: 253.0 / 255.0, green: 110.0 / 255.0, blue: 20.0 / 255.0)
+    }
 
     /// A blink is a LID that drops and rises, not a state swap:
     /// 0 = open, 1 = fully closed, back to 0. Human-like timing: a
@@ -768,6 +780,24 @@ public struct MascotPuppetView: View {
                     let headTurn = idle && !reduceMotion
                         ? PuppetMotion.headTurnRotation(cursorOffset: cursorOffset)
                         : 0
+                    // The blink gate is DERIVED from the clock — no
+                    // Task, no state, nothing a view lifecycle can kill
+                    // (a Task-bound blink died with every view recycle;
+                    // this one cannot). A faceless sprite (the OpenAI
+                    // knot) feeds the SAME curve into a micro-pulse
+                    // instead of a lid — its heartbeat.
+                    let bucketStart = PuppetMotion.blinkBucketStart(now: timeline.date)
+                    let blink = !reduceMotion && PuppetMotion.blinkGate(now: timeline.date, seed: blinkSeed)
+                        ? PuppetMotion.blinkAmount(elapsed: timeline.date.timeIntervalSince(bucketStart))
+                        : 0
+                    // Features breathe in and out with the gesture; the
+                    // blink is geometric (the lid itself carries it).
+                    let gestureElapsed = animationStart.map { timeline.date.timeIntervalSince($0) } ?? 0
+                    let totalDuration = steps.reduce(0) { $0 + $1.duration } * durationScale
+                    let featureOpacity = PuppetMotion.expressionOpacity(
+                        elapsed: gestureElapsed,
+                        total: totalDuration
+                    )
                     // Anchor at the sprite's bottom-center: translate,
                     // scale, rotate, translate back, then the clamped
                     // lift (canvas y is down, so negative lifts).
@@ -792,15 +822,6 @@ public struct MascotPuppetView: View {
                             with: .color(Theme.coral.opacity(0.4))
                         )
                     }
-                    let gestureElapsed = animationStart.map { timeline.date.timeIntervalSince($0) } ?? 0
-                    // The blink gate is DERIVED from the clock — no
-                    // Task, no state, nothing a view lifecycle can kill
-                    // (a Task-bound blink died with every view recycle;
-                    // this one cannot).
-                    let bucketStart = PuppetMotion.blinkBucketStart(now: timeline.date)
-                    let blink = !reduceMotion && PuppetMotion.blinkGate(now: timeline.date, seed: blinkSeed)
-                        ? PuppetMotion.blinkAmount(elapsed: timeline.date.timeIntervalSince(bucketStart))
-                        : 0
                     let eyes = PuppetMotion.derivedEyeState(
                         context: activeContext,
                         poke: activePoke,
@@ -808,13 +829,6 @@ public struct MascotPuppetView: View {
                         blinking: blink > 0,
                         // A nuzzle closes the eyes — pleasure, not alarm.
                         bob: animationStart != nil ? activeBob : nil
-                    )
-                    // Features breathe in and out with the gesture; the
-                    // blink is geometric (the lid itself carries it).
-                    let totalDuration = steps.reduce(0) { $0 + $1.duration } * durationScale
-                    let featureOpacity = PuppetMotion.expressionOpacity(
-                        elapsed: gestureElapsed,
-                        total: totalDuration
                     )
                     drawFace(
                         state: eyes,
@@ -1184,9 +1198,9 @@ public struct MascotPuppetView: View {
         rect: CGRect
     ) {
         guard state != .open else { return }
-        let layout = PuppetMotion.eyeLayout(for: spriteName)
+        guard let layout = PuppetMotion.eyeLayout(for: spriteName) else { return }
         let ink = Color.black.opacity(0.88)
-        let patch = PuppetMotion.eyePatchColor
+        let patch = PuppetMotion.eyePatchColor(for: spriteName)
 
         func point(_ rel: CGPoint) -> CGPoint {
             CGPoint(x: rect.minX + rel.x * rect.width, y: rect.minY + rel.y * rect.height)

@@ -72,7 +72,9 @@ struct ProviderCardView: View {
             MascotPuppetView(spriteName: Self.mascotName(for: snapshot?.activeModel))
                 .frame(width: 64, height: 64)
         case .codex:
-            OpenAIGlyph()
+            // The knot has no face, so no eyes — but every other
+            // animation level (bob, poke, hop, crush, shadow) applies.
+            MascotPuppetView(spriteName: "openai-glyph")
                 .frame(width: 64, height: 64)
         default:
             Image(systemName: provider.symbolName)
