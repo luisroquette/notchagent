@@ -66,16 +66,15 @@ and [compatibility matrix](https://github.com/luisroquette/notchagent-desk/blob/
 
 **Notarized DMG** (recommended, no Terminal):
 
-> The notarized DMG below is still the 3.1.2 build. The current 3.5.1 ships
-> as the locally-signed ZIP (see below).
+> Both the DMG and the ZIP below are signed with Developer ID and
+> notarized by Apple (stapled ticket, Gatekeeper: Notarized Developer ID).
 
-1. Download [`NotchAgent-Desk-Beta1-3.1.2.dmg`](https://github.com/luisroquette/notchagent/releases/download/v3.1.2/NotchAgent-Desk-Beta1-3.1.2.dmg).
+1. Download [`NotchAgent-3.5.1.dmg`](https://github.com/luisroquette/notchagent/releases/download/v3.5.1/NotchAgent-3.5.1.dmg).
 2. Open the DMG and drag **NotchAgent** to **Applications**.
 3. Open NotchAgent and follow the guided setup.
 
-The DMG is signed with Developer ID, notarized by Apple, and carries a stapled
-ticket. Its published SHA-256 is
-`afc66a576d48b2c1a4bfeb9099d864158e673b9209b1e2db0436b0c709a234f4`.
+The DMG's published SHA-256 is
+`784064639255463502cef94331499a0e7530d98336d48613fc08f45cd9ee0a3b`.
 
 **Homebrew** (developer channel):
 
