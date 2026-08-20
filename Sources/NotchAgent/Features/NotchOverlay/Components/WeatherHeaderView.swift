@@ -229,6 +229,9 @@ struct WeatherGlyphView: View {
             }
         }
         .allowsHitTesting(false)
+        // The condition is spelled out in text right next to the glyph —
+        // the pixel art is decoration, never the only carrier of meaning.
+        .accessibilityHidden(true)
     }
 }
 

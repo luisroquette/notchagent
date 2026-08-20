@@ -216,7 +216,9 @@ public struct ModelHealth: Codable, Sendable, Equatable, Identifiable {
 }
 
 /// The one gauge that matters everywhere: how much of the limit is LEFT.
-/// Session window takes precedence; weekly is the fallback.
+/// Hierarchy (locked by QuotaHierarchyContractTests): BLOCKED > weekly
+/// exhausted > 5h session > weekly partial. The session only headlines
+/// while the weekly has headroom — an exhausted weekly always wins.
 public struct GaugeMetric: Sendable, Equatable {
     public let used: Double
     public let isWeekly: Bool
