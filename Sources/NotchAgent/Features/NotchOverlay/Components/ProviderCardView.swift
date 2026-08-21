@@ -264,11 +264,24 @@ struct ProviderCardView: View {
     /// room, since a scope NotchAgent has never seen locally (never used
     /// this week) simply isn't in this data at all.
     private func namedQuotaHint(_ snapshot: UsageSnapshot) -> String? {
-        let quotas = namedQuotas(snapshot)
+        Self.namedQuotaHintText(quotas: namedQuotas(snapshot), provider: snapshot.provider)
+    }
+
+    /// REGRESSÃO (21/08): with a single Codex model ever seen locally (the
+    /// common case — most users only run one model), the generic "Every
+    /// model seen locally..." wording reads as "the whole Codex account is
+    /// exhausted", when it's really just that one model's weekly cap (the
+    /// OpenAI account can still show other quotas at 100%). Naming the one
+    /// scope that's actually exhausted removes the ambiguity; the generic
+    /// wording is only correct once there's genuinely more than one.
+    static func namedQuotaHintText(quotas: [NamedQuota], provider: ProviderID) -> String? {
         guard !quotas.isEmpty, quotas.allSatisfy({ $0.usedPercent >= 99.5 }) else { return nil }
-        let portal = snapshot.provider == .codex
+        let portal = provider == .codex
             ? "chatgpt.com/codex/settings/usage"
             : "claude.ai/settings/usage"
+        if quotas.count == 1, let only = quotas.first {
+            return "\(only.name)'s weekly cap is exhausted · check \(portal) for other models"
+        }
         return "Every model seen locally this week is exhausted · check \(portal) for one that isn't"
     }
 

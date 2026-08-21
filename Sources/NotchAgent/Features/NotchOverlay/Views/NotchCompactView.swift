@@ -59,8 +59,16 @@ struct NotchCompactView: View {
         let snapshot = store.snapshots[provider]
         let metric = GaugeMetric.from(snapshot)
 
-        VStack(alignment: mirrored ? .trailing : .leading, spacing: 2.5) {
+        VStack(alignment: mirrored ? .trailing : .leading, spacing: 1) {
             // Row 1: who + which window, spelled out.
+            // REGRESSÃO (21/08): 3 rows (label + numeral + preview) at the
+            // old 2.5pt spacing overflowed the notch's real height (32pt on
+            // this hardware) — the label font's own line box reserves more
+            // vertical space than its glyph needs, so the top row got
+            // clipped by the system menu bar drawn above it. Compressing
+            // the line box with a small negative vertical padding (glyph
+            // stays full size, only the unused whitespace shrinks) fixes it
+            // without touching font sizes.
             HStack(spacing: 4) {
                 GaugeLabel(text: provider.shortName, color: Theme.textSecondary, size: 8)
                 if let metric {
@@ -80,6 +88,7 @@ struct NotchCompactView: View {
                     )
                 }
             }
+            .padding(.vertical, -2)
 
             // Row 2: the number + draining tank meter, mirrored outward.
             if let metric {
@@ -122,6 +131,7 @@ struct NotchCompactView: View {
                 }
                 GaugeLabel(text: line, color: color, size: 7)
                     .lineLimit(1)
+                    .padding(.vertical, -2)
             }
         }
         .accessibilityElement(children: .ignore)
