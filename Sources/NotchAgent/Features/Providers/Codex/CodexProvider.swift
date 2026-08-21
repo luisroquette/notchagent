@@ -110,15 +110,7 @@ struct CodexProvider: UsageProvider {
         // resetsAt hasn't already passed — a model unused this rolling week
         // would otherwise keep showing last week's number forever.
         let liveModelScopes = modelWeeklyScopes.filter { $0.value.window.resetsAt.map { $0 > now } ?? false }
-        // Codex exposes no reliable local label for "this is the account-wide
-        // total" vs. "this is one model's own cap" — so instead of guessing
-        // which scope is the aggregate, the headline number is always
-        // whichever known LIVE model has the LEAST headroom. That's the one
-        // that actually blocks the user next, regardless of what it's called
-        // (matches how a blocked quotaStatus already forces the gauge to
-        // empty elsewhere — worst case always wins, never a calm number that
-        // hides a real limit).
-        let primaryWeeklyScope = liveModelScopes.values.max { $0.window.usedPercent < $1.window.usedPercent }
+        let primaryWeeklyScope = Self.primaryWeeklyScope(among: liveModelScopes)
         let weeklyWindow = primaryWeeklyScope?.window
         let namedWeeklyQuotas: [NamedQuota] = liveModelScopes
             .map { model, scope in
@@ -237,5 +229,23 @@ struct CodexProvider: UsageProvider {
             }
         }
         return byModel
+    }
+
+    /// REGRESSÃO (21/08): each Codex model has its OWN independent weekly
+    /// cap — verified empirically: hitting a 429 on GPT-5.3-Codex-Spark,
+    /// then switching to another model, worked immediately with no wait.
+    /// Codex models are not a shared pool the way Claude's single account
+    /// is. Picking the WORST model as the headline (the old rule) painted
+    /// the whole "Codex" card red/exhausted whenever a single model you
+    /// happened to use ran out — even though the account plainly still
+    /// works for anything else. The headline must show the model with the
+    /// MOST headroom among what's been seen locally: "here's at least one
+    /// thing you can still use". Exhausted models still show individually
+    /// in the per-model breakdown (ProviderCardView.namedQuotas) — nothing
+    /// is hidden, the headline just stops overstating how blocked you are.
+    /// Only when EVERY known model is exhausted does this honestly return
+    /// the worst (and only) reading — there's nothing better to report.
+    static func primaryWeeklyScope(among liveModelScopes: [String: WeeklyScope]) -> WeeklyScope? {
+        liveModelScopes.values.min { $0.window.usedPercent < $1.window.usedPercent }
     }
 }

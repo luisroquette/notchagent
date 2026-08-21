@@ -188,7 +188,15 @@ final class CodexNamedWeeklyQuotaTests: XCTestCase {
         try? FileManager.default.removeItem(at: root)
     }
 
-    func testWorstModelIsTheHeadlineNumberEvenWhenAnOlderSighting() async throws {
+    // REGRESSÃO (21/08): a política mudou — Codex models are independent
+    // quota pools (verified empirically: a 429 on one model, then switching
+    // to another, worked immediately). "Worst model wins the headline" used
+    // to be the rule; now it's "most headroom wins" (see
+    // CodexProvider.primaryWeeklyScope). This test keeps its original job —
+    // proving resetsAt drift on the SAME model never fragments it into two
+    // scopes — but the headline assertion now points at the model WITH
+    // room, not the exhausted one.
+    func testBestModelIsTheHeadlineNumberEvenWhenAnOlderSighting() async throws {
         let now = Date()
         // "resetsAt drift" from the real bug: two sightings of the SAME
         // model, minutes apart, computed slightly different reset times.
@@ -227,13 +235,13 @@ final class CodexNamedWeeklyQuotaTests: XCTestCase {
         let snapshot = try await provider.fetchSnapshot(settings: AppSettings())
 
         XCTAssertEqual(
-            snapshot.weekly?.usedPercent, 100.0,
-            "the model with the least headroom must be the headline number, not whichever scope the newest single rollout happened to report"
+            snapshot.weekly?.usedPercent, 8.0,
+            "the model with the MOST headroom must be the headline number — models are independent, so the exhausted one doesn't block the other"
         )
         let names = snapshot.weekly?.namedQuotas?.map(\.name).sorted() ?? []
         XCTAssertEqual(names, ["gpt-5.3-codex-spark", "gpt-5.6-sol"], "resetsAt drift must not fragment sol into two entries")
-        let spark = try XCTUnwrap(snapshot.weekly?.namedQuotas?.first { $0.name == "gpt-5.3-codex-spark" })
-        XCTAssertEqual(spark.usedPercent, 8.0, "the model that still has room must still be recoverable for the detail view")
+        let sol = try XCTUnwrap(snapshot.weekly?.namedQuotas?.first { $0.name == "gpt-5.6-sol" })
+        XCTAssertEqual(sol.usedPercent, 100.0, "the exhausted model must still be recoverable for the detail view")
     }
 
     /// Reproduces the 15/08/2026 follow-up bug: the breakdown showed the
