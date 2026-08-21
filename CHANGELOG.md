@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.5.2 — 2026-08-21
+
+Codex quota-accuracy release. The Codex card was misreporting availability
+whenever a single model's weekly cap ran out, even though the account could
+still use other Codex models normally — confirmed empirically by hitting a
+429 on one model and switching to another without any wait.
+
+### Fixed
+
+- **Codex headline now reflects the model with the most headroom, not the
+  least.** Codex models are independent quota pools (unlike Claude's single
+  shared account) — exhausting one model's weekly cap never blocks the
+  others. The old rule picked the worst model seen locally as the headline
+  number, painting the whole card red/exhausted over a single model. The
+  per-model breakdown still lists every model, exhausted ones included —
+  nothing is hidden, the headline just stops overstating how blocked you
+  are.
+- The exhausted-quota hint now names the specific model ("gpt-5.3-codex-spark's
+  weekly cap is exhausted…") instead of a generic "every model seen locally
+  is exhausted" message that read as the whole Codex account being blocked.
+- Compact notch view: the top row (provider + window label) was clipped by
+  the system menu bar on notched displays — the stacked line boxes reserved
+  more vertical space than the physical notch height allows. Fixed without
+  changing font sizes.
+
 ## 3.5.1 — 2026-08-20
 
 Desk pairing release. The wire protocol formally declares 1.3 — the additive
