@@ -6,7 +6,7 @@
 > firmware, USB protocol, compatibility matrix, and factory contracts now live
 > in [`luisroquette/notchagent-desk`](https://github.com/luisroquette/notchagent-desk).
 > Product pages: [NotchAgent app](https://notchagent.app) ·
-> [NotchAgent Desk](https://cfgauss.com.br/shop/notchagent-desk).
+> [NotchAgent Desk](https://cfgauss.com.br/t/notchagent-desk-shop).
 
 <p align="center">
   <a href="https://notchagent.app"><img src="https://img.shields.io/badge/website-live-FF654F?style=flat-square" alt="NotchAgent website" /></a>
@@ -36,7 +36,7 @@ signed release remains reproducible; new hardware work belongs there.
 Beta 1 adds automatic device identity, visible firmware/protocol/health,
 sanitized diagnostics, a hash-verified local recovery updater, and repeatable
 reconnect/soak-test gates. No device telemetry leaves the Mac.
-See the [live setup guide](https://cfgauss.com.br/notchagent/instalar),
+See the [live setup guide](https://cfgauss.com.br/t/notchagent-instalar-pagina),
 [Desk BOM](https://github.com/luisroquette/notchagent-desk/blob/main/docs/BOM.md),
 and [compatibility matrix](https://github.com/luisroquette/notchagent-desk/blob/main/COMPATIBILITY.md).
 
@@ -71,7 +71,7 @@ and [compatibility matrix](https://github.com/luisroquette/notchagent-desk/blob/
 > Both the DMG and the ZIP below are signed with Developer ID and
 > notarized by Apple (stapled ticket, Gatekeeper: Notarized Developer ID).
 
-1. Download [`NotchAgent-3.5.1.dmg`](https://github.com/luisroquette/notchagent/releases/download/v3.5.1/NotchAgent-3.5.1.dmg).
+1. Download [`NotchAgent-3.5.1.dmg`](https://cfgauss.com.br/t/notchagent-download-dmg).
 2. Open the DMG and drag **NotchAgent** to **Applications**.
 3. Open NotchAgent and follow the guided setup.
 
@@ -265,7 +265,7 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 ## Distribution status
 
 - [x] NotchAgent 3.5.1 · notarized ZIP + DMG · automated test suite
-- [x] Public release [v3.5.1](https://github.com/luisroquette/notchagent/releases/tag/v3.5.1)
+- [x] Public release [v3.5.1](https://cfgauss.com.br/t/notchagent-releases)
 - [x] Homebrew Cask install
 - [x] Packaged `.app` with icon + launch-at-login + notifications
 - [x] Developer ID signature + notarization + stapled ticket
