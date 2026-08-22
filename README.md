@@ -11,11 +11,11 @@
 <p align="center">
   <a href="https://notchagent.app"><img src="https://img.shields.io/badge/website-live-FF654F?style=flat-square" alt="NotchAgent website" /></a>
   <a href="https://github.com/luisroquette/RocketLabs"><img src="https://img.shields.io/badge/RocketLabs-flagship%20project-7C5CFC?style=flat-square" alt="RocketLabs flagship project" /></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.5.1-38D6C7?style=flat-square" alt="Version v3.5.1" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-v3.5.2-38D6C7?style=flat-square" alt="Version v3.5.2" /></a>
   <a href="#install"><img src="https://img.shields.io/badge/install-notarized%20DMG-F3B85A?style=flat-square" alt="Install the notarized DMG" /></a>
 </p>
 
-**Current version: 3.5.1** · Desk protocol 1.3 · pairs with Desk firmware 0.8.0 · released 2026-08-20 · [version history](CHANGELOG.md)
+**Current version: 3.5.2** · Desk protocol 1.3 · pairs with Desk firmware 0.8.0 · released 2026-08-21 · [version history](CHANGELOG.md)
 
 A native macOS menu-bar + notch overlay for Claude Code/Codex quotas and
 financial monitoring of external API accounts. It shows provider-reported
@@ -71,12 +71,12 @@ and [compatibility matrix](https://github.com/luisroquette/notchagent-desk/blob/
 > Both the DMG and the ZIP below are signed with Developer ID and
 > notarized by Apple (stapled ticket, Gatekeeper: Notarized Developer ID).
 
-1. Download [`NotchAgent-3.5.1.dmg`](https://cfgauss.com.br/t/notchagent-download-dmg).
+1. Download [`NotchAgent-3.5.2.dmg`](https://cfgauss.com.br/t/notchagent-download-dmg).
 2. Open the DMG and drag **NotchAgent** to **Applications**.
 3. Open NotchAgent and follow the guided setup.
 
 The DMG's published SHA-256 is
-`784064639255463502cef94331499a0e7530d98336d48613fc08f45cd9ee0a3b`.
+`71fc4d23580124bfa41040643abbde39a2c9ee73c44f8ff9a340689f11a9227d`.
 
 **Homebrew** (developer channel):
 
@@ -85,17 +85,17 @@ brew install --cask luisroquette/tap/notchagent
 open /Applications/NotchAgent.app
 ```
 
-**Or download the signed ZIP** from [v3.5.1](../../releases/tag/v3.5.1), unzip it,
+**Or download the signed ZIP** from [v3.5.2](../../releases/tag/v3.5.2), unzip it,
 and move `NotchAgent.app` to `/Applications`:
 
 ```bash
 open /Applications/NotchAgent.app
 ```
 
-The 3.5.1 ZIP is signed with **Developer ID and notarized by Apple**
+The 3.5.2 ZIP is signed with **Developer ID and notarized by Apple**
 (stapled ticket, Gatekeeper verifies it as `Notarized Developer ID`). Its
 published SHA-256 is
-`f60db27add72be1da02c7ce74f691c7decf5c62457c1c609ee24c9a1be3c0e36`.
+`a4a40e2c446200e65e07cdb8c95f7866648997921fd5590b664e14c5e9252268`.
 
 **Or build from source** (Xcode 15+ / Swift 6 toolchain):
 
@@ -258,14 +258,14 @@ RefreshScheduler ───────────────┴─▶ Snapshot
 
 - Notch geometry is inferred (`safeAreaInsets` + auxiliary areas) — there's no official API; a fallback pill covers Apple changes.
 - Costs are estimates from a public table; subscription plans don't bill per token.
-- The 3.5.1 ZIP and DMG are Developer ID signed and notarized. The Desk hardware gates (24-hour physical soak, pilot evidence) apply to the Desk product, not the app distribution.
+- The 3.5.2 ZIP and DMG are Developer ID signed and notarized. The Desk hardware gates (24-hour physical soak, pilot evidence) apply to the Desk product, not the app distribution.
 - Local source builds are not the notarized release; they use the first available Apple Development identity unless `NOTCHAGENT_SIGN_IDENTITY` selects another identity.
 - `Limited` on the MODELS page reflects the account's unified rate limit at probe time, not the model itself being unavailable.
 
 ## Distribution status
 
-- [x] NotchAgent 3.5.1 · notarized ZIP + DMG · automated test suite
-- [x] Public release [v3.5.1](https://cfgauss.com.br/t/notchagent-releases)
+- [x] NotchAgent 3.5.2 · notarized ZIP + DMG · automated test suite
+- [x] Public release [v3.5.2](https://cfgauss.com.br/t/notchagent-releases)
 - [x] Homebrew Cask install
 - [x] Packaged `.app` with icon + launch-at-login + notifications
 - [x] Developer ID signature + notarization + stapled ticket
