@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.5.3 — 2026-08-22
+
+Critical regression fix. Hours after 3.5.2 shipped, the panel would
+force-expand and play the "full tank" celebration every few minutes with
+no real quota reset — caused by 3.5.2 itself.
+
+### Fixed
+
+- **Restore-moment celebration no longer fires repeatedly with no real
+  reset.** 3.5.2 changed Codex's weekly cap from always-exhausted to
+  reflecting the model with the most headroom — which means
+  `GaugeMetric.isWeekly` for Codex can now legitimately flip between
+  refreshes (session headline vs weekly headline), instead of being
+  permanently `true` as before. The restore-celebration tracking is keyed
+  per provider+window on purpose (a flipping gauge must not suppress a
+  real alert), but a provider whose window ITSELF flips minted a "new"
+  key on every flip, and the other key's stale fired state read as a
+  fresh reset on the very next flip back — celebrating (and
+  force-expanding the panel) every few minutes. Fixed with a 20-minute
+  per-provider cooldown on the celebration; a genuine recovery still
+  celebrates.
+
 ## 3.5.2 — 2026-08-21
 
 Codex quota-accuracy release. The Codex card was misreporting availability
