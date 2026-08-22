@@ -7,6 +7,7 @@ import XCTest
 /// sessionPrimaryLayout, weeklyOverridesHeadline) foram removidos junto com
 /// o layout que os usava; o guard estrutural
 /// QuotaHierarchyContractTests exige a ordem física dos blocos no fonte.
+@MainActor
 final class ProviderCardViewTests: XCTestCase {
     private func snapshotWithSessionOrigin(_ fromQuota: Bool?) -> UsageSnapshot {
         var session = SessionUsage(resetsAt: Date(), usedPercent: 40)

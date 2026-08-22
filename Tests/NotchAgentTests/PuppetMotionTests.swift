@@ -1,6 +1,7 @@
 import XCTest
 @testable import NotchAgent
 
+@MainActor
 final class PuppetMotionTests: XCTestCase {
     /// The visible thing is the TRANSITION between steps (the spring move),
     /// not the pose itself. A step may hold the previous pose (deliberate

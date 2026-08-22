@@ -6,6 +6,7 @@ import XCTest
 /// semanal (Claude/OpenAI), TODOS os modelos do pool compartilhado ficam
 /// inutilizáveis, independente do que um probe individual de disponibilidade
 /// reportar. Cotas próprias (Fable 5, GPT-5.3-Codex-Spark) ficam de fora.
+@MainActor
 final class SharedQuotaExhaustionTests: XCTestCase {
     private func snapshot(
         quotaStatus: QuotaStatus? = nil,

@@ -1,6 +1,7 @@
 import XCTest
 @testable import NotchAgent
 
+@MainActor
 final class NotchExpandedViewTests: XCTestCase {
     func testPanelStripProvidersExcludesGemini() {
         // Gemini CLI strip removed from the panel — unused, "NOT INSTALLED"

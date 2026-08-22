@@ -8,6 +8,7 @@ import XCTest
 /// LAYOUT INVARIÁVEL (20/08/2026) a regra ficou estrutural: o bloco de
 /// cima é SEMPRE a sessão (percentual ou tokens da SESSÃO, nunca tokens
 /// de outra janela) e o bloco de baixo é SEMPRE o semanal.
+@MainActor
 final class ProviderCardHeadlineTests: XCTestCase {
     // REGRESSÃO: probe ligado sem credencial OAuth → sem quota → o card
     // exibia tokens como se fossem a cota. Deve declarar indisponibilidade.
