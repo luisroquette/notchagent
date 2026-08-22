@@ -58,9 +58,19 @@ public enum ThresholdAlerts {
         return deepest
     }
 
+    /// REGRESSÃO (22/08): the bare `remaining >= 99.5` clause used to apply
+    /// even when a `previousLow` was already known, so a provider PARKED at
+    /// ~100% (no real climb since the last observation — Codex's estimated
+    /// session, which reports no `resetsAt`) looked like a fresh reset on
+    /// every single refresh. Confirmed live: 5+ identical threshold-100
+    /// alerts firing ~30s apart with the gauge never moving. Once a
+    /// `previousLow` exists, only an actual climb of ≥20 points counts as a
+    /// reset — sitting at the ceiling is not a climb. The bare `>= 99.5`
+    /// check now only applies via the guard branch, when there is no prior
+    /// observation to compare against at all.
     public static func shouldReset(remaining: Double, previousLow: Double?) -> Bool {
         guard let previousLow else { return remaining >= 99.5 }
-        return remaining >= 99.5 || remaining - previousLow >= 20
+        return remaining - previousLow >= 20
     }
 
     public static func resetBoundaryChanged(previous: Date?, current: Date?) -> Bool {

@@ -1,5 +1,29 @@
 # Changelog
 
+## 3.5.4 — 2026-08-22
+
+Second critical fix in the same day. 3.5.3's cooldown reduced but did not
+eliminate the false "full tank" takeovers — a deeper, pre-existing bug in
+the same area was still firing them roughly every 30 seconds.
+
+### Fixed
+
+- **`ThresholdAlerts.shouldReset` no longer treats a stable ~100% reading as
+  a reset.** The function had a bare `remaining >= 99.5` clause that fired
+  even when a `previousLow` was already known — so a provider PARKED at
+  ~100% with no real climb (Codex's estimated-session fallback, which
+  reports no `resetsAt`) looked like a fresh window reset on every single
+  refresh. Each false reset re-armed and re-fired the cold-start "100%
+  full" threshold alert, force-expanding the panel roughly every 30
+  seconds with the gauge never actually moving. Confirmed live via debug
+  logging before the fix and again after (0 fires in 5 minutes, versus
+  one every ~30 seconds before). Once a `previousLow` exists, only an
+  actual climb of ≥20 points now counts as a reset.
+- This is unrelated to 3.5.3's per-provider restore-moment cooldown, which
+  stays in place — the two protect different code paths that shared the
+  same underlying cause (Codex's `GaugeMetric.isWeekly` no longer being
+  permanently `true`, since 3.5.2).
+
 ## 3.5.3 — 2026-08-22
 
 Critical regression fix. Hours after 3.5.2 shipped, the panel would

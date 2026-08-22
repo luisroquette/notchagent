@@ -23,6 +23,31 @@ final class ThresholdAlertsTests: XCTestCase {
         XCTAssertTrue(ThresholdAlerts.shouldReset(remaining: 80, previousLow: 24))
     }
 
+    /// REGRESSÃO (22/08): with no known resetsAt (Codex's estimated-session
+    /// fallback), `shouldReset` fed `inferredReset`, which cleared `fired`
+    /// every refresh whenever remaining stayed near 100% — the bare
+    /// `remaining >= 99.5` clause fired even when `previousLow` was ALREADY
+    /// at that same ~100% (no real climb happened, it's a stable plateau).
+    /// Each clear re-triggered the cold-start "100% full" threshold alert,
+    /// force-expanding the panel every refresh cycle (~30s) with no actual
+    /// reset ever occurring — confirmed live via debug logging: 5+ identical
+    /// `activeThresholdAlert` fires for Codex, threshold=100, remaining≈100,
+    /// roughly 30 seconds apart.
+    func testStablePlateauNearFullDoesNotReReset() {
+        XCTAssertFalse(
+            ThresholdAlerts.shouldReset(remaining: 99.99, previousLow: 99.99),
+            "already at ~100% with no real climb since the last observation must not look like a reset"
+        )
+        XCTAssertFalse(
+            ThresholdAlerts.shouldReset(remaining: 100, previousLow: 99.6),
+            "sitting at the ceiling is not a climb — no threshold crossed since previousLow"
+        )
+        // A genuine climb to near-100% from a real low must still reset.
+        XCTAssertTrue(ThresholdAlerts.shouldReset(remaining: 99.99, previousLow: 5))
+        // No prior observation at all (guard branch) is unaffected.
+        XCTAssertTrue(ThresholdAlerts.shouldReset(remaining: 99.99, previousLow: nil))
+    }
+
     func testResetBoundaryIgnoresParserJitter() {
         let reset = Date(timeIntervalSince1970: 2_000_000_000)
         XCTAssertFalse(ThresholdAlerts.resetBoundaryChanged(
