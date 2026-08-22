@@ -34,6 +34,22 @@ final class UsageStore {
     @ObservationIgnored private var alertWindowResetAt: [String: Date] = [:]
     @ObservationIgnored private var alertDismissTask: Task<Void, Never>?
     @ObservationIgnored private var restoreDismissTask: Task<Void, Never>?
+    /// REGRESSÃO (22/08): `firedThresholds` is intentionally keyed per
+    /// provider+window (session vs weekly) — a real design choice (see that
+    /// property's comment) so a gauge flipping windows never suppresses nor
+    /// re-fires a genuine alert. But a provider whose GaugeMetric.isWeekly
+    /// itself flips true/false refresh-to-refresh (Codex, since
+    /// CodexProvider.primaryWeeklyScope started picking the model with the
+    /// MOST headroom — weekly is no longer always exhausted) mints a "new"
+    /// key on every flip, and the OTHER key's stale fired state looks like a
+    /// fresh reset on the very next flip back. Without a floor, that
+    /// alternation celebrates (and force-expands the panel) every few
+    /// minutes with no real quota reset. This cooldown is additive — it
+    /// doesn't touch the per-window key design, it just stops the SAME
+    /// provider from celebrating twice in a row faster than a real reset
+    /// could plausibly happen.
+    private static let restoreCooldown: TimeInterval = 20 * 60
+    @ObservationIgnored private var lastRestoreAt: [ProviderID: Date] = [:]
     var isPaused = false {
         didSet { if oldValue != isPaused { onDeskStateChange?() } }
     }
@@ -219,7 +235,7 @@ final class UsageStore {
             if !fired.isEmpty, let low = lowestRemainingSinceFired[key],
                let lastActivity = snapshot.lastActivityAt,
                snapshot.capturedAt.timeIntervalSince(lastActivity) < 10 * 60 {
-                presentRestore(provider: snapshot.provider, previousRemaining: low, remaining: remaining, isWeekly: metric.isWeekly)
+                presentRestore(provider: snapshot.provider, previousRemaining: low, remaining: remaining, isWeekly: metric.isWeekly, now: snapshot.capturedAt)
             }
             fired = []
             lowestRemainingSinceFired[key] = nil
@@ -286,7 +302,11 @@ final class UsageStore {
 
     /// Sticky like `present(_:)`: a moment already showing isn't replaced by a
     /// smaller bounce-back from another provider in the same refresh cycle.
-    private func presentRestore(provider: ProviderID, previousRemaining: Double, remaining: Double, isWeekly: Bool) {
+    private func presentRestore(provider: ProviderID, previousRemaining: Double, remaining: Double, isWeekly: Bool, now: Date) {
+        if let last = lastRestoreAt[provider], now.timeIntervalSince(last) < Self.restoreCooldown {
+            return
+        }
+        lastRestoreAt[provider] = now
         let moment = RestoreMoment(
             provider: provider,
             previousRemaining: previousRemaining,
