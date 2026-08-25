@@ -89,6 +89,32 @@ final class RefreshSchedulerTests: XCTestCase {
         )
     }
 
+    // REGRESSÃO (25/08): app.log real mostrou 156/169 falhas de Keychain com
+    // status -25320 ("In dark wake, no UI possible") — o loop de tick rodava
+    // a cada 60s mesmo com o Mac dormindo (Power Nap/dark wake ainda executa
+    // código em background, sem poder mostrar UI). SleepGate deve bloquear
+    // ticks não-forçados nesse intervalo.
+    func testSleepGateBlocksTicksBetweenSleepAndWake() {
+        var gate = SleepGate()
+        XCTAssertFalse(gate.isAsleep, "não deve começar dormindo")
+
+        gate.willSleep()
+        XCTAssertTrue(gate.isAsleep, "willSleep deve marcar como dormindo")
+
+        gate.didWake()
+        XCTAssertFalse(gate.isAsleep, "didWake deve limpar o estado de dormindo")
+    }
+
+    func testSleepGateIgnoresRedundantTransitions() {
+        var gate = SleepGate()
+        gate.didWake() // nunca dormiu — não deve quebrar
+        XCTAssertFalse(gate.isAsleep)
+
+        gate.willSleep()
+        gate.willSleep() // dark wake pode chamar willSleep de novo sem um wake real no meio
+        XCTAssertTrue(gate.isAsleep)
+    }
+
     func testInvalidatedAccountCacheRejectsLateStore() async {
         let cache = APIAccountSnapshotCache()
         let oldRevision = await cache.currentRevision()

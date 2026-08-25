@@ -24,6 +24,18 @@ struct RefreshRequestQueue {
     }
 }
 
+/// Tracks whether the system is between `willSleepNotification` and
+/// `didWakeNotification`. A background Power Nap / dark-wake cycle still
+/// runs enough of the process to fire the periodic tick timer, but any
+/// Keychain read attempted then fails immediately with -25320 ("In dark
+/// wake, no UI possible") — measured as 156 of 169 Keychain failures in a
+/// real app.log (25/08). Non-forced ticks must be skipped while asleep.
+struct SleepGate {
+    private(set) var isAsleep = false
+    mutating func willSleep() { isAsleep = true }
+    mutating func didWake() { isAsleep = false }
+}
+
 struct RefreshGenerationTracker {
     private(set) var counter: UInt64 = 0
     private var providerGeneration: [ProviderID: UInt64] = [:]
@@ -80,6 +92,14 @@ final class RefreshScheduler {
     private var loopTask: Task<Void, Never>?
     private var refreshQueue = RefreshRequestQueue()
     private var generations = RefreshGenerationTracker()
+    private var sleepGate = SleepGate()
+    /// Grace period after a real wake before touching the Keychain. Right at
+    /// wake the system can still be in a transitional/dark-wake-adjacent
+    /// state where SecurityAgent can't cleanly present or hold a prompt
+    /// (-60008 "Unable to obtain authorization", -128 "User canceled" both
+    /// clustered right around wake in app.log). Not user-configurable —
+    /// this is an OS-timing workaround, not a feature.
+    private static let wakeSettleDelay: Duration = .seconds(3)
 
     init(
         providers: [any UsageProvider],
@@ -97,6 +117,12 @@ final class RefreshScheduler {
         guard loopTask == nil else { return }
         Log.refresh.info("scheduler started")
 
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(systemWillSleep),
+            name: NSWorkspace.willSleepNotification,
+            object: nil
+        )
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
             selector: #selector(systemDidWake),
@@ -169,14 +195,29 @@ final class RefreshScheduler {
         start()
     }
 
+    @objc private func systemWillSleep() {
+        sleepGate.willSleep()
+    }
+
     @objc private func systemDidWake() {
+        sleepGate.didWake()
         // Respect a user-initiated pause — waking the lid must not spend probes.
         guard !store.isPaused else { return }
-        Log.refresh.info("system woke — refreshing")
-        refreshNow()
+        Log.refresh.info("system woke — refreshing in \(Self.wakeSettleDelay)")
+        Task { [weak self] in
+            try? await Task.sleep(for: Self.wakeSettleDelay)
+            self?.refreshNow()
+        }
     }
 
     private func tick(force: Bool = false) async {
+        // Dark wake/Power Nap still runs this loop's timer without any
+        // ability to show Keychain UI — skip rather than burn a doomed
+        // Keychain read every interval. The wake-triggered forced tick
+        // already ran didWake() first, so it is never blocked here.
+        if sleepGate.isAsleep && !force {
+            return
+        }
         if store.isPaused && !force {
             return
         }
