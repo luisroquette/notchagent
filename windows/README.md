@@ -24,10 +24,9 @@ A pre-built, self-contained, **unsigned** `win-x64` binary is published as a
 GitHub prerelease for early testers who don't want to build from source:
 [`NotchAgent.Windows.exe`](https://github.com/luisroquette/notchagent/releases/download/windows-test-build-20260824/NotchAgent.Windows.exe)
 (tag `windows-test-build-20260824`, not part of the versioned `v*` release
-cycle). SmartScreen will block it on first run ("Windows protected your PC") —
-click "More info" → "Run anyway". Not yet validated on physical Windows
-hardware (tray icon rendering, DPI scaling, multi-monitor detection are
-unverified — see Known limitations below).
+cycle). SmartScreen will warn on first run — this is expected until an
+Authenticode certificate is added; see Known limitations below, which also
+covers what has and hasn't been validated on physical Windows hardware yet.
 
 Ported from the Mac app's calibrated logic (same JSONL parsers, same
 "current window" semantics, same threshold-alert/recovery lifecycle):
