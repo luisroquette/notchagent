@@ -25,7 +25,11 @@ local-first, no backend, no telemetry. Swift 6 + SwiftUI/AppKit, zero Electron.
 **Windows preview (build from source)** — a .NET 8 + Avalonia system-tray
 companion is under validation. It is not yet offered as a signed installer or
 as equivalent to the macOS release. See [`windows/README.md`](windows/README.md)
-for the implemented feature set, build instructions, and current limits.
+for the implemented feature set, build instructions, and current limits. A
+pre-built, **unsigned** test binary is available for early testers:
+[`NotchAgent.Windows.exe`](https://github.com/luisroquette/notchagent/releases/download/windows-test-build-20260824/NotchAgent.Windows.exe)
+(Windows SmartScreen will warn on first run — this is expected until an
+Authenticode certificate is added).
 
 **NotchAgent Desk Beta 1** consumes the app's same local-first state on a
 Guition JC4832W535 ESP32-S3 touch display over USB. The hardware source of
