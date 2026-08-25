@@ -70,9 +70,12 @@ The result is a single `NotchAgent.Windows.exe` (~90 MB, self-contained).
 ## Known limitations
 
 - Not code-signed. The generated executable is a development artifact, not a
-  customer installer. Do not distribute it or instruct customers to bypass
-  SmartScreen; public release requires Authenticode signing and a clean install
-  test on physical Windows 10 and Windows 11 machines.
+  stable customer installer — it is published only as a clearly labeled,
+  unsigned preview build for early testers (see the link above), never
+  marketed as equivalent to a signed release. Do not instruct testers to
+  bypass SmartScreen beyond the passive warning already documented here. A
+  stable public release still requires Authenticode signing and a clean
+  install test on physical Windows 10 and Windows 11 machines.
 - Built and validated end-to-end on macOS (no Windows machine available in
   this environment): the same Avalonia app runs locally on macOS (Avalonia
   is cross-platform for dev), which is how a real cross-thread crash in the
