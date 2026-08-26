@@ -310,11 +310,11 @@ pilot_sources="$test_dir/pilot-sources.json"
 jq -s . "$pilot_sources_ndjson" > "$pilot_sources"
 
 consent_artifacts=(
-  "$PWD/docs/img/panel-models.png"
+  "$PWD/docs/img/claude-models.png"
   "$PWD/docs/img/settings.png"
-  "$PWD/docs/img/desktop-burn.png"
-  "$PWD/docs/img/panel-now.png"
-  "$PWD/docs/img/dashboard-1.png"
+  "$PWD/docs/img/burn-5h-exhausted.png"
+  "$PWD/docs/img/now-cards.png"
+  "$PWD/docs/img/dashboard-session.png"
 )
 consent_sources_ndjson="$test_dir/consent-sources.ndjson"
 : > "$consent_sources_ndjson"
@@ -477,16 +477,16 @@ enclosure_sample="$test_dir/enclosure-sample.json"
 packaging_sample="$test_dir/packaging-sample.json"
 make_sample_report display SUPPLIER-DISPLAY SKU-DISPLAY \
   '{"display":true,"noDeadPixels":true,"touch":true}' \
-  "$PWD/docs/img/notch-compact.png" "$PWD/docs/img/dashboard-2.png" "$display_sample"
+  "$PWD/docs/img/notch-compact.png" "$PWD/docs/img/openai-models.png" "$display_sample"
 make_sample_report data-cable SUPPLIER-DATA-CABLE SKU-DATA-CABLE \
   '{"dataTransfer":true,"directMac":true,"dock":true}' \
-  "$PWD/docs/img/alert-almost-empty.png" "$PWD/docs/img/dashboard-1.png" "$cable_sample"
+  "$PWD/docs/img/alert-almost-empty.png" "$PWD/docs/img/dashboard-session.png" "$cable_sample"
 make_sample_report enclosure SUPPLIER-ENCLOSURE SKU-ENCLOSURE \
   '{"bootAccess":true,"connectorFit":true,"touchAccess":true,"ventilation":true}' \
-  "$PWD/docs/img/panel-now.png" "$PWD/docs/img/panel-rhythm.png" "$enclosure_sample"
+  "$PWD/docs/img/now-cards.png" "$PWD/docs/img/rhythm.png" "$enclosure_sample"
 make_sample_report packaging SUPPLIER-PACKAGING SKU-PACKAGING \
   '{"onboardingQR":true,"recoveryCard":true}' \
-  "$PWD/docs/img/panel-burn.png" "$PWD/docs/img/desktop-now.png" "$packaging_sample"
+  "$PWD/docs/img/burn-weekly-blocked.png" "$PWD/docs/img/claude-models.png" "$packaging_sample"
 
 valid_bom="$test_dir/valid-bom.json"
 jq --arg displayFile "$display_sample" --arg displaySHA "$(shasum -a 256 "$display_sample" | awk '{print $1}')" \
@@ -634,14 +634,14 @@ factory_manifest_sha=$(shasum -a 256 firmware/notchagent_desk/release/manifest.j
 factory_visual_helper_fixture="$test_dir/factory-visual-helper.json"
 Scripts/notchagent-desk-factory-visual-evidence.sh "$factory_visual_helper_fixture" \
   BETA1-LOT-A DESK-B1-099 "$PWD/docs/img/notch-compact.png" \
-  "$PWD/docs/img/dashboard-2.png" "$PWD/docs/img/alert-almost-empty.png" \
-  "$PWD/docs/img/dashboard-1.png" >/dev/null
+  "$PWD/docs/img/openai-models.png" "$PWD/docs/img/alert-almost-empty.png" \
+  "$PWD/docs/img/dashboard-session.png" >/dev/null
 Scripts/notchagent-desk-factory-visual-gate.sh "$factory_visual_helper_fixture" \
   BETA1-LOT-A DESK-B1-099 >/dev/null
 if Scripts/notchagent-desk-factory-visual-evidence.sh "$factory_visual_helper_fixture" \
   BETA1-LOT-A DESK-B1-099 "$PWD/docs/img/notch-compact.png" \
-  "$PWD/docs/img/dashboard-2.png" "$PWD/docs/img/alert-almost-empty.png" \
-  "$PWD/docs/img/dashboard-1.png" >/dev/null 2>&1; then
+  "$PWD/docs/img/openai-models.png" "$PWD/docs/img/alert-almost-empty.png" \
+  "$PWD/docs/img/dashboard-session.png" >/dev/null 2>&1; then
     echo "FAIL: factory visual helper overwrote existing private evidence." >&2
     exit 1
 fi
