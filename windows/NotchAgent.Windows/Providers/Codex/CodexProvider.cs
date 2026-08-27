@@ -17,6 +17,7 @@ public sealed class CodexProvider : IUsageProvider
 
     private readonly string _root;
     private const string DefaultModel = "gpt-5";
+    private const string SharedLimitId = "codex";
     private readonly Dictionary<string, CodexTokenInfo?> _cache = new();
     private static readonly TimeSpan Lookback = TimeSpan.FromDays(8);
     private static readonly Regex RolloutStamp = new(@"^rollout-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})-", RegexOptions.Compiled);
@@ -106,8 +107,16 @@ public sealed class CodexProvider : IUsageProvider
         // position — and NEVER trust a window whose reset already passed.
         CodexRateWindow? FreshWindow(CodexRateWindow? w) =>
             w is null ? null : (w.ResetsAt is { } r && r <= now ? null : w);
-        var sessionWindow = FreshWindow(latest.SessionWindow);
-        var weeklyWindow = FreshWindow(latest.WeeklyWindow);
+        // Standard models share OpenAI's `codex` pool. Spark has a separate
+        // limit ID and must never replace the main card just because it was
+        // observed most recently.
+        var shared = perFile
+            .Where(f => string.IsNullOrEmpty(f.Info.LimitId) || f.Info.LimitId == SharedLimitId)
+            .OrderByDescending(f => f.Info.Timestamp ?? f.Start)
+            .Select(f => f.Info)
+            .FirstOrDefault();
+        var sessionWindow = FreshWindow(shared?.SessionWindow);
+        var weeklyWindow = FreshWindow(shared?.WeeklyWindow);
 
         // Session tokens: sum every rollout STARTED inside the official window.
         var sessionTokens = latest.Totals;
@@ -166,7 +175,7 @@ public sealed class CodexProvider : IUsageProvider
                 .OrderBy(h => h.Hour).ToList(),
         };
 
-        var noteParts = new[] { latest.LimitName, latest.PlanType is { } pt ? $"Plan: {pt}" : null }
+        var noteParts = new[] { shared?.PlanType is { } pt ? $"Plan: {pt}" : null }
             .Where(p => !string.IsNullOrEmpty(p));
         var note = string.Join(" · ", noteParts);
 

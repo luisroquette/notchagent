@@ -210,7 +210,7 @@ struct ProviderCardView: View {
                 .font(Theme.numeral(24))
                 .monospacedDigit()
                 .foregroundStyle(Theme.textPrimary)
-            GaugeLabel(text: "CURRENT SESSION · NO DAILY CAP REPORTED")
+            GaugeLabel(text: "CURRENT SESSION · NO 5H LIMIT REPORTED")
             if let startedAt = snapshot.session?.startedAt {
                 GaugeLabel(text: "STARTED \(Format.relative(startedAt))", color: Theme.textFaint, size: 8)
             }

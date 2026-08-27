@@ -11,6 +11,7 @@ final class CodexParserTests: XCTestCase {
         XCTAssertEqual(info.primary?.usedPercent, 10.0)
         XCTAssertEqual(info.secondary?.usedPercent, 19.0)
         XCTAssertEqual(info.planType, "prolite")
+        XCTAssertEqual(info.limitID, "codex")
     }
 
     func testNormalizesCachedInputTokens() throws {
@@ -43,6 +44,40 @@ final class CodexParserTests: XCTestCase {
     }
 }
 
+final class CodexAppServerRateLimitReaderTests: XCTestCase {
+    func testLiveOfficialRateLimitsWhenExplicitlyEnabled() async throws {
+        guard ProcessInfo.processInfo.environment["NOTCHAGENT_CODEX_RATE_LIMIT_E2E"] == "1" else {
+            throw XCTSkip("Set NOTCHAGENT_CODEX_RATE_LIMIT_E2E=1 for the authenticated read-only test")
+        }
+        let reader = CodexAppServerRateLimitReader(minInterval: 0)
+        let response = await reader.currentLimits()
+        let limits = try XCTUnwrap(response)
+        XCTAssertNotNil(limits["codex"]?.weeklyWindow)
+        XCTAssertNotNil(limits["codex_bengalfox"]?.sessionWindow)
+    }
+
+    func testParsesOfficialSharedAndSparkBuckets() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let response = #"{"id":2,"result":{"rateLimits":{"limitId":"codex","primary":{"usedPercent":12,"windowDurationMins":300,"resetsAt":1800000300},"secondary":{"usedPercent":67,"windowDurationMins":10080,"resetsAt":1800604800}},"rateLimitsByLimitId":{"codex":{"limitId":"codex","limitName":null,"primary":{"usedPercent":12,"windowDurationMins":300,"resetsAt":1800000300},"secondary":{"usedPercent":67,"windowDurationMins":10080,"resetsAt":1800604800},"planType":"pro"},"codex_bengalfox":{"limitId":"codex_bengalfox","limitName":"GPT-5.3-Codex-Spark","primary":{"usedPercent":3,"windowDurationMins":300,"resetsAt":1800000600},"secondary":{"usedPercent":9,"windowDurationMins":10080,"resetsAt":1800608400},"planType":"pro"}}}}"#
+
+        let limits = try XCTUnwrap(
+            CodexAppServerRateLimitReader.parseResponse(Data((response + "\n").utf8), now: now)
+        )
+        XCTAssertEqual(limits["codex"]?.sessionWindow?.usedPercent, 12)
+        XCTAssertEqual(limits["codex"]?.weeklyWindow?.usedPercent, 67)
+        XCTAssertEqual(limits["codex_bengalfox"]?.sessionWindow?.usedPercent, 3)
+        XCTAssertEqual(limits["codex_bengalfox"]?.weeklyWindow?.usedPercent, 9)
+        XCTAssertEqual(limits["codex_bengalfox"]?.limitName, "GPT-5.3-Codex-Spark")
+    }
+
+    func testFallsBackToBackwardCompatibleSingleBucket() throws {
+        let response = #"{"id":2,"result":{"rateLimits":{"limitId":"codex","primary":{"usedPercent":40,"windowDurationMins":300,"resetsAt":1800000300},"secondary":null}}}"#
+        let limits = try XCTUnwrap(CodexAppServerRateLimitReader.parseResponse(Data(response.utf8)))
+        XCTAssertEqual(limits.keys.sorted(), ["codex"])
+        XCTAssertEqual(limits["codex"]?.sessionWindow?.usedPercent, 40)
+    }
+}
+
 final class GeminiParserTests: XCTestCase {
     private var fixtureURL: URL {
         Bundle.module.url(forResource: "gemini-logs", withExtension: "json", subdirectory: "Fixtures")!
@@ -53,40 +88,5 @@ final class GeminiParserTests: XCTestCase {
         XCTAssertEqual(stat.promptTimestamps.count, 3)
         XCTAssertEqual(stat.sessionIDs, ["s1", "s2"])
         XCTAssertEqual(stat.lastActivity, Timestamps.parseISO8601("2026-07-11T09:00:00.000Z"))
-    }
-}
-
-// MARK: - Session percent estimate (5h budget fallback)
-
-final class CodexSessionBudgetTests: XCTestCase {
-    func testEstimatedSessionPercentNilWithoutBudget() {
-        XCTAssertNil(CodexProvider.estimatedSessionPercent(tokens: 1_000, budget: nil))
-        XCTAssertNil(CodexProvider.estimatedSessionPercent(tokens: 1_000, budget: 0))
-    }
-
-    func testEstimatedSessionPercentBasics() {
-        XCTAssertEqual(CodexProvider.estimatedSessionPercent(tokens: 250, budget: 1_000), 25)
-        XCTAssertEqual(CodexProvider.estimatedSessionPercent(tokens: 2_000, budget: 1_000), 100)
-    }
-
-    func testEstimatedSessionPercentZeroTokens() {
-        XCTAssertEqual(CodexProvider.estimatedSessionPercent(tokens: 0, budget: 1_000), 0)
-    }
-}
-
-// MARK: - Default session budget
-
-final class CodexBudgetDefaultTests: XCTestCase {
-    func testDefaultSessionBudgetWhenKeyAbsent() throws {
-        let settings = try JSONDecoder().decode(AppSettings.self, from: Data("{}".utf8))
-        XCTAssertEqual(settings.codexSessionTokenBudget, 5_000_000_000)
-    }
-
-    func testExplicitBudgetWinsOverDefault() throws {
-        let settings = try JSONDecoder().decode(
-            AppSettings.self,
-            from: Data(#"{"codexSessionTokenBudget": 12345}"#.utf8)
-        )
-        XCTAssertEqual(settings.codexSessionTokenBudget, 12_345)
     }
 }

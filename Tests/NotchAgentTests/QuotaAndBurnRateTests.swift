@@ -207,66 +207,49 @@ final class CodexWindowClassificationTests: XCTestCase {
     }
 }
 
-final class CodexWeeklyScopeMergeTests: XCTestCase {
+final class CodexQuotaScopeMergeTests: XCTestCase {
     private func entry(
-        model: String?,
+        limitID: String?,
+        limitName: String? = nil,
         usedPercent: Double,
         resetsAt: Date,
         timestamp: Date,
         start: Date
     ) -> (info: CodexTokenInfo, start: Date) {
-        var info = CodexTokenInfo(
+        let info = CodexTokenInfo(
             timestamp: timestamp,
             totals: .zero,
-            primary: CodexRateWindow(usedPercent: usedPercent, windowMinutes: 10_080, resetsAt: resetsAt)
+            primary: CodexRateWindow(usedPercent: usedPercent, windowMinutes: 10_080, resetsAt: resetsAt),
+            limitID: limitID,
+            limitName: limitName
         )
-        info.model = model
         return (info: info, start: start)
     }
 
-    /// Two different models must both survive even when they come from
-    /// different files at different times.
-    func testRecoversEachModelsOwnScope() {
+    func testStandardModelsCollapseIntoSharedLimitAndSparkStaysSeparate() {
         let now = Date()
-        let exhausted = entry(
-            model: "gpt-5.6-sol", usedPercent: 100, resetsAt: now.addingTimeInterval(5 * 86_400),
+        let olderShared = entry(
+            limitID: "codex", usedPercent: 9, resetsAt: now.addingTimeInterval(5 * 86_400),
             timestamp: now.addingTimeInterval(-6 * 3600), start: now.addingTimeInterval(-6 * 3600)
         )
-        let other = entry(
-            model: "gpt-5.3-codex-spark", usedPercent: 8, resetsAt: now.addingTimeInterval(7 * 86_400),
+        let newerShared = entry(
+            limitID: "codex", usedPercent: 65, resetsAt: now.addingTimeInterval(5 * 86_400),
             timestamp: now, start: now
         )
-        let scopes = CodexProvider.freshestWeeklyScopesByModel([exhausted, other])
+        let spark = entry(
+            limitID: "codex_bengalfox", limitName: "GPT-5.3-Codex-Spark", usedPercent: 8,
+            resetsAt: now.addingTimeInterval(7 * 86_400), timestamp: now, start: now
+        )
+        let scopes = CodexProvider.freshestQuotaScopesByLimitID([olderShared, newerShared, spark])
         XCTAssertEqual(scopes.count, 2)
-        XCTAssertEqual(scopes["gpt-5.6-sol"]?.window.usedPercent, 100)
-        XCTAssertEqual(scopes["gpt-5.3-codex-spark"]?.window.usedPercent, 8)
+        XCTAssertEqual(scopes["codex"]?.info.weeklyWindow?.usedPercent, 65)
+        XCTAssertEqual(scopes["codex_bengalfox"]?.info.weeklyWindow?.usedPercent, 8)
     }
 
-    /// Reproduces the exact bug reported 15/08/2026: `resetsAt` is
-    /// recomputed fresh on every response (drifts by mere seconds between
-    /// sightings of the SAME model's cap) — keying by it fragmented one real
-    /// scope into dozens of fake ones. Two sightings of the same model with
-    /// different `resetsAt` must collapse into ONE scope, keeping only the
-    /// freshest observation.
-    func testSameModelWithDriftingResetsAtCollapsesToOneScope() {
+    func testLegacyUnnamedLimitFallsBackToSharedScope() {
         let now = Date()
-        let older = entry(
-            model: "gpt-5.6-sol", usedPercent: 40, resetsAt: now.addingTimeInterval(86_400),
-            timestamp: now.addingTimeInterval(-3600), start: now.addingTimeInterval(-3600)
-        )
-        let newer = entry(
-            model: "gpt-5.6-sol", usedPercent: 55, resetsAt: now.addingTimeInterval(86_401), // 1s drift
-            timestamp: now, start: now
-        )
-        let scopes = CodexProvider.freshestWeeklyScopesByModel([older, newer])
-        XCTAssertEqual(scopes.count, 1, "the same model must never fragment into multiple scopes just because resetsAt drifted")
-        XCTAssertEqual(scopes["gpt-5.6-sol"]?.window.usedPercent, 55, "the freshest sighting must win, not the first one seen")
-    }
-
-    func testEntryWithNoKnownModelIsSkipped() {
-        let now = Date()
-        let unknown = entry(model: nil, usedPercent: 10, resetsAt: now.addingTimeInterval(86_400), timestamp: now, start: now)
-        XCTAssertTrue(CodexProvider.freshestWeeklyScopesByModel([unknown]).isEmpty, "an event with no model attached can't be honestly labeled, so it's skipped rather than guessed at")
+        let legacy = entry(limitID: nil, usedPercent: 10, resetsAt: now.addingTimeInterval(86_400), timestamp: now, start: now)
+        XCTAssertEqual(CodexProvider.freshestQuotaScopesByLimitID([legacy])["codex"]?.info.weeklyWindow?.usedPercent, 10)
     }
 }
 

@@ -17,6 +17,7 @@ public sealed class CodexTokenInfo
     public CodexRateWindow? Primary { get; init; }
     public CodexRateWindow? Secondary { get; init; }
     public string? PlanType { get; init; }
+    public string? LimitId { get; init; }
     public string? LimitName { get; init; }
     public string? Model { get; init; }
 
@@ -43,6 +44,7 @@ public static class CodexRolloutParser
         CodexRateWindow? primary = null;
         CodexRateWindow? secondary = null;
         string? planType = null;
+        string? limitId = null;
         string? limitName = null;
         string? model = null;
         bool haveInfo = false;
@@ -57,6 +59,7 @@ public static class CodexRolloutParser
                 primary = info.Primary;
                 secondary = info.Secondary;
                 planType = info.PlanType;
+                limitId = info.LimitId;
                 limitName = info.LimitName;
                 haveInfo = true;
             }
@@ -75,6 +78,7 @@ public static class CodexRolloutParser
             Primary = primary,
             Secondary = secondary,
             PlanType = planType,
+            LimitId = limitId,
             LimitName = limitName,
             Model = model,
         };
@@ -113,12 +117,13 @@ public static class CodexRolloutParser
             };
 
             CodexRateWindow? primary = null, secondary = null;
-            string? planType = null, limitName = null;
+            string? planType = null, limitId = null, limitName = null;
             if (payload.TryGetProperty("rate_limits", out var rateLimits) && rateLimits.ValueKind == JsonValueKind.Object)
             {
                 primary = ParseWindow(rateLimits, "primary");
                 secondary = ParseWindow(rateLimits, "secondary");
                 planType = rateLimits.TryGetProperty("plan_type", out var pt) ? pt.GetString() : null;
+                limitId = rateLimits.TryGetProperty("limit_id", out var li) ? li.GetString() : null;
                 limitName = rateLimits.TryGetProperty("limit_name", out var ln) ? ln.GetString() : null;
             }
 
@@ -129,6 +134,7 @@ public static class CodexRolloutParser
                 Primary = primary,
                 Secondary = secondary,
                 PlanType = planType,
+                LimitId = limitId,
                 LimitName = limitName,
             };
             return true;

@@ -58,11 +58,6 @@ public struct AppSettings: Codable, Sendable, Equatable {
     /// Optional user-set budgets used only when the API probe is unavailable.
     public var claudeSessionTokenBudget: Int?
     public var claudeWeeklyTokenBudget: Int?
-    /// Codex Pro rollouts never report a 5h window, so the session percent is
-    /// estimated from this user-set budget (nil = keep showing session tokens).
-    /// Defaults to 5B tokens so the estimated percent is visible out of the
-    /// box; adjust in Settings — the card always marks it with ~.
-    public var codexSessionTokenBudget: Int?
     /// Weather ambience (Now page): feature switch + location resolution.
     public var weatherEnabled: Bool = true
     /// Delight layer (mascot reactions, moments, sound/haptics, time tint):
@@ -107,7 +102,6 @@ public struct AppSettings: Codable, Sendable, Equatable {
         case notificationsEnabled
         case claudeSessionTokenBudget
         case claudeWeeklyTokenBudget
-        case codexSessionTokenBudget
         case weatherEnabled
         case delightEnabled
         case weatherCity
@@ -164,7 +158,6 @@ public struct AppSettings: Codable, Sendable, Equatable {
         notificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .notificationsEnabled) ?? true
         claudeSessionTokenBudget = try container.decodeIfPresent(Int.self, forKey: .claudeSessionTokenBudget)
         claudeWeeklyTokenBudget = try container.decodeIfPresent(Int.self, forKey: .claudeWeeklyTokenBudget)
-        codexSessionTokenBudget = try container.decodeIfPresent(Int.self, forKey: .codexSessionTokenBudget) ?? 5_000_000_000
         weatherEnabled = try container.decodeIfPresent(Bool.self, forKey: .weatherEnabled) ?? true
         delightEnabled = try container.decodeIfPresent(Bool.self, forKey: .delightEnabled) ?? true
         weatherCity = try container.decodeIfPresent(String.self, forKey: .weatherCity)

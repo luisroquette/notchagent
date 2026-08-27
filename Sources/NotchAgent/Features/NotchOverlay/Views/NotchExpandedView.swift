@@ -1422,7 +1422,7 @@ struct NotchExpandedView: View {
             }
 
             if !namedQuotas.isEmpty {
-                GaugeLabel(text: "WEEKLY QUOTA BY MODEL", color: Theme.textSecondary, size: 8)
+                GaugeLabel(text: "SEPARATE WEEKLY QUOTA", color: Theme.textSecondary, size: 8)
                 VStack(spacing: 6) {
                     ForEach(namedQuotas) { quota in
                         namedQuotaRow(quota)
@@ -1450,7 +1450,7 @@ struct NotchExpandedView: View {
     }
 
     /// A quota scoped to one model, separate from the provider's headline
-    /// aggregate — e.g. Codex's per-model weekly cap or Claude's Fable 5 pool.
+    /// aggregate — e.g. Codex Spark or Claude's Fable 5 pool.
     private func namedQuotaRow(_ quota: NamedQuota) -> some View {
         let remaining = max(0, 100 - quota.usedPercent)
         return HStack(spacing: 10) {

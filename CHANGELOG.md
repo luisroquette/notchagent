@@ -1,5 +1,39 @@
 # Changelog
 
+## 3.5.5 — 2026-08-27
+
+Codex quota-source correction. NotchAgent now reports only quota windows
+returned by OpenAI and no longer derives a 5-hour percentage from tokens or a
+user-configured budget.
+
+### Fixed
+
+- **Codex quotas now come from OpenAI's authenticated App Server endpoint,
+  `account/rateLimits/read`.** The macOS app prefers the Codex executable
+  bundled with the installed ChatGPT/Codex app and falls back to the local CLI.
+  The endpoint exposes `usedPercent`, `windowDurationMins`, `resetsAt`, and the
+  stable `limitId`; see the
+  [official App Server documentation](https://learn.chatgpt.com/docs/app-server#6-rate-limits-chatgpt).
+- **Removed the estimated 5-hour gauge.** The token-budget setting, default
+  5-billion-token assumption, and `~` percentage fallback are gone. When
+  OpenAI omits the 5-hour window, the card says that no 5-hour limit was
+  reported instead of manufacturing one.
+- **Standard Codex models are grouped by OpenAI's shared `codex` limit ID.**
+  GPT-5.3-Codex-Spark remains a separate metered pool, matching the official
+  multi-bucket response instead of treating every model as an independent
+  quota.
+- **macOS and Windows rollout parsing now preserve `limit_id`.** Historical
+  rollout data remains a read-only fallback; the live official response wins
+  on macOS when available.
+
+### Validation
+
+- Live authenticated read matched the current OpenAI Usage screen: 31% of the
+  shared weekly limit remaining, no current shared 5-hour window reported, and
+  Spark reported separately.
+- Swift suite: 573 tests passed, 8 opt-in hardware/login tests skipped, 0
+  failures. No paid model request is made by the quota reader.
+
 ## 3.5.4 — 2026-08-22
 
 Second critical fix in the same day. 3.5.3's cooldown reduced but did not
