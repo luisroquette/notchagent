@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.5.5 — 2026-08-27
+## Unreleased — 2026-08-27
 
 Codex quota-source correction. NotchAgent now reports only quota windows
 returned by OpenAI and no longer derives a 5-hour percentage from tokens or a
