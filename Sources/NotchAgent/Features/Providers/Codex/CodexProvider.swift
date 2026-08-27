@@ -1,8 +1,7 @@
 import Foundation
 
-/// Codex is the only provider with authoritative local quota data: rollout files
-/// embed `used_percent` for the 5h and weekly windows plus reset timestamps.
-/// Session tokens describe the newest rollout; percentages are account-wide.
+/// Codex quota percentages come from the authenticated app-server when available;
+/// rollout files provide local token totals and a read-only quota fallback.
 struct CodexProvider: UsageProvider {
     let id = ProviderID.codex
     let capabilities: ProviderCapabilities = [
@@ -20,6 +19,11 @@ struct CodexProvider: UsageProvider {
         self.root = root
         let liveRoot = AppPaths.home.appendingPathComponent(".codex/sessions").standardizedFileURL
         appServerRateLimits = root.standardizedFileURL == liveRoot ? .shared : nil
+    }
+
+    init(root: URL, appServerRateLimits: CodexAppServerRateLimitReader) {
+        self.root = root
+        self.appServerRateLimits = appServerRateLimits
     }
 
     /// "rollout-2026-07-13T14-04-44-<uuid>.jsonl" → local start date.
@@ -42,12 +46,19 @@ struct CodexProvider: UsageProvider {
 
     func fetchSnapshot(settings: AppSettings) async throws -> UsageSnapshot {
         let now = Date()
-        guard case .installed = detectInstallation() else {
+        let officialLimits = await appServerRateLimits?.currentLimits(now: now)
+        let isInstalled: Bool
+        if case .installed = detectInstallation() {
+            isInstalled = true
+        } else {
+            isInstalled = false
+        }
+        guard isInstalled || officialLimits != nil else {
             return UsageSnapshot(provider: id, health: .notInstalled)
         }
 
         let files = recentFiles(under: root, ext: "jsonl", modifiedAfter: now.addingTimeInterval(-Self.lookback))
-        guard !files.isEmpty else {
+        if files.isEmpty, officialLimits == nil {
             return UsageSnapshot(provider: id, health: .noData, note: "No sessions in the last 8 days")
         }
 
@@ -71,13 +82,13 @@ struct CodexProvider: UsageProvider {
         }
         await cache.prune(keeping: Set(files.map(\.path)))
 
-        guard !perFile.isEmpty else {
+        guard !perFile.isEmpty || officialLimits != nil else {
             return UsageSnapshot(provider: id, health: failedFiles > 0 ? .parseError : .noData)
         }
 
         // Newest rollout carries the freshest rate limits + current session totals.
-        let latestEntry = perFile.max { ($0.info.timestamp ?? .distantPast) < ($1.info.timestamp ?? .distantPast) }!
-        let latest = latestEntry.info
+        let latestEntry = perFile.max { ($0.info.timestamp ?? .distantPast) < ($1.info.timestamp ?? .distantPast) }
+        let latest = latestEntry?.info
         // Window semantics vary per plan — classify by duration, never by
         // position — and NEVER trust a window whose reset already passed
         // (an idle weekend must not freeze Friday's 80% as today's truth).
@@ -90,7 +101,7 @@ struct CodexProvider: UsageProvider {
         // models share `codex`; Spark is reported under its own ID. Model is
         // only activity metadata and must never define quota identity.
         var quotaScopes = Self.freshestQuotaScopesByLimitID(perFile)
-        if let official = await appServerRateLimits?.currentLimits(now: now) {
+        if let official = officialLimits {
             for (limitID, info) in official {
                 quotaScopes[limitID] = QuotaScope(info: info, observedAt: info.timestamp ?? now)
             }
@@ -119,7 +130,7 @@ struct CodexProvider: UsageProvider {
         // Session tokens: sum every rollout STARTED inside the official window;
         // long-lived rollouts that began earlier are excluded (documented
         // undercount — the authoritative number is the percentage anyway).
-        var sessionTokens = latest.totals
+        var sessionTokens = latest?.totals ?? .zero
         if let window = sessionWindow, let resets = window.resetsAt, let minutes = window.windowMinutes {
             let windowStart = resets.addingTimeInterval(-Double(minutes) * 60)
             let inWindow = perFile.filter { $0.start >= windowStart }
@@ -132,7 +143,7 @@ struct CodexProvider: UsageProvider {
             // this is the closest honest equivalent to Claude's "current
             // window": when the active rollout itself began — so the UI can
             // show "started 35m ago" instead of silently having nothing.
-            startedAt: sessionWindow == nil ? latestEntry.start : nil,
+            startedAt: sessionWindow == nil ? latestEntry?.start : nil,
             resetsAt: sessionWindow?.resetsAt,
             usedPercent: sessionWindow?.usedPercent,
             namedQuotas: namedSessionQuotas.isEmpty ? nil : namedSessionQuotas,
@@ -193,8 +204,8 @@ struct CodexProvider: UsageProvider {
             health: failedFiles > 0 ? .degraded : .ok,
             session: session,
             weekly: weekly,
-            activeModel: latest.model ?? defaultModel,
-            lastActivityAt: latest.timestamp,
+            activeModel: latest?.model ?? defaultModel,
+            lastActivityAt: latest?.timestamp,
             note: note.isEmpty ? nil : note,
             modelBreakdown: breakdown.isEmpty ? nil : breakdown
         )

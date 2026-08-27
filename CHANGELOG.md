@@ -18,6 +18,9 @@ user-configured budget.
   5-billion-token assumption, and `~` percentage fallback are gone. When
   OpenAI omits the 5-hour window, the card says that no 5-hour limit was
   reported instead of manufacturing one.
+- **Official quotas remain visible without recent rollout files.** The app now
+  reads the authenticated App Server before deciding that Codex has no local
+  session data.
 - **Standard Codex models are grouped by OpenAI's shared `codex` limit ID.**
   GPT-5.3-Codex-Spark remains a separate metered pool, matching the official
   multi-bucket response instead of treating every model as an independent

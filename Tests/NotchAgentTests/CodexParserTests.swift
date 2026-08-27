@@ -45,6 +45,27 @@ final class CodexParserTests: XCTestCase {
 }
 
 final class CodexAppServerRateLimitReaderTests: XCTestCase {
+    func testOfficialLimitsRemainAvailableWithoutLocalRollouts() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let sessions = root.appendingPathComponent("sessions")
+        let executable = root.appendingPathComponent("fake-codex")
+        try FileManager.default.createDirectory(at: sessions, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let response = #"{"id":2,"result":{"rateLimits":{"limitId":"codex","primary":{"usedPercent":21,"windowDurationMins":300},"secondary":{"usedPercent":69,"windowDurationMins":10080}}}}"#
+        try Data("#!/bin/sh\nprintf '%s\\n' '\(response)'\nsleep 1\n".utf8).write(to: executable)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+
+        let reader = CodexAppServerRateLimitReader(executableURL: executable, minInterval: 0)
+        let snapshot = try await CodexProvider(root: sessions, appServerRateLimits: reader)
+            .fetchSnapshot(settings: AppSettings())
+
+        XCTAssertEqual(snapshot.health, .ok)
+        XCTAssertEqual(snapshot.session?.tokens, .zero)
+        XCTAssertEqual(snapshot.session?.usedPercent, 21)
+        XCTAssertEqual(snapshot.weekly?.usedPercent, 69)
+    }
+
     func testLiveOfficialRateLimitsWhenExplicitlyEnabled() async throws {
         guard ProcessInfo.processInfo.environment["NOTCHAGENT_CODEX_RATE_LIMIT_E2E"] == "1" else {
             throw XCTSkip("Set NOTCHAGENT_CODEX_RATE_LIMIT_E2E=1 for the authenticated read-only test")
