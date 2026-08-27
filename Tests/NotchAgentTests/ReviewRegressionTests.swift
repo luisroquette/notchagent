@@ -158,20 +158,8 @@ final class StaleWindowTests: XCTestCase {
     }
 }
 
-/// Reproduces the bug reported 15/08/2026 and its two follow-ups, found by
-/// re-testing against live data after each deploy:
-/// 1. `codex /status` showed "Weekly limit: 0% left" (sol, exhausted) AND
-///    "GPT-5.3-Codex-Spark Weekly limit: 91% left". NotchAgent showed only
-///    92% — it picked up whichever scope the newest single rollout event
-///    happened to report and never recovered the other.
-/// 2. First fix attempt keyed scopes by `limit_name` — null on every
-///    locally-observed event, useless.
-/// 3. Second fix attempt keyed scopes by `resetsAt` — NOT stable either:
-///    Codex recomputes it fresh on every response, so the same model's cap
-///    carries a different `resetsAt` on every sighting (sometimes 1 second
-///    apart), fragmenting one real scope into dozens of fake ones and
-///    surfacing arbitrary stale readings. `model` is the only field that's
-///    genuinely stable, and it's what the breakdown needs anyway.
+/// Standard Codex models share OpenAI's `codex` quota pool. Spark is the
+/// separately metered exception and carries its own `limit_id`.
 final class CodexNamedWeeklyQuotaTests: XCTestCase {
     private var root: URL!
 
@@ -188,15 +176,7 @@ final class CodexNamedWeeklyQuotaTests: XCTestCase {
         try? FileManager.default.removeItem(at: root)
     }
 
-    // REGRESSÃO (21/08): a política mudou — Codex models are independent
-    // quota pools (verified empirically: a 429 on one model, then switching
-    // to another, worked immediately). "Worst model wins the headline" used
-    // to be the rule; now it's "most headroom wins" (see
-    // CodexProvider.primaryWeeklyScope). This test keeps its original job —
-    // proving resetsAt drift on the SAME model never fragments it into two
-    // scopes — but the headline assertion now points at the model WITH
-    // room, not the exhausted one.
-    func testBestModelIsTheHeadlineNumberEvenWhenAnOlderSighting() async throws {
+    func testSharedCodexIsHeadlineAndSparkStaysSeparate() async throws {
         let now = Date()
         // "resetsAt drift" from the real bug: two sightings of the SAME
         // model, minutes apart, computed slightly different reset times.
@@ -222,10 +202,10 @@ final class CodexNamedWeeklyQuotaTests: XCTestCase {
             to: root.appendingPathComponent("sessions/2026/08/15/rollout-sol-drift.jsonl")
         )
 
-        // Newest rollout: spark still has room.
+        // Newest rollout: Spark still has room, but in its separate pool.
         let sparkContent = """
         {"timestamp":"\(now.ISO8601Format())","type":"turn_context","payload":{"cwd":"/Users/test","model":"gpt-5.3-codex-spark","approval_policy":"on-request"}}
-        {"timestamp":"\(now.ISO8601Format())","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":2000,"cached_input_tokens":0,"output_tokens":200,"total_tokens":2200}},"rate_limits":{"limit_id":"codex","limit_name":null,"primary":{"used_percent":8.0,"window_minutes":10080,"resets_at":\(sparkResets)},"secondary":null,"plan_type":"pro"}}}
+        {"timestamp":"\(now.ISO8601Format())","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":2000,"cached_input_tokens":0,"output_tokens":200,"total_tokens":2200}},"rate_limits":{"limit_id":"codex_bengalfox","limit_name":"GPT-5.3-Codex-Spark","primary":{"used_percent":8.0,"window_minutes":10080,"resets_at":\(sparkResets)},"secondary":null,"plan_type":"pro"}}}
         """
         try Data((sparkContent + "\n").utf8).write(
             to: root.appendingPathComponent("sessions/2026/08/15/rollout-spark-fresh.jsonl")
@@ -235,13 +215,12 @@ final class CodexNamedWeeklyQuotaTests: XCTestCase {
         let snapshot = try await provider.fetchSnapshot(settings: AppSettings())
 
         XCTAssertEqual(
-            snapshot.weekly?.usedPercent, 8.0,
-            "the model with the MOST headroom must be the headline number — models are independent, so the exhausted one doesn't block the other"
+            snapshot.weekly?.usedPercent, 100.0,
+            "the freshest reading for the shared codex pool must be the headline"
         )
         let names = snapshot.weekly?.namedQuotas?.map(\.name).sorted() ?? []
-        XCTAssertEqual(names, ["gpt-5.3-codex-spark", "gpt-5.6-sol"], "resetsAt drift must not fragment sol into two entries")
-        let sol = try XCTUnwrap(snapshot.weekly?.namedQuotas?.first { $0.name == "gpt-5.6-sol" })
-        XCTAssertEqual(sol.usedPercent, 100.0, "the exhausted model must still be recoverable for the detail view")
+        XCTAssertEqual(names, ["GPT-5.3-Codex-Spark"])
+        XCTAssertEqual(snapshot.weekly?.namedQuotas?.first?.usedPercent, 8.0)
     }
 
     /// Reproduces the 15/08/2026 follow-up bug: the breakdown showed the
@@ -264,7 +243,7 @@ final class CodexNamedWeeklyQuotaTests: XCTestCase {
 
         let liveContent = """
         {"timestamp":"\(now.ISO8601Format())","type":"turn_context","payload":{"cwd":"/Users/test","model":"gpt-5.3-codex-spark","approval_policy":"on-request"}}
-        {"timestamp":"\(now.ISO8601Format())","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100}},"rate_limits":{"limit_id":"codex","limit_name":null,"primary":{"used_percent":40.0,"window_minutes":10080,"resets_at":\(liveResets)},"secondary":null,"plan_type":"pro"}}}
+        {"timestamp":"\(now.ISO8601Format())","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":0,"output_tokens":100,"total_tokens":1100}},"rate_limits":{"limit_id":"codex_bengalfox","limit_name":"GPT-5.3-Codex-Spark","primary":{"used_percent":40.0,"window_minutes":10080,"resets_at":\(liveResets)},"secondary":null,"plan_type":"pro"}}}
         """
         try Data((liveContent + "\n").utf8).write(
             to: root.appendingPathComponent("sessions/2026/08/15/rollout-live.jsonl")
@@ -274,7 +253,7 @@ final class CodexNamedWeeklyQuotaTests: XCTestCase {
         let snapshot = try await provider.fetchSnapshot(settings: AppSettings())
 
         let names = snapshot.weekly?.namedQuotas?.map(\.name) ?? []
-        XCTAssertEqual(names, ["gpt-5.3-codex-spark"], "an expired scope must never appear in the breakdown, no matter how it reads")
-        XCTAssertEqual(snapshot.weekly?.usedPercent, 40.0, "the headline must come from the live scope, not a stale one")
+        XCTAssertEqual(names, ["GPT-5.3-Codex-Spark"], "an expired shared scope must never appear as live data")
+        XCTAssertNil(snapshot.weekly?.usedPercent, "Spark must never replace missing shared Codex data")
     }
 }

@@ -41,8 +41,8 @@ public struct CostEstimate: Codable, Sendable, Equatable {
 }
 
 /// A quota scoped to something narrower than the provider's headline number —
-/// one specific model (Codex's per-model weekly cap, Claude's separately
-/// metered Fable 5 pool) rather than the "all models" aggregate. Providers
+/// one separately metered pool (Codex Spark, Claude Fable 5) rather than the
+/// shared aggregate. Providers
 /// that only ever expose one number never populate these; the headline
 /// gauge always stays the aggregate/worst-case value.
 public struct NamedQuota: Codable, Sendable, Equatable, Identifiable {

@@ -1,12 +1,8 @@
 import XCTest
 @testable import NotchAgent
 
-/// REGRESSÃO (22/08): Codex's weekly cap stopped being permanently exhausted
-/// after CodexProvider.primaryWeeklyScope started picking the model with the
-/// MOST headroom instead of the least (21/08 fix) — before that, Codex's
-/// GaugeMetric.isWeekly was ALWAYS true (the worst model's weekly cap always
-/// won). Now it can legitimately flip true/false refresh to refresh (weekly
-/// headroom vs session headline). Each flip mints a "new" fired-thresholds
+/// REGRESSÃO (22/08): a provider's GaugeMetric.isWeekly can legitimately flip
+/// true/false refresh to refresh (weekly vs session headline). Each flip mints a "new" fired-thresholds
 /// key (`firedThresholds` is keyed per provider+window on purpose — see the
 /// comment on that property), and the OTHER key's stale "fired" state looks
 /// like a fresh reset on the next flip back — presentRestore fires on every

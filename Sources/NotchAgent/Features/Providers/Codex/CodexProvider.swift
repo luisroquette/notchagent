@@ -10,22 +10,16 @@ struct CodexProvider: UsageProvider {
     ]
 
     private let root: URL
+    private let appServerRateLimits: CodexAppServerRateLimitReader?
     private let defaultModel = "gpt-5"
     private let cache = FileScanCache<CodexTokenInfo?>()
     private static let lookback: TimeInterval = 8 * 24 * 3600
+    static let sharedLimitID = "codex"
 
     init(root: URL = AppPaths.home.appendingPathComponent(".codex/sessions")) {
         self.root = root
-    }
-
-    /// 5h used-percent fallback for plans whose rollouts never report a
-    /// short window (measured: Codex Pro only carries the 7-day cap). Pure
-    /// token/budget ratio, same rule as Claude's budget fallback — only
-    /// shown when the user sets a session budget in Settings, never
-    /// fabricated from a hardcoded cap.
-    static func estimatedSessionPercent(tokens: Int, budget: Int?) -> Double? {
-        guard let budget, budget > 0 else { return nil }
-        return min(100, Double(tokens) / Double(budget) * 100)
+        let liveRoot = AppPaths.home.appendingPathComponent(".codex/sessions").standardizedFileURL
+        appServerRateLimits = root.standardizedFileURL == liveRoot ? .shared : nil
     }
 
     /// "rollout-2026-07-13T14-04-44-<uuid>.jsonl" → local start date.
@@ -92,31 +86,35 @@ struct CodexProvider: UsageProvider {
             if let resets = window.resetsAt, resets <= now { return nil }
             return window
         }
-        let sessionWindow = freshWindow(latest.sessionWindow)
-
-        // `resetsAt` is NOT a stable key — verified against live data: Codex
-        // recomputes it fresh on every response (effectively "now + 7 days"
-        // at request time), so the same model's cap shows a different
-        // resetsAt on every single sighting, sometimes just 1 second apart.
-        // Keying by it (an earlier fix attempt) fragmented one real scope
-        // into dozens of fake ones and could surface an arbitrary stale
-        // reading as if current. `limitName` is null on every
-        // locally-observed event too, so it's no better (an even earlier
-        // attempt tried that — see commit history). `model` is the only
-        // field that's genuinely stable, and it's exactly what the
-        // breakdown needs to answer anyway: "which model still has room."
-        let modelWeeklyScopes = Self.freshestWeeklyScopesByModel(perFile)
-        // A model's freshest known reading is only trustworthy if its OWN
-        // resetsAt hasn't already passed — a model unused this rolling week
-        // would otherwise keep showing last week's number forever.
-        let liveModelScopes = modelWeeklyScopes.filter { $0.value.window.resetsAt.map { $0 > now } ?? false }
-        let primaryWeeklyScope = Self.primaryWeeklyScope(among: liveModelScopes)
-        let weeklyWindow = primaryWeeklyScope?.window
-        let namedWeeklyQuotas: [NamedQuota] = liveModelScopes
-            .map { model, scope in
-                NamedQuota(name: model, usedPercent: scope.window.usedPercent, resetsAt: scope.window.resetsAt)
+        // OpenAI identifies quota pools with `limit_id`. Standard Codex
+        // models share `codex`; Spark is reported under its own ID. Model is
+        // only activity metadata and must never define quota identity.
+        var quotaScopes = Self.freshestQuotaScopesByLimitID(perFile)
+        if let official = await appServerRateLimits?.currentLimits(now: now) {
+            for (limitID, info) in official {
+                quotaScopes[limitID] = QuotaScope(info: info, observedAt: info.timestamp ?? now)
             }
-            .sorted { $0.name < $1.name }
+        }
+        let sharedInfo = quotaScopes[Self.sharedLimitID]?.info
+        let sessionWindow = freshWindow(sharedInfo?.sessionWindow)
+        let weeklyWindow = freshWindow(sharedInfo?.weeklyWindow)
+        let separateScopes = quotaScopes.filter { $0.key != Self.sharedLimitID }
+        let namedSessionQuotas = separateScopes.compactMap { key, scope -> NamedQuota? in
+            guard let window = freshWindow(scope.info.sessionWindow) else { return nil }
+            return NamedQuota(
+                name: Self.quotaName(for: scope.info, key: key),
+                usedPercent: window.usedPercent,
+                resetsAt: window.resetsAt
+            )
+        }.sorted { $0.name < $1.name }
+        let namedWeeklyQuotas = separateScopes.compactMap { key, scope -> NamedQuota? in
+            guard let window = freshWindow(scope.info.weeklyWindow) else { return nil }
+            return NamedQuota(
+                name: Self.quotaName(for: scope.info, key: key),
+                usedPercent: window.usedPercent,
+                resetsAt: window.resetsAt
+            )
+        }.sorted { $0.name < $1.name }
 
         // Session tokens: sum every rollout STARTED inside the official window;
         // long-lived rollouts that began earlier are excluded (documented
@@ -136,9 +134,9 @@ struct CodexProvider: UsageProvider {
             // show "started 35m ago" instead of silently having nothing.
             startedAt: sessionWindow == nil ? latestEntry.start : nil,
             resetsAt: sessionWindow?.resetsAt,
-            usedPercent: sessionWindow?.usedPercent
-                ?? Self.estimatedSessionPercent(tokens: sessionTokens.total, budget: settings.codexSessionTokenBudget),
-            usedPercentIsFromQuota: sessionWindow?.usedPercent != nil
+            usedPercent: sessionWindow?.usedPercent,
+            namedQuotas: namedSessionQuotas.isEmpty ? nil : namedSessionQuotas,
+            usedPercentIsFromQuota: sessionWindow != nil
         )
 
         // Weekly tokens/cost: sum of each rollout's final totals in the window.
@@ -185,7 +183,7 @@ struct CodexProvider: UsageProvider {
             namedQuotas: namedWeeklyQuotas.isEmpty ? nil : namedWeeklyQuotas
         )
 
-        let note = [latest.limitName, latest.planType.map { "Plan: \($0)" }]
+        let note = [sharedInfo?.planType.map { "Plan: \($0)" }]
             .compactMap(\.self)
             .joined(separator: " · ")
 
@@ -202,50 +200,34 @@ struct CodexProvider: UsageProvider {
         )
     }
 
-    /// One model's weekly window plus when it was last observed locally.
-    struct WeeklyScope: Sendable, Equatable {
-        var window: CodexRateWindow
+    /// One OpenAI quota pool plus when it was last observed locally.
+    struct QuotaScope: Sendable {
+        var info: CodexTokenInfo
         var observedAt: Date
     }
 
-    /// Recovers each model's freshest known weekly window, keyed by model
-    /// name — the only field that's genuinely stable across sightings.
-    /// `resetsAt` is NOT usable as a key: Codex recomputes it fresh on every
-    /// response (effectively "now + 7 days" at request time), so the same
-    /// model's cap carries a different `resetsAt` on every single sighting.
-    /// `limitName` is null on every locally-observed event and can't be used
-    /// either. Pure and testable: an event with no model attached (rare —
-    /// the `turn_context` marking it wasn't in the scanned tail) is skipped
-    /// rather than guessed at.
-    static func freshestWeeklyScopesByModel(
-        _ perFile: [(info: CodexTokenInfo, start: Date)]
-    ) -> [String: WeeklyScope] {
-        var byModel: [String: WeeklyScope] = [:]
-        for entry in perFile {
-            guard let window = entry.info.weeklyWindow, let model = entry.info.model else { continue }
-            let observedAt = entry.info.timestamp ?? entry.start
-            if observedAt > (byModel[model]?.observedAt ?? .distantPast) {
-                byModel[model] = WeeklyScope(window: window, observedAt: observedAt)
-            }
-        }
-        return byModel
+    static func quotaKey(for info: CodexTokenInfo) -> String {
+        if let limitID = info.limitID, !limitID.isEmpty { return limitID }
+        if let limitName = info.limitName, !limitName.isEmpty { return "named:\(limitName)" }
+        return sharedLimitID
     }
 
-    /// REGRESSÃO (21/08): each Codex model has its OWN independent weekly
-    /// cap — verified empirically: hitting a 429 on GPT-5.3-Codex-Spark,
-    /// then switching to another model, worked immediately with no wait.
-    /// Codex models are not a shared pool the way Claude's single account
-    /// is. Picking the WORST model as the headline (the old rule) painted
-    /// the whole "Codex" card red/exhausted whenever a single model you
-    /// happened to use ran out — even though the account plainly still
-    /// works for anything else. The headline must show the model with the
-    /// MOST headroom among what's been seen locally: "here's at least one
-    /// thing you can still use". Exhausted models still show individually
-    /// in the per-model breakdown (ProviderCardView.namedQuotas) — nothing
-    /// is hidden, the headline just stops overstating how blocked you are.
-    /// Only when EVERY known model is exhausted does this honestly return
-    /// the worst (and only) reading — there's nothing better to report.
-    static func primaryWeeklyScope(among liveModelScopes: [String: WeeklyScope]) -> WeeklyScope? {
-        liveModelScopes.values.min { $0.window.usedPercent < $1.window.usedPercent }
+    static func quotaName(for info: CodexTokenInfo, key: String) -> String {
+        info.limitName ?? key.replacingOccurrences(of: "named:", with: "")
+    }
+
+    /// Keeps the freshest official observation for each OpenAI quota pool.
+    static func freshestQuotaScopesByLimitID(
+        _ perFile: [(info: CodexTokenInfo, start: Date)]
+    ) -> [String: QuotaScope] {
+        var byLimitID: [String: QuotaScope] = [:]
+        for entry in perFile {
+            let key = quotaKey(for: entry.info)
+            let observedAt = entry.info.timestamp ?? entry.start
+            if observedAt > (byLimitID[key]?.observedAt ?? .distantPast) {
+                byLimitID[key] = QuotaScope(info: entry.info, observedAt: observedAt)
+            }
+        }
+        return byLimitID
     }
 }

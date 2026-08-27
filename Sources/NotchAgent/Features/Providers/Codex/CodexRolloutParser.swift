@@ -16,6 +16,8 @@ struct CodexTokenInfo: Sendable {
     var primary: CodexRateWindow?
     var secondary: CodexRateWindow?
     var planType: String?
+    /// Stable quota identity emitted by OpenAI (for example `codex`).
+    var limitID: String? = nil
     var limitName: String?
     /// Model driving this rollout (from the newest `turn_context` event).
     var model: String?
@@ -53,6 +55,7 @@ enum CodexRolloutParser {
                 let primary: Window?
                 let secondary: Window?
                 let planType: String?
+                let limitId: String?
                 let limitName: String?
             }
             let type: String?
@@ -105,6 +108,7 @@ enum CodexRolloutParser {
                     primary: window(from: payload?.rateLimits?.primary),
                     secondary: window(from: payload?.rateLimits?.secondary),
                     planType: payload?.rateLimits?.planType,
+                    limitID: payload?.rateLimits?.limitId,
                     limitName: payload?.rateLimits?.limitName
                 )
             }

@@ -38,9 +38,7 @@ final class UsageStore {
     /// provider+window (session vs weekly) — a real design choice (see that
     /// property's comment) so a gauge flipping windows never suppresses nor
     /// re-fires a genuine alert. But a provider whose GaugeMetric.isWeekly
-    /// itself flips true/false refresh-to-refresh (Codex, since
-    /// CodexProvider.primaryWeeklyScope started picking the model with the
-    /// MOST headroom — weekly is no longer always exhausted) mints a "new"
+    /// itself flips true/false refresh-to-refresh mints a "new"
     /// key on every flip, and the OTHER key's stale fired state looks like a
     /// fresh reset on the very next flip back. Without a floor, that
     /// alternation celebrates (and force-expands the panel) every few
