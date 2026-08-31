@@ -79,3 +79,9 @@ jobs:
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes"
           git remote add public git@github.com:luisroquette/notchagent.git
           git push public HEAD:master
+          public_sha=$(git ls-remote public refs/heads/master | awk '{print $1}')
+          [[ "$public_sha" == "$GITHUB_SHA" ]]
+          git fetch --no-tags public master:refs/remotes/public/master
+          feed_version=$(git show refs/remotes/public/master:appcast.xml \
+            | grep -oE '<sparkle:shortVersionString>[^<]+' | head -1 | sed 's/.*>//')
+          [[ "$feed_version" == "$(cat VERSION)" ]]

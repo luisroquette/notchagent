@@ -1,12 +1,17 @@
 # Changelog
 
-## Unreleased — 2026-08-27
+## 3.5.5 — 2026-08-31
 
 Codex quota-source correction. NotchAgent now reports only quota windows
 returned by OpenAI and no longer derives a 5-hour percentage from tokens or a
 user-configured budget.
 
 ### Fixed
+
+- **Claude usage refresh no longer freezes after Session Insights scans.**
+  Transcript parsing now reuses a persistent per-file cache and consumes only
+  appended JSONL bytes. Insights run outside the quota-refresh critical path,
+  so a large Claude history cannot keep every later refresh queued forever.
 
 - **Codex quotas now come from OpenAI's authenticated App Server endpoint,
   `account/rateLimits/read`.** The macOS app prefers the Codex executable
@@ -34,8 +39,10 @@ user-configured budget.
 - Live authenticated read matched the current OpenAI Usage screen: 31% of the
   shared weekly limit remaining, no current shared 5-hour window reported, and
   Spark reported separately.
-- Swift suite: 573 tests passed, 8 opt-in hardware/login tests skipped, 0
+- Swift suite: 578 tests passed, 9 opt-in hardware/login tests skipped, 0
   failures. No paid model request is made by the quota reader.
+- ZIP and DMG signed with Developer ID, accepted by Apple notarization,
+  stapled, and accepted by Gatekeeper.
 
 ## 3.5.4 — 2026-08-22
 

@@ -30,6 +30,14 @@ rg -q '\-o "\$output_dir/\$feed_filename"' Scripts/generate-update-appcast.sh ||
     echo "FAIL: appcast generator must write inside its validated output directory." >&2
     exit 1
 }
+for release_script in Scripts/notarize-app.sh Scripts/make-notarized-dmg.sh \
+    Scripts/generate-update-appcast.sh; do
+    rg -Fq "< VERSION" "$release_script" &&
+      ! rg -Fq 'NOTCHAGENT_DESK_RELEASE.json' "$release_script" || {
+        echo "FAIL: desktop release script uses the stale Desk Beta release contract: $release_script" >&2
+        exit 1
+      }
+done
 
 unit_label="$test_dir/unit-label.svg"
 Scripts/notchagent-desk-unit-label.sh "$unit_label" BETA1-LOT-A DESK-B1-001 >/dev/null
