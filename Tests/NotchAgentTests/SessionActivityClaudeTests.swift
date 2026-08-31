@@ -7,7 +7,7 @@ final class SessionActivityClaudeTests: XCTestCase {
     }
 
     func testParseMessagesReturnsAssistantMessagesWithUsage() throws {
-        let records = try ClaudeTranscriptParser.parseMessages(at: fixtureURL())
+        let records = try ClaudeTranscriptParser.parseMessages(at: fixtureURL()).records
         XCTAssertEqual(records.count, 2)                      // linhas user sem usage são ignoradas
         XCTAssertEqual(records[0].requestId, "req_1")
         XCTAssertEqual(records[0].model, "claude-sonnet-5")

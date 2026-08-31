@@ -34,6 +34,31 @@ final class SessionDataProvidersTests: XCTestCase {
         XCTAssertEqual(split?.subagent, TokenUsage(input: 1_100, output: 240, cacheWrite: 10, cacheRead: 9_020))
     }
 
+    // REGRESSÃO (31/08): Session Insights descartava o memo a cada tick e
+    // relia centenas de MB de transcripts inteiros, prendendo o scheduler.
+    func testClaudeInsightsAppendsOnlyNewTranscriptBytes() async throws {
+        let file = tempRoot.appendingPathComponent("live.jsonl")
+        let first = """
+        {"type":"assistant","timestamp":"2026-08-31T20:00:00Z","requestId":"first","message":{"model":"claude-sonnet-5","usage":{"input_tokens":10,"output_tokens":20}}}
+        """
+        try Data((first + "\n").utf8).write(to: file)
+
+        let provider = ClaudeSessionDataProvider(roots: [tempRoot], lookbackHours: 6)
+        let initialRecords = await provider.messages(provider: .claudeCode)
+        XCTAssertEqual(initialRecords.map(\.requestId), ["first"])
+
+        let second = """
+        {"type":"assistant","timestamp":"2026-08-31T20:01:00Z","requestId":"second","message":{"model":"claude-sonnet-5","usage":{"input_tokens":30,"output_tokens":40}}}
+        """
+        let handle = try FileHandle(forWritingTo: file)
+        try handle.seekToEnd()
+        try handle.write(contentsOf: Data((second + "\n").utf8))
+        try handle.close()
+
+        let updatedRecords = await provider.messages(provider: .claudeCode)
+        XCTAssertEqual(updatedRecords.map(\.requestId), ["first", "second"])
+    }
+
     // REGRESSÃO: registro Codex = rollout mais novo com modelo do turn_context
     // e normalização de cached (input subtraído, cacheRead = cached).
     func testCodexRecordUsesRolloutStartAndNormalizedTotals() throws {
