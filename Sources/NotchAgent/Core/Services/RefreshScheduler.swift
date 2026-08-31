@@ -88,8 +88,10 @@ final class RefreshScheduler {
     private let store: UsageStore
     private let snapshotStore: SnapshotStore
     private let historyStore: HistoryStore
+    private let sessionDataProvider: any SessionDataProvider
     private let statusPage = StatusPageService()
     private var loopTask: Task<Void, Never>?
+    private var insightsTask: Task<Void, Never>?
     private var refreshQueue = RefreshRequestQueue()
     private var generations = RefreshGenerationTracker()
     private var sleepGate = SleepGate()
@@ -105,12 +107,14 @@ final class RefreshScheduler {
         providers: [any UsageProvider],
         store: UsageStore,
         snapshotStore: SnapshotStore,
-        historyStore: HistoryStore
+        historyStore: HistoryStore,
+        sessionDataProvider: any SessionDataProvider = LiveSessionDataProvider()
     ) {
         self.providers = providers
         self.store = store
         self.snapshotStore = snapshotStore
         self.historyStore = historyStore
+        self.sessionDataProvider = sessionDataProvider
     }
 
     func start() {
@@ -143,6 +147,8 @@ final class RefreshScheduler {
     func stop() {
         loopTask?.cancel()
         loopTask = nil
+        insightsTask?.cancel()
+        insightsTask = nil
         NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 
@@ -310,12 +316,7 @@ final class RefreshScheduler {
         // entra no mesmo payload e dispara notificação com cooldown de 6h.
         let burnoutSignals = BurnoutAlerter.signals(
             snapshots: store.snapshots, percentHistory: store.percentHistory)
-        let payloads = await SessionInsightsEngine.refresh(
-            snapshots: store.snapshots,
-            dataProvider: LiveSessionDataProvider(),
-            burnout: burnoutSignals
-        )
-        store.setPayloads(payloads)
+        scheduleInsightsRefresh(snapshots: store.snapshots, burnout: burnoutSignals)
 
         if store.settings.notificationsEnabled {
             let defaults = UserDefaults.standard
@@ -336,6 +337,30 @@ final class RefreshScheduler {
         let runQueuedRefresh = refreshQueue.finish()
         if runQueuedRefresh {
             await tick(force: true)
+        }
+    }
+
+    /// Session transcript parsing is auxiliary. It must never hold the quota
+    /// refresh loop hostage when a transcript is huge or still being written.
+    func scheduleInsightsRefresh(
+        snapshots: [ProviderID: UsageSnapshot],
+        burnout: [ProviderID: SessionInsightsPayload.BurnoutSignal]
+    ) {
+        guard insightsTask == nil else {
+            Log.refresh.debug("insights refresh still running — skipped")
+            return
+        }
+        let dataProvider = sessionDataProvider
+        insightsTask = Task { [weak self] in
+            let payloads = await SessionInsightsEngine.refresh(
+                snapshots: snapshots,
+                dataProvider: dataProvider,
+                burnout: burnout
+            )
+            guard !Task.isCancelled else { return }
+            guard let self else { return }
+            self.store.setPayloads(payloads)
+            self.insightsTask = nil
         }
     }
 

@@ -5,10 +5,10 @@ cd "$(dirname "$0")/.."
 app="${1:-dist/NotchAgent.app}"
 profile="${NOTCHAGENT_NOTARY_PROFILE:-}"
 identity="${NOTCHAGENT_SIGN_IDENTITY:-}"
-version=$(jq -er '.appVersion' docs/NOTCHAGENT_DESK_RELEASE.json)
-build=$(jq -er '.buildNumber' docs/NOTCHAGENT_DESK_RELEASE.json)
-output="${NOTCHAGENT_DMG_OUTPUT:-dist/NotchAgent-Desk-Beta1-${version}.dmg}"
-evidence="${NOTCHAGENT_DMG_EVIDENCE:-docs/evidence/notchagent-desk-beta1-dmg-notarization.json}"
+version=$(tr -d '[:space:]' < VERSION)
+build=$(tr -d '[:space:]' < BUILD_NUMBER)
+output="${NOTCHAGENT_DMG_OUTPUT:-dist/NotchAgent-${version}.dmg}"
+evidence="${NOTCHAGENT_DMG_EVIDENCE:-dist/release-evidence/notchagent-${version}-dmg-notarization.json}"
 
 [[ -d "$app" && -x "$app/Contents/MacOS/NotchAgent" ]] || {
     echo "NOT READY: signed NotchAgent.app not found at $app." >&2
@@ -48,7 +48,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-stage="$work_dir/NotchAgent Desk"
+stage="$work_dir/NotchAgent"
 mkdir -p "$stage"
 ditto "$app" "$stage/NotchAgent.app"
 ln -s /Applications "$stage/Applications"
@@ -60,8 +60,8 @@ PLIST
 plutil -lint "$stage/Comece aqui.webloc" >/dev/null
 
 mkdir -p "${output:h}" "${evidence:h}"
-temporary_dmg="$work_dir/NotchAgent-Desk-Beta1-${version}.dmg"
-hdiutil create -quiet -volname "NotchAgent Desk" -srcfolder "$stage" -format UDZO "$temporary_dmg"
+temporary_dmg="$work_dir/NotchAgent-${version}.dmg"
+hdiutil create -quiet -volname "NotchAgent" -srcfolder "$stage" -format UDZO "$temporary_dmg"
 codesign --force --sign "$identity" --timestamp "$temporary_dmg"
 
 result="$work_dir/notary-result.json"

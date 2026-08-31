@@ -3,9 +3,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-release_contract="docs/NOTCHAGENT_DESK_RELEASE.json"
-version=$(jq -er '.appVersion' "$release_contract")
-asset="${1:-dist/NotchAgent-Desk-Beta1-${version}.zip}"
+version=$(tr -d '[:space:]' < VERSION)
+asset="${1:-dist/NotchAgent-${version}.zip}"
 output_dir="${2:-dist/updates}"
 feed_url="${NOTCHAGENT_UPDATE_FEED_URL:-}"
 download_prefix="${NOTCHAGENT_UPDATE_DOWNLOAD_URL_PREFIX:-}"

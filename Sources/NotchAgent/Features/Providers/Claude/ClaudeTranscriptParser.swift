@@ -132,9 +132,12 @@ enum ClaudeTranscriptParser {
     /// Registros por mensagem para o motor de insights (formato neutro do
     /// PayloadBuilder). Só linhas assistant com usage contam; `toolNames`
     /// preserva a ordem dos blocos tool_use de message.content.
-    static func parseMessages(at url: URL, from offset: UInt64 = 0) throws -> [PayloadBuilder.MessageRecord] {
+    static func parseMessages(
+        at url: URL,
+        from offset: UInt64 = 0
+    ) throws -> (records: [PayloadBuilder.MessageRecord], consumed: UInt64) {
         var records: [PayloadBuilder.MessageRecord] = []
-        _ = try JSONLReader.forEachLine(at: url, startingAt: offset) { data, _ in
+        let consumed = try JSONLReader.forEachLine(at: url, startingAt: offset) { data, _ in
             guard quickMatch(data),
                   let line = try? decoder.decode(Line.self, from: data),
                   line.type == "assistant",
@@ -157,7 +160,7 @@ enum ClaudeTranscriptParser {
                 toolNames: (line.message?.content ?? []).compactMap { $0.type == "tool_use" ? $0.name : nil }
             ))
         }
-        return records
+        return (records, consumed)
     }
 }
 

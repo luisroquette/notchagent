@@ -2,6 +2,15 @@ import XCTest
 @testable import NotchAgent
 
 final class RefreshSchedulerTests: XCTestCase {
+    private struct SlowInsightsProvider: SessionDataProvider {
+        func messages(provider: ProviderID) async -> [PayloadBuilder.MessageRecord] {
+            try? await Task.sleep(for: .seconds(30))
+            return []
+        }
+
+        func agentSplit(provider: ProviderID) async -> SessionInsightsPayload.AgentSplit? { nil }
+    }
+
     func testForcedRefreshDuringInFlightRefreshIsQueued() {
         var queue = RefreshRequestQueue()
 
@@ -23,6 +32,38 @@ final class RefreshSchedulerTests: XCTestCase {
 
         XCTAssertTrue(queue.begin(force: true))
         XCTAssertFalse(queue.finish())
+    }
+
+    // REGRESSÃO (31/08): insights lentos rodavam dentro de tick(), mantendo
+    // RefreshRequestQueue.isRunning=true e congelando todos os providers.
+    @MainActor
+    func testSlowInsightsStartOutsideRefreshCriticalPath() async {
+        let suite = "RefreshSchedulerTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let temp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("scheduler-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: temp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: temp) }
+
+        let scheduler = RefreshScheduler(
+            providers: [],
+            store: UsageStore(preferences: PreferencesStore(defaults: defaults)),
+            snapshotStore: SnapshotStore(fileURL: temp.appendingPathComponent("snapshots.json")),
+            historyStore: HistoryStore(fileURL: temp.appendingPathComponent("history.json")),
+            sessionDataProvider: SlowInsightsProvider()
+        )
+        let snapshot = UsageSnapshot(
+            provider: .claudeCode,
+            health: .ok,
+            session: SessionUsage(startedAt: .now.addingTimeInterval(-60))
+        )
+
+        let clock = ContinuousClock()
+        let started = clock.now
+        scheduler.scheduleInsightsRefresh(snapshots: [.claudeCode: snapshot], burnout: [:])
+        XCTAssertLessThan(started.duration(to: clock.now), .milliseconds(100))
+        scheduler.stop()
     }
 
     func testNewerProviderGenerationRejectsOlderResponse() {

@@ -7,11 +7,10 @@ import AgentMeterCore
 final class ClaudeSessionDataProvider: SessionDataProvider, @unchecked Sendable {
     private let roots: [URL]
     private let lookbackHours: Double
-    /// Memo por arquivo: re-parse só quando o tamanho muda (transcripts
-    /// vivos crescem a cada turno; a janela de insights não precisa de
-    /// re-parse idêntico a cada tick).
+    /// Memo incremental por arquivo. Transcripts vivos só leem os bytes novos;
+    /// arquivos truncados/reescritos voltam ao parse completo.
     private let lock = NSLock()
-    private var memo: [String: (size: UInt64, records: [PayloadBuilder.MessageRecord])] = [:]
+    private var memo: [String: (stamp: FileStamp, offset: UInt64, records: [PayloadBuilder.MessageRecord])] = [:]
 
     init(roots: [URL] = ClaudeProvider.defaultRoots, lookbackHours: Double = 6) {
         self.roots = roots
@@ -25,21 +24,26 @@ final class ClaudeSessionDataProvider: SessionDataProvider, @unchecked Sendable 
 
     private func records(for url: URL) -> [PayloadBuilder.MessageRecord] {
         let key = url.path
-        let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? UInt64) ?? 0
+        guard let stamp = FileStamp(url: url) else { return [] }
         lock.lock()
         defer { lock.unlock() }
-        if let cached = memo[key], cached.size == size {
-            return cached.records
-        }
-        let parsed: [PayloadBuilder.MessageRecord]
+
+        if let cached = memo[key], cached.stamp == stamp { return cached.records }
+
         do {
-            parsed = try ClaudeTranscriptParser.parseMessages(at: url)
+            if let cached = memo[key], UInt64(stamp.size) >= cached.offset {
+                let chunk = try ClaudeTranscriptParser.parseMessages(at: url, from: cached.offset)
+                let records = cached.records + chunk.records
+                memo[key] = (stamp, chunk.consumed, records)
+                return records
+            }
+            let parsed = try ClaudeTranscriptParser.parseMessages(at: url)
+            memo[key] = (stamp, parsed.consumed, parsed.records)
+            return parsed.records
         } catch {
             Log.providers.error("insights: failed to parse \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
-            parsed = []
+            return memo[key]?.records ?? []
         }
-        memo[key] = (size, parsed)
-        return parsed
     }
 
     func messages(provider: ProviderID) async -> [PayloadBuilder.MessageRecord] {

@@ -4,11 +4,10 @@ cd "$(dirname "$0")/.."
 
 app="${1:-dist/NotchAgent.app}"
 profile="${NOTCHAGENT_NOTARY_PROFILE:-}"
-evidence="${NOTCHAGENT_NOTARY_EVIDENCE:-docs/evidence/notchagent-desk-beta1-notarization.json}"
-release_contract="docs/NOTCHAGENT_DESK_RELEASE.json"
-expected_version=$(jq -er '.appVersion' "$release_contract")
-expected_build=$(jq -er '.buildNumber' "$release_contract")
-asset="${NOTCHAGENT_RELEASE_ASSET:-dist/NotchAgent-Desk-Beta1-${expected_version}.zip}"
+expected_version=$(tr -d '[:space:]' < VERSION)
+expected_build=$(tr -d '[:space:]' < BUILD_NUMBER)
+evidence="${NOTCHAGENT_NOTARY_EVIDENCE:-dist/release-evidence/notchagent-${expected_version}-notarization.json}"
+asset="${NOTCHAGENT_RELEASE_ASSET:-dist/NotchAgent-${expected_version}.zip}"
 [[ -d "$app" && -x "$app/Contents/MacOS/NotchAgent" ]] || {
     echo "Usage: NOTCHAGENT_NOTARY_PROFILE=<keychain-profile> $0 [app-path]" >&2
     exit 2
@@ -75,7 +74,7 @@ bundle_identifier=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$inf
 app_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info_plist")
 build_number=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info_plist")
 [[ "$app_version" == "$expected_version" && "$build_number" == "$expected_build" ]] || {
-    echo "NOT READY: app version/build does not match the Beta 1 release contract." >&2
+    echo "NOT READY: app version/build does not match VERSION and BUILD_NUMBER." >&2
     exit 1
 }
 executable_sha=$(shasum -a 256 "$app/Contents/MacOS/NotchAgent" | awk '{print $1}')
