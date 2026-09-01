@@ -18,6 +18,9 @@ actor NotchAgentDeskSerialTransport {
     private var acknowledgedProtocolMajor: UInt8?
     private var acknowledgedProtocolMinor: UInt8?
     private var acknowledgedFirmwareVersion: String?
+    private var acknowledgedHardwareModel: String?
+    private var acknowledgedHardwareRevision: String?
+    private var acknowledgedDisplayProfile: String?
     private var latestTelemetry: DeskDeviceTelemetry?
     private var pendingSnapshot: DeskSnapshot?
     private var lastHandshakeRefresh = ContinuousClock.now
@@ -185,8 +188,11 @@ actor NotchAgentDeskSerialTransport {
         if frame.type == .deviceTelemetry,
            isRecognized,
            let telemetry = try? decodeJSON(DeskDeviceTelemetry.self, from: frame.payload) {
-            guard telemetry.firmwareVersion == acknowledgedFirmwareVersion else {
-                Log.app.error("NotchAgent Desk handshake and telemetry firmware versions disagree")
+            guard telemetry.firmwareVersion == acknowledgedFirmwareVersion,
+                  telemetry.hardwareModel == acknowledgedHardwareModel,
+                  telemetry.hardwareRevision == acknowledgedHardwareRevision,
+                  telemetry.displayProfile == acknowledgedDisplayProfile else {
+                Log.app.error("NotchAgent Desk handshake and telemetry identity disagree")
                 if let connectedPath { candidateCooldowns[connectedPath] = .now }
                 disconnect()
                 return
@@ -198,6 +204,9 @@ actor NotchAgentDeskSerialTransport {
                 firmwareVersion: telemetry.firmwareVersion,
                 protocolMajor: acknowledgedProtocolMajor,
                 protocolMinor: acknowledgedProtocolMinor,
+                hardwareModel: acknowledgedHardwareModel,
+                hardwareRevision: acknowledgedHardwareRevision,
+                displayProfile: acknowledgedDisplayProfile,
                 telemetry: telemetry
             ))
             return
@@ -219,7 +228,12 @@ actor NotchAgentDeskSerialTransport {
             return
         }
         guard let firmwareVersion = acknowledgement.firmwareVersion,
-              firmwareVersion.wholeMatch(of: /[0-9]+\.[0-9]+\.[0-9]+/) != nil else {
+              NotchAgentDeskProtocol.isSupportedFirmwareVersion(firmwareVersion),
+              acknowledgement.protocolMinor < 4 || (
+                acknowledgement.hardwareModel == NotchAgentDeskProtocol.revAHardwareModel &&
+                acknowledgement.hardwareRevision == NotchAgentDeskProtocol.revAHardwareRevision &&
+                acknowledgement.displayProfile == NotchAgentDeskProtocol.revADisplayProfile
+              ) else {
             isIncompatible = true
             stateHandler(.init(
                 phase: .incompatible,
@@ -234,6 +248,9 @@ actor NotchAgentDeskSerialTransport {
         acknowledgedProtocolMajor = acknowledgement.protocolMajor
         acknowledgedProtocolMinor = acknowledgement.protocolMinor
         acknowledgedFirmwareVersion = firmwareVersion
+        acknowledgedHardwareModel = acknowledgement.hardwareModel
+        acknowledgedHardwareRevision = acknowledgement.hardwareRevision
+        acknowledgedDisplayProfile = acknowledgement.displayProfile
         lastHandshakeRefresh = .now
         candidateCooldowns[connectedPath ?? ""] = nil
         Log.app.info("NotchAgent Desk recognized")
@@ -243,6 +260,9 @@ actor NotchAgentDeskSerialTransport {
             firmwareVersion: acknowledgement.firmwareVersion,
             protocolMajor: acknowledgement.protocolMajor,
             protocolMinor: acknowledgement.protocolMinor,
+            hardwareModel: acknowledgement.hardwareModel,
+            hardwareRevision: acknowledgement.hardwareRevision,
+            displayProfile: acknowledgement.displayProfile,
             telemetry: latestTelemetry
         ))
         sendPendingSnapshot()
@@ -290,6 +310,9 @@ actor NotchAgentDeskSerialTransport {
         acknowledgedProtocolMajor = nil
         acknowledgedProtocolMinor = nil
         acknowledgedFirmwareVersion = nil
+        acknowledgedHardwareModel = nil
+        acknowledgedHardwareRevision = nil
+        acknowledgedDisplayProfile = nil
         latestTelemetry = nil
         decoder = DeskFrameStreamDecoder()
         stateHandler(.searching)
@@ -416,6 +439,10 @@ final class NotchAgentDeskCoordinator {
             updateState = .failed(message: error.localizedDescription)
             return
         }
+        guard DeskFirmwareHardwareCompatibility.matches(package, device: connectionState) else {
+            updateState = .failed(message: DeskFirmwareUpdateError.hardwareMismatch.localizedDescription)
+            return
+        }
         updateState = .updating
         let previous = lifecycleTask
         let transport = transport!
@@ -427,7 +454,7 @@ final class NotchAgentDeskCoordinator {
             do {
                 try await NotchAgentDeskFirmwareUpdater.flash(package: package, port: path)
                 await transport.start()
-                try await self.waitForInstalledFirmware(package.manifest.firmwareVersion)
+                try await self.waitForInstalledFirmware(package.manifest)
                 self.updateState = .succeeded(version: package.manifest.firmwareVersion)
                 self.schedulePublish()
             } catch {
@@ -437,15 +464,20 @@ final class NotchAgentDeskCoordinator {
         }
     }
 
-    private func waitForInstalledFirmware(_ expectedVersion: String) async throws {
+    private func waitForInstalledFirmware(_ manifest: DeskFirmwareManifest) async throws {
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: .seconds(15))
         while clock.now < deadline {
             switch DeskFirmwareVerification.evaluate(
                 connectionState,
-                expectedVersion: expectedVersion
+                expectedVersion: manifest.firmwareVersion
             ) {
             case .installed:
+                guard let hardwareModel = manifest.hardwareModel,
+                      connectionState.hardwareModel == hardwareModel,
+                      connectionState.telemetry?.hardwareModel == hardwareModel else {
+                    throw DeskFirmwareUpdateError.verificationFailed
+                }
                 return
             case .versionMismatch:
                 throw DeskFirmwareUpdateError.verificationFailed
