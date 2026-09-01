@@ -3,8 +3,15 @@ import Foundation
 enum NotchAgentDeskProtocol {
     static let product = "NotchAgent Desk"
     static let protocolMajor: UInt8 = 1
-    static let protocolMinor: UInt8 = 3
+    static let protocolMinor: UInt8 = 4
     static let maximumPayloadBytes = 16 * 1_024
+    static let revAHardwareModel = "waveshare-esp32-s3-touch-lcd-7b"
+    static let revAHardwareRevision = "rev-a"
+    static let revADisplayProfile = "rgb565-1024x600"
+
+    static func isSupportedFirmwareVersion(_ value: String) -> Bool {
+        value.wholeMatch(of: /(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.(0|[1-9][0-9]*))?/) != nil
+    }
 
     enum FrameType: UInt8, Codable, Sendable {
         case hello = 1
@@ -21,6 +28,9 @@ struct DeskHelloAcknowledgement: Codable, Sendable, Equatable {
     var protocolMinor: UInt8
     var nonce: UInt32
     var firmwareVersion: String?
+    var hardwareModel: String? = nil
+    var hardwareRevision: String? = nil
+    var displayProfile: String? = nil
 }
 
 struct NotchAgentDeskConnectionState: Sendable, Equatable {
@@ -37,6 +47,9 @@ struct NotchAgentDeskConnectionState: Sendable, Equatable {
     var firmwareVersion: String?
     var protocolMajor: UInt8?
     var protocolMinor: UInt8?
+    var hardwareModel: String? = nil
+    var hardwareRevision: String? = nil
+    var displayProfile: String? = nil
     var telemetry: DeskDeviceTelemetry? = nil
 
     static let disabled = Self(phase: .disabled)
@@ -45,6 +58,9 @@ struct NotchAgentDeskConnectionState: Sendable, Equatable {
 
 struct DeskDeviceTelemetry: Codable, Sendable, Equatable {
     var firmwareVersion: String
+    var hardwareModel: String? = nil
+    var hardwareRevision: String? = nil
+    var displayProfile: String? = nil
     var uptimeSeconds: UInt64
     var freeHeapBytes: UInt32
     var minimumFreeHeapBytes: UInt32

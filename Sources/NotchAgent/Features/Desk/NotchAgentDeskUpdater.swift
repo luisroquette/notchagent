@@ -6,6 +6,7 @@ import Security
 struct DeskFirmwareManifest: Codable, Sendable, Equatable {
     var schemaVersion: Int
     var firmwareVersion: String
+    var hardwareModel: String? = nil
     var chip: String
     var imageFile: String
     var imageAddress: UInt32
@@ -27,16 +28,20 @@ struct DeskFirmwarePackage: Sendable, Equatable {
         }
         let data = try Data(contentsOf: manifestURL, options: .mappedIfSafe)
         let object = try JSONSerialization.jsonObject(with: data)
-        let expectedKeys: Set<String> = [
+        let legacyKeys: Set<String> = [
             "schemaVersion", "firmwareVersion", "chip", "imageFile", "imageAddress",
             "imageSHA256", "sourceSHA256", "flasherFile", "flasherSHA256",
         ]
         guard let dictionary = object as? [String: Any],
-              Set(dictionary.keys) == expectedKeys else {
+              let schemaVersion = dictionary["schemaVersion"] as? Int,
+              Set(dictionary.keys) == (schemaVersion == 3 ? legacyKeys.union(["hardwareModel"]) : legacyKeys) else {
             throw DeskFirmwareUpdateError.invalidManifest
         }
         let manifest = try JSONDecoder().decode(DeskFirmwareManifest.self, from: data)
-        guard manifest.schemaVersion == 2,
+        guard (manifest.schemaVersion == 2 || (
+                manifest.schemaVersion == 3 &&
+                manifest.hardwareModel == NotchAgentDeskProtocol.revAHardwareModel
+              )),
               manifest.chip == "esp32s3",
               isSafeFilename(manifest.imageFile, extension: "bin"),
               isSafeFilename(manifest.flasherFile, extension: nil),
@@ -69,7 +74,7 @@ struct DeskFirmwarePackage: Sendable, Equatable {
     }
 
     private static func isSemVer(_ value: String) -> Bool {
-        value.wholeMatch(of: /[0-9]+\.[0-9]+\.[0-9]+/) != nil
+        NotchAgentDeskProtocol.isSupportedFirmwareVersion(value)
     }
 
     private static func isSHA256(_ value: String) -> Bool {
@@ -94,6 +99,7 @@ enum DeskFirmwareUpdateError: LocalizedError, Equatable {
     case invalidManifest
     case integrityFailure
     case invalidDevice
+    case hardwareMismatch
     case flashFailed
     case flashTimedOut
     case verificationFailed
@@ -105,6 +111,7 @@ enum DeskFirmwareUpdateError: LocalizedError, Equatable {
         case .invalidManifest: "Firmware manifest is invalid."
         case .integrityFailure: "Firmware package integrity check failed."
         case .invalidDevice: "The selected serial device is not supported."
+        case .hardwareMismatch: "Firmware does not match the authenticated Desk hardware."
         case .flashFailed: "The device could not be updated. Reconnect it and retry."
         case .flashTimedOut: "The firmware update exceeded 120 seconds and was stopped. Reconnect the device and retry."
         case .verificationFailed: "The device rebooted, but the installed firmware could not be verified."
@@ -148,10 +155,10 @@ enum DeskFirmwareRecoveryEligibility {
         connection: NotchAgentDeskConnectionState,
         updateState: NotchAgentDeskUpdateState
     ) -> Bool {
-        guard connection.path != nil else { return false }
-        guard connection.phase == .connected ||
-              connection.phase == .incompatible ||
-              connection.phase == .handshaking
+        guard connection.path != nil,
+              connection.phase == .connected,
+              connection.hardwareModel == NotchAgentDeskProtocol.revAHardwareModel,
+              connection.telemetry?.hardwareModel == NotchAgentDeskProtocol.revAHardwareModel
         else { return false }
         switch updateState {
         case .unavailable, .updating:
@@ -159,6 +166,15 @@ enum DeskFirmwareRecoveryEligibility {
         case .ready, .succeeded, .failed:
             return true
         }
+    }
+}
+
+enum DeskFirmwareHardwareCompatibility {
+    static func matches(_ package: DeskFirmwarePackage, device: NotchAgentDeskConnectionState) -> Bool {
+        guard let hardwareModel = package.manifest.hardwareModel else { return false }
+        return device.phase == .connected &&
+        device.hardwareModel == hardwareModel &&
+        device.telemetry?.hardwareModel == hardwareModel
     }
 }
 

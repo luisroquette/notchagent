@@ -571,7 +571,10 @@ final class NotchAgentDeskTests: XCTestCase {
             protocolMajor: decodedHello.protocolMajor,
             protocolMinor: decodedHello.protocolMinor,
             nonce: decodedHello.nonce,
-            firmwareVersion: "0.6.4"
+            firmwareVersion: "1.0.0-alpha.1",
+            hardwareModel: NotchAgentDeskProtocol.revAHardwareModel,
+            hardwareRevision: NotchAgentDeskProtocol.revAHardwareRevision,
+            displayProfile: NotchAgentDeskProtocol.revADisplayProfile
         )
         try writeAll(try DeskFrameCodec.encode(.init(
             type: .helloAcknowledgement,
@@ -579,7 +582,11 @@ final class NotchAgentDeskTests: XCTestCase {
             payload: try JSONEncoder().encode(acknowledgement)
         )), to: master)
         let telemetry = DeskDeviceTelemetry(
-            firmwareVersion: "0.6.4", uptimeSeconds: 20, freeHeapBytes: 180_000,
+            firmwareVersion: "1.0.0-alpha.1",
+            hardwareModel: NotchAgentDeskProtocol.revAHardwareModel,
+            hardwareRevision: NotchAgentDeskProtocol.revAHardwareRevision,
+            displayProfile: NotchAgentDeskProtocol.revADisplayProfile,
+            uptimeSeconds: 20, freeHeapBytes: 180_000,
             minimumFreeHeapBytes: 170_000, framesPerSecond: 8.5, resetReason: "usb",
             invalidFrameCount: 0, handshakeCount: 1, touchCount: 0,
             lastTouchLatencyMs: 0, maximumTouchLatencyMs: 0
@@ -604,7 +611,10 @@ final class NotchAgentDeskTests: XCTestCase {
             protocolMajor: refreshedDecoded.protocolMajor,
             protocolMinor: refreshedDecoded.protocolMinor,
             nonce: refreshedDecoded.nonce,
-            firmwareVersion: "0.6.4"
+            firmwareVersion: "1.0.0-alpha.1",
+            hardwareModel: NotchAgentDeskProtocol.revAHardwareModel,
+            hardwareRevision: NotchAgentDeskProtocol.revAHardwareRevision,
+            displayProfile: NotchAgentDeskProtocol.revADisplayProfile
         )
         try writeAll(try DeskFrameCodec.encode(.init(
             type: .helloAcknowledgement,
@@ -681,7 +691,10 @@ final class NotchAgentDeskTests: XCTestCase {
                 protocolMajor: decoded.protocolMajor,
                 protocolMinor: NotchAgentDeskProtocol.protocolMinor,
                 nonce: decoded.nonce,
-                firmwareVersion: "harness"
+                firmwareVersion: "1.0.0-alpha.1",
+                hardwareModel: NotchAgentDeskProtocol.revAHardwareModel,
+                hardwareRevision: NotchAgentDeskProtocol.revAHardwareRevision,
+                displayProfile: NotchAgentDeskProtocol.revADisplayProfile
             )
             try writeAll(try DeskFrameCodec.encode(.init(
                 type: .helloAcknowledgement,
@@ -841,8 +854,9 @@ final class NotchAgentDeskTests: XCTestCase {
         try flasher.write(to: flasherURL)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: flasherURL.path)
         let manifest = DeskFirmwareManifest(
-            schemaVersion: 2,
-            firmwareVersion: "0.6.0",
+            schemaVersion: 3,
+            firmwareVersion: "1.0.0-alpha.1",
+            hardwareModel: NotchAgentDeskProtocol.revAHardwareModel,
             chip: "esp32s3",
             imageFile: imageURL.lastPathComponent,
             imageAddress: 0,
@@ -853,7 +867,12 @@ final class NotchAgentDeskTests: XCTestCase {
         )
         try JSONEncoder().encode(manifest).write(to: directory.appendingPathComponent("manifest.json"))
 
-        XCTAssertEqual(try DeskFirmwarePackage.load(from: directory).manifest.firmwareVersion, "0.6.0")
+        let package = try DeskFirmwarePackage.load(from: directory)
+        XCTAssertEqual(package.manifest.firmwareVersion, "1.0.0-alpha.1")
+        XCTAssertFalse(DeskFirmwareHardwareCompatibility.matches(
+            package,
+            device: .init(phase: .connected, hardwareModel: "unknown")
+        ))
         try Data("tampered".utf8).write(to: imageURL)
         XCTAssertThrowsError(try DeskFirmwarePackage.load(from: directory)) {
             XCTAssertEqual($0 as? DeskFirmwareUpdateError, .integrityFailure)
@@ -876,7 +895,8 @@ final class NotchAgentDeskTests: XCTestCase {
             SHA256.hash(data: $0).map { String(format: "%02x", $0) }.joined()
         }
         let manifest: [String: Any] = [
-            "schemaVersion": 2, "firmwareVersion": "0.6.4", "chip": "esp32s3",
+            "schemaVersion": 3, "firmwareVersion": "1.0.0-alpha.1",
+            "hardwareModel": NotchAgentDeskProtocol.revAHardwareModel, "chip": "esp32s3",
             "imageFile": "firmware.bin", "imageAddress": 0,
             "imageSHA256": sha(image), "sourceSHA256": String(repeating: "a", count: 64),
             "flasherFile": "esptool", "flasherSHA256": sha(flasher),
@@ -969,16 +989,27 @@ final class NotchAgentDeskTests: XCTestCase {
         )
     }
 
-    func testFirmwareRecoveryEligibilityIncludesIncompatibleAndHandshakeStates() {
+    func testFirmwareInstallRequiresAuthenticatedRevAHardware() {
         let path = "/dev/cu.usbmodem-test"
-        for phase in [
-            NotchAgentDeskConnectionState.Phase.handshaking,
-            .connected,
-            .incompatible,
-        ] {
-            XCTAssertTrue(DeskFirmwareRecoveryEligibility.canInstall(
+        let telemetry = DeskDeviceTelemetry(
+            firmwareVersion: "1.0.0-alpha.1",
+            hardwareModel: NotchAgentDeskProtocol.revAHardwareModel,
+            uptimeSeconds: 1, freeHeapBytes: 180_000, minimumFreeHeapBytes: 170_000,
+            framesPerSecond: 8, resetReason: "usb", invalidFrameCount: 0,
+            handshakeCount: 1, touchCount: 0, lastTouchLatencyMs: 0, maximumTouchLatencyMs: 0
+        )
+        XCTAssertTrue(DeskFirmwareRecoveryEligibility.canInstall(
+            connection: .init(
+                phase: .connected, path: path,
+                hardwareModel: NotchAgentDeskProtocol.revAHardwareModel,
+                telemetry: telemetry
+            ),
+            updateState: .ready(version: "1.0.0-alpha.1")
+        ))
+        for phase in [NotchAgentDeskConnectionState.Phase.handshaking, .incompatible] {
+            XCTAssertFalse(DeskFirmwareRecoveryEligibility.canInstall(
                 connection: .init(phase: phase, path: path),
-                updateState: .ready(version: "0.6.4")
+                updateState: .ready(version: "1.0.0-alpha.1")
             ))
         }
         XCTAssertFalse(DeskFirmwareRecoveryEligibility.canInstall(
