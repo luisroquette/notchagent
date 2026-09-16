@@ -236,8 +236,7 @@ struct ProviderCardView: View {
             weeklySecondaryBlock(
                 secondary: (percent, snapshot.weekly?.resetsAt),
                 warningAt: settings.warningThresholdPercent,
-                criticalAt: settings.criticalThresholdPercent,
-                resetCredits: snapshot.rateLimitResetCredits
+                criticalAt: settings.criticalThresholdPercent
             )
         } else {
             VStack(alignment: .leading, spacing: 3) {
@@ -317,8 +316,7 @@ struct ProviderCardView: View {
     private func weeklySecondaryBlock(
         secondary: (usedPercent: Double, resetsAt: Date?),
         warningAt: Double,
-        criticalAt: Double,
-        resetCredits: RateLimitResetCredits? = nil
+        criticalAt: Double
     ) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             let tint = Theme.riskTint(
@@ -343,52 +341,6 @@ struct ProviderCardView: View {
                         .font(Theme.body(12, weight: .bold))
                         .monospacedDigit()
                         .foregroundStyle(Theme.textSecondary)
-                }
-            }
-            if let credits = resetCredits, credits.availableCount > 0 {
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 5) {
-                        GaugeLabel(
-                            text: credits.totalCount > credits.availableCount
-                                ? "\(credits.availableCount) OF \(credits.totalCount) FREE RESETS LEFT"
-                                : "\(credits.availableCount) FREE RESET\(credits.availableCount == 1 ? "" : "S")",
-                            color: Theme.textFaint,
-                            size: 8
-                        )
-                        if let expires = credits.soonestExpiresAt {
-                            Text("· EXPIRES IN \(Format.countdown(to: expires))")
-                                .font(Theme.body(9, weight: .medium))
-                                .monospacedDigit()
-                                .foregroundStyle(Theme.textSecondary)
-                        }
-                    }
-                    // Opens OpenAI's own reset flow — NotchAgent never spends a
-                    // reset itself, credits are scarce (3 total) and the choice
-                    // of which one to use belongs to the account owner.
-                    // A plain Button's own tap here loses to
-                    // NotchContainerView's ancestor `.onTapGesture`
-                    // (expand-on-click) on macOS, so the actual open happens
-                    // in the .highPriorityGesture instead — that's the one
-                    // that reliably wins gesture resolution.
-                    Button {} label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.right.square.fill")
-                                .font(.system(size: 10, weight: .semibold))
-                            Text("USE A RESET")
-                                .font(Theme.body(10, weight: .bold))
-                                .kerning(0.3)
-                        }
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(Theme.coral))
-                    }
-                    .buttonStyle(.plain)
-                    .highPriorityGesture(
-                        TapGesture().onEnded {
-                            _ = NSWorkspace.shared.open(Self.codexUsageSettingsURL)
-                        }
-                    )
                 }
             }
         }
