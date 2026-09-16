@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// One provider inside the expanded notch panel, stick-style: giant
@@ -10,6 +11,10 @@ struct ProviderCardView: View {
     var burn: BurnRate.Projection?
 
     @Environment(UsageStore.self) private var store
+
+    /// NotchAgent never spends a reset itself — it opens OpenAI's own flow so
+    /// the account owner picks which of the (scarce, non-refundable) credits to use.
+    static let codexUsageSettingsURL = URL(string: "https://chatgpt.com/codex/settings/usage")!
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -353,6 +358,16 @@ struct ProviderCardView: View {
                             .monospacedDigit()
                             .foregroundStyle(Theme.textSecondary)
                     }
+                    Spacer(minLength: 4)
+                    // Opens OpenAI's own reset flow — NotchAgent never spends a
+                    // reset itself, credits are scarce (3 total) and the choice
+                    // of which one to use belongs to the account owner.
+                    Button {
+                        _ = NSWorkspace.shared.open(Self.codexUsageSettingsURL)
+                    } label: {
+                        StatusPill(text: "USE", color: Theme.coral)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
