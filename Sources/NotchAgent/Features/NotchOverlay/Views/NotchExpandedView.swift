@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import AgentMeterCore
 import UniformTypeIdentifiers
@@ -200,6 +201,13 @@ struct NotchExpandedView: View {
                 }
             }
             .frame(maxHeight: .infinity)
+            // Lives OUTSIDE both cards on purpose: Claude and Codex cards
+            // must stay visually symmetric (same layout, same height), and
+            // this is Codex-only content — adding it inside the card broke
+            // that symmetry.
+            if let credits = store.snapshots[.codex]?.rateLimitResetCredits, credits.availableCount > 0 {
+                codexResetCreditsStrip(credits)
+            }
             ForEach(stripProviders) { provider in
                 providerStrip(provider)
             }
@@ -207,6 +215,55 @@ struct NotchExpandedView: View {
         // The weather sky and precipitation layers live in
         // NotchContainerView, where they can cover the whole panel (notch
         // cap included) and fall ON the cards, not behind them.
+    }
+
+    /// Count + expiry + the "USE A RESET" CTA glued into one row, since
+    /// they're one idea ("you have free resets, here's how to spend one").
+    private func codexResetCreditsStrip(_ credits: RateLimitResetCredits) -> some View {
+        HStack(spacing: 8) {
+            GaugeLabel(
+                text: credits.totalCount > credits.availableCount
+                    ? "\(credits.availableCount) OF \(credits.totalCount) FREE CODEX RESETS LEFT"
+                    : "\(credits.availableCount) FREE CODEX RESET\(credits.availableCount == 1 ? "" : "S")",
+                color: Theme.textSecondary,
+                size: 9
+            )
+            if let expires = credits.soonestExpiresAt {
+                Text("· EXPIRES IN \(Format.countdown(to: expires))")
+                    .font(Theme.body(9, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textFaint)
+            }
+            Spacer()
+            // Opens OpenAI's own reset flow — NotchAgent never spends a
+            // reset itself, credits are scarce (3 total) and the choice of
+            // which one to use belongs to the account owner. A plain
+            // Button's own tap loses to NotchContainerView's ancestor
+            // `.onTapGesture` (expand-on-click) on macOS, so the open call
+            // lives in .highPriorityGesture instead — that one reliably wins.
+            Button {} label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.right.square.fill")
+                        .font(.system(size: 10, weight: .semibold))
+                    Text("USE A RESET")
+                        .font(Theme.body(10, weight: .bold))
+                        .kerning(0.3)
+                }
+                .foregroundStyle(.black)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(Theme.coral))
+            }
+            .buttonStyle(.plain)
+            .highPriorityGesture(
+                TapGesture().onEnded {
+                    _ = NSWorkspace.shared.open(ProviderCardView.codexUsageSettingsURL)
+                }
+            )
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .glassCard(cornerRadius: 9)
     }
 
     private func providerStrip(_ provider: ProviderID) -> some View {
