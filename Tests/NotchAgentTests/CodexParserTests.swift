@@ -98,8 +98,20 @@ final class CodexAppServerRateLimitReaderTests: XCTestCase {
         let limits = try XCTUnwrap(CodexAppServerRateLimitReader.parseResponse(Data(response.utf8), now: now))
         let credits = try XCTUnwrap(limits["codex"]?.resetCredits)
         XCTAssertEqual(credits.availableCount, 3)
+        // totalCount counts EVERY credit ever granted, used ones included.
+        XCTAssertEqual(credits.totalCount, 3)
         // Soonest AVAILABLE expiry — the already-used one must not win the min().
         XCTAssertEqual(credits.soonestExpiresAt, Date(timeIntervalSince1970: 1800100000))
+    }
+
+    func testTotalCountIncludesUsedCredits() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let response = #"{"id":2,"result":{"rateLimits":{"limitId":"codex","primary":{"usedPercent":50,"windowDurationMins":10080}},"rateLimitResetCredits":{"availableCount":1,"credits":[{"status":"available","expiresAt":1800604800},{"status":"used","expiresAt":1800000001},{"status":"used","expiresAt":1800000002}]}}}"#
+
+        let limits = try XCTUnwrap(CodexAppServerRateLimitReader.parseResponse(Data(response.utf8), now: now))
+        let credits = try XCTUnwrap(limits["codex"]?.resetCredits)
+        XCTAssertEqual(credits.availableCount, 1)
+        XCTAssertEqual(credits.totalCount, 3)
     }
 
     func testFallsBackToBackwardCompatibleSingleBucket() throws {

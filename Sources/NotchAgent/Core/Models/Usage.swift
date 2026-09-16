@@ -64,11 +64,15 @@ public struct NamedQuota: Codable, Sendable, Equatable, Identifiable {
 /// of the account's rate limit, each with its own expiry. Codex-only today.
 public struct RateLimitResetCredits: Codable, Sendable, Equatable {
     public var availableCount: Int
+    /// Every credit OpenAI has ever granted this account (available + used +
+    /// expired) — how many you started with, not just how many are left.
+    public var totalCount: Int
     /// Expiry of the credit that will lapse soonest, if any are available.
     public var soonestExpiresAt: Date?
 
-    public init(availableCount: Int, soonestExpiresAt: Date? = nil) {
+    public init(availableCount: Int, totalCount: Int, soonestExpiresAt: Date? = nil) {
         self.availableCount = availableCount
+        self.totalCount = totalCount
         self.soonestExpiresAt = soonestExpiresAt
     }
 }
