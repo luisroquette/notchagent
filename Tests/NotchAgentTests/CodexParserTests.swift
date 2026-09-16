@@ -91,6 +91,17 @@ final class CodexAppServerRateLimitReaderTests: XCTestCase {
         XCTAssertEqual(limits["codex_bengalfox"]?.limitName, "GPT-5.3-Codex-Spark")
     }
 
+    func testParsesRateLimitResetCredits() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let response = #"{"id":2,"result":{"rateLimits":{"limitId":"codex","primary":{"usedPercent":100,"windowDurationMins":10080}},"rateLimitResetCredits":{"availableCount":3,"credits":[{"status":"available","expiresAt":1800604800},{"status":"available","expiresAt":1800100000},{"status":"used","expiresAt":1800000001}]}}}"#
+
+        let limits = try XCTUnwrap(CodexAppServerRateLimitReader.parseResponse(Data(response.utf8), now: now))
+        let credits = try XCTUnwrap(limits["codex"]?.resetCredits)
+        XCTAssertEqual(credits.availableCount, 3)
+        // Soonest AVAILABLE expiry — the already-used one must not win the min().
+        XCTAssertEqual(credits.soonestExpiresAt, Date(timeIntervalSince1970: 1800100000))
+    }
+
     func testFallsBackToBackwardCompatibleSingleBucket() throws {
         let response = #"{"id":2,"result":{"rateLimits":{"limitId":"codex","primary":{"usedPercent":40,"windowDurationMins":300,"resetsAt":1800000300},"secondary":null}}}"#
         let limits = try XCTUnwrap(CodexAppServerRateLimitReader.parseResponse(Data(response.utf8)))

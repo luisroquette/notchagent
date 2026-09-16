@@ -70,6 +70,10 @@ actor CodexAppServerRateLimitReader {
                 return nil
             }
 
+            // Account-wide, not per-bucket — attached to every entry so it
+            // survives regardless of which key ends up as the shared quota.
+            let resetCredits = extractResetCredits(from: result.rateLimitResetCredits)
+
             return buckets.reduce(into: [:]) { parsed, entry in
                 let bucket = entry.value
                 let key = bucket.limitId ?? entry.key
@@ -80,11 +84,22 @@ actor CodexAppServerRateLimitReader {
                     secondary: window(bucket.secondary),
                     planType: bucket.planType,
                     limitID: key,
-                    limitName: bucket.limitName
+                    limitName: bucket.limitName,
+                    resetCredits: resetCredits
                 )
             }
         }
         return nil
+    }
+
+    private static func extractResetCredits(from raw: Envelope.Result.ResetCredits?) -> RateLimitResetCredits? {
+        guard let raw else { return nil }
+        let soonest = (raw.credits ?? [])
+            .filter { $0.status == "available" }
+            .compactMap(\.expiresAt)
+            .min()
+            .map { Date(timeIntervalSince1970: $0) }
+        return RateLimitResetCredits(availableCount: raw.availableCount ?? 0, soonestExpiresAt: soonest)
     }
 
     private static func fetch(executableURL: URL, now: Date) async throws -> [String: CodexTokenInfo]? {
@@ -143,6 +158,17 @@ actor CodexAppServerRateLimitReader {
         struct Result: Decodable {
             let rateLimits: Bucket?
             let rateLimitsByLimitId: [String: Bucket]?
+            let rateLimitResetCredits: ResetCredits?
+
+            struct ResetCredits: Decodable {
+                let availableCount: Int?
+                let credits: [Credit]?
+            }
+
+            struct Credit: Decodable {
+                let status: String?
+                let expiresAt: Double?
+            }
         }
     }
 
