@@ -6,7 +6,7 @@ final class ResetCreditAlerterTests: XCTestCase {
     func testExpiringWithinLeadFires() {
         let now = Date()
         let signal = ResetCreditAlerter.signal(
-            credits: RateLimitResetCredits(availableCount: 3, soonestExpiresAt: now.addingTimeInterval(48 * 3600)),
+            credits: RateLimitResetCredits(availableCount: 3, totalCount: 3, soonestExpiresAt: now.addingTimeInterval(48 * 3600)),
             now: now
         )
         XCTAssertNotNil(signal)
@@ -17,7 +17,7 @@ final class ResetCreditAlerterTests: XCTestCase {
     func testExpiringOutsideLeadDoesNotFire() {
         let now = Date()
         let signal = ResetCreditAlerter.signal(
-            credits: RateLimitResetCredits(availableCount: 3, soonestExpiresAt: now.addingTimeInterval(10 * 24 * 3600)),
+            credits: RateLimitResetCredits(availableCount: 3, totalCount: 3, soonestExpiresAt: now.addingTimeInterval(10 * 24 * 3600)),
             now: now
         )
         XCTAssertNil(signal)
@@ -27,7 +27,7 @@ final class ResetCreditAlerterTests: XCTestCase {
     func testZeroAvailableDoesNotFire() {
         let now = Date()
         let signal = ResetCreditAlerter.signal(
-            credits: RateLimitResetCredits(availableCount: 0, soonestExpiresAt: now.addingTimeInterval(3600)),
+            credits: RateLimitResetCredits(availableCount: 0, totalCount: 3, soonestExpiresAt: now.addingTimeInterval(3600)),
             now: now
         )
         XCTAssertNil(signal)
@@ -37,7 +37,7 @@ final class ResetCreditAlerterTests: XCTestCase {
     func testAlreadyExpiredDoesNotFire() {
         let now = Date()
         let signal = ResetCreditAlerter.signal(
-            credits: RateLimitResetCredits(availableCount: 3, soonestExpiresAt: now.addingTimeInterval(-3600)),
+            credits: RateLimitResetCredits(availableCount: 3, totalCount: 3, soonestExpiresAt: now.addingTimeInterval(-3600)),
             now: now
         )
         XCTAssertNil(signal)

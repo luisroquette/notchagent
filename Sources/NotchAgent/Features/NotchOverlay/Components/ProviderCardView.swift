@@ -349,7 +349,9 @@ struct ProviderCardView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 5) {
                         GaugeLabel(
-                            text: "\(credits.availableCount) FREE RESET\(credits.availableCount == 1 ? "" : "S")",
+                            text: credits.totalCount > credits.availableCount
+                                ? "\(credits.availableCount) OF \(credits.totalCount) FREE RESETS LEFT"
+                                : "\(credits.availableCount) FREE RESET\(credits.availableCount == 1 ? "" : "S")",
                             color: Theme.textFaint,
                             size: 8
                         )

@@ -99,7 +99,11 @@ actor CodexAppServerRateLimitReader {
             .compactMap(\.expiresAt)
             .min()
             .map { Date(timeIntervalSince1970: $0) }
-        return RateLimitResetCredits(availableCount: raw.availableCount ?? 0, soonestExpiresAt: soonest)
+        return RateLimitResetCredits(
+            availableCount: raw.availableCount ?? 0,
+            totalCount: raw.credits?.count ?? raw.availableCount ?? 0,
+            soonestExpiresAt: soonest
+        )
     }
 
     private static func fetch(executableURL: URL, now: Date) async throws -> [String: CodexTokenInfo]? {
