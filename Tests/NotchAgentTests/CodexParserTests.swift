@@ -97,6 +97,46 @@ final class CodexAppServerRateLimitReaderTests: XCTestCase {
         XCTAssertEqual(limits.keys.sorted(), ["codex"])
         XCTAssertEqual(limits["codex"]?.sessionWindow?.usedPercent, 40)
     }
+
+    /// REGRESSÃO 16/09/2026: NotchAgent rodou 60h sem reiniciar; o app-server
+    /// oficial parou de responder com sucesso em algum ponto e o notch continuou
+    /// exibindo "81% restante" com confiança total enquanto a conta real já
+    /// estava em 100% usado / 0% restante. `cached` não tinha teto de idade.
+    func testCacheExpiresAfterMaxAgeWhenFetchesKeepFailing() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let executable = root.appendingPathComponent("fake-codex")
+        let marker = root.appendingPathComponent("called")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let response = #"{"id":2,"result":{"rateLimits":{"limitId":"codex","primary":{"usedPercent":19,"windowDurationMins":10080}}}}"#
+        let script = """
+        #!/bin/sh
+        if [ -f "\(marker.path)" ]; then
+            exit 1
+        fi
+        touch "\(marker.path)"
+        printf '%s\\n' '\(response)'
+        sleep 1
+        """
+        try Data(script.utf8).write(to: executable)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+
+        let reader = CodexAppServerRateLimitReader(executableURL: executable, minInterval: 0, maxCacheAge: 300)
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+
+        let first = await reader.currentLimits(now: t0)
+        XCTAssertEqual(first?["codex"]?.weeklyWindow?.usedPercent, 19)
+
+        // Fetch fails silently but the cache is still fresh: brief hiccups are tolerated.
+        let stillFresh = await reader.currentLimits(now: t0.addingTimeInterval(60))
+        XCTAssertEqual(stillFresh?["codex"]?.weeklyWindow?.usedPercent, 19)
+
+        // Fetches kept failing past maxCacheAge: the stale reading must be dropped,
+        // never frozen indefinitely regardless of how long the process has been up.
+        let stale = await reader.currentLimits(now: t0.addingTimeInterval(601))
+        XCTAssertNil(stale)
+    }
 }
 
 final class GeminiParserTests: XCTestCase {

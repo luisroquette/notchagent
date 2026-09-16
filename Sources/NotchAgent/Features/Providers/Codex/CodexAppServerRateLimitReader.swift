@@ -7,15 +7,23 @@ actor CodexAppServerRateLimitReader {
 
     private let executableURL: URL?
     private let minInterval: TimeInterval
+    /// A NotchAgent process can legitimately run for days without restarting.
+    /// If official fetches keep failing silently that whole time, `cached` must
+    /// not be trusted forever — an account that hit 100%/0% left must never
+    /// keep showing a days-old "81% left" with full confidence.
+    private let maxCacheAge: TimeInterval
     private var cached: [String: CodexTokenInfo]?
     private var lastAttempt = Date.distantPast
+    private var lastSuccess = Date.distantPast
 
     init(
         executableURL: URL? = CodexAppServerRateLimitReader.defaultExecutableURL(),
-        minInterval: TimeInterval = 60
+        minInterval: TimeInterval = 60,
+        maxCacheAge: TimeInterval = 5 * 60
     ) {
         self.executableURL = executableURL
         self.minInterval = minInterval
+        self.maxCacheAge = maxCacheAge
     }
 
     private static func defaultExecutableURL(fileManager: FileManager = .default) -> URL? {
@@ -26,18 +34,23 @@ actor CodexAppServerRateLimitReader {
     }
 
     func currentLimits(now: Date = Date()) async -> [String: CodexTokenInfo]? {
-        if now.timeIntervalSince(lastAttempt) < minInterval { return cached }
+        if now.timeIntervalSince(lastAttempt) < minInterval { return freshCache(now: now) }
         lastAttempt = now
-        guard let executableURL else { return cached }
+        guard let executableURL else { return freshCache(now: now) }
 
         do {
             if let fresh = try await Self.fetch(executableURL: executableURL, now: now) {
                 cached = fresh
+                lastSuccess = now
             }
         } catch {
             Log.providers.info("codex app-server quota unavailable: \(error.localizedDescription, privacy: .public)")
         }
-        return cached
+        return freshCache(now: now)
+    }
+
+    private func freshCache(now: Date) -> [String: CodexTokenInfo]? {
+        now.timeIntervalSince(lastSuccess) <= maxCacheAge ? cached : nil
     }
 
     static func parseResponse(_ data: Data, now: Date = Date()) -> [String: CodexTokenInfo]? {
