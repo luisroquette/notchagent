@@ -207,7 +207,8 @@ struct CodexProvider: UsageProvider {
             activeModel: latest?.model ?? defaultModel,
             lastActivityAt: latest?.timestamp,
             note: note.isEmpty ? nil : note,
-            modelBreakdown: breakdown.isEmpty ? nil : breakdown
+            modelBreakdown: breakdown.isEmpty ? nil : breakdown,
+            rateLimitResetCredits: sharedInfo?.resetCredits
         )
     }
 

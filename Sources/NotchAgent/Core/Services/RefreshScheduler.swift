@@ -328,6 +328,14 @@ final class RefreshScheduler {
                     defaults.set(fired, forKey: key)
                 }
             }
+
+            if let signal = ResetCreditAlerter.signal(credits: store.snapshots[.codex]?.rateLimitResetCredits) {
+                let last = defaults.object(forKey: ResetCreditNotifier.lastNotifiedKey) as? Date
+                if let fired = ResetCreditNotifier.evaluate(
+                    signal: signal, gate: UNNotificationGate.shared, lastNotifiedAt: last) {
+                    defaults.set(fired, forKey: ResetCreditNotifier.lastNotifiedKey)
+                }
+            }
         }
 
         await historyStore.flush()

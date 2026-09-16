@@ -231,7 +231,8 @@ struct ProviderCardView: View {
             weeklySecondaryBlock(
                 secondary: (percent, snapshot.weekly?.resetsAt),
                 warningAt: settings.warningThresholdPercent,
-                criticalAt: settings.criticalThresholdPercent
+                criticalAt: settings.criticalThresholdPercent,
+                resetCredits: snapshot.rateLimitResetCredits
             )
         } else {
             VStack(alignment: .leading, spacing: 3) {
@@ -308,7 +309,12 @@ struct ProviderCardView: View {
     /// The weekly cap rendered as the bottom block — smaller scale of the
     /// session block above. Used only by `weeklyWindowBlock`.
     @ViewBuilder
-    private func weeklySecondaryBlock(secondary: (usedPercent: Double, resetsAt: Date?), warningAt: Double, criticalAt: Double) -> some View {
+    private func weeklySecondaryBlock(
+        secondary: (usedPercent: Double, resetsAt: Date?),
+        warningAt: Double,
+        criticalAt: Double,
+        resetCredits: RateLimitResetCredits? = nil
+    ) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             let tint = Theme.riskTint(
                 used: secondary.usedPercent,
@@ -332,6 +338,21 @@ struct ProviderCardView: View {
                         .font(Theme.body(12, weight: .bold))
                         .monospacedDigit()
                         .foregroundStyle(Theme.textSecondary)
+                }
+            }
+            if let credits = resetCredits, credits.availableCount > 0 {
+                HStack(spacing: 5) {
+                    GaugeLabel(
+                        text: "\(credits.availableCount) FREE RESET\(credits.availableCount == 1 ? "" : "S")",
+                        color: Theme.textFaint,
+                        size: 8
+                    )
+                    if let expires = credits.soonestExpiresAt {
+                        Text("· EXPIRES IN \(Format.countdown(to: expires))")
+                            .font(Theme.body(9, weight: .medium))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.textSecondary)
+                    }
                 }
             }
         }

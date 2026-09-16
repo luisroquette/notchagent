@@ -21,6 +21,8 @@ struct CodexTokenInfo: Sendable {
     var limitName: String?
     /// Model driving this rollout (from the newest `turn_context` event).
     var model: String?
+    /// Only ever set by the official app-server probe — rollout files never carry it.
+    var resetCredits: RateLimitResetCredits? = nil
 
     /// Codex changes window semantics per plan (some plans report a single
     /// weekly window as `primary`, `secondary: null`). Classify by duration

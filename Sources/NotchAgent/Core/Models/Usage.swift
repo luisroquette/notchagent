@@ -60,6 +60,19 @@ public struct NamedQuota: Codable, Sendable, Equatable, Identifiable {
     }
 }
 
+/// OpenAI's "Full reset" credits — a finite number of free, on-demand resets
+/// of the account's rate limit, each with its own expiry. Codex-only today.
+public struct RateLimitResetCredits: Codable, Sendable, Equatable {
+    public var availableCount: Int
+    /// Expiry of the credit that will lapse soonest, if any are available.
+    public var soonestExpiresAt: Date?
+
+    public init(availableCount: Int, soonestExpiresAt: Date? = nil) {
+        self.availableCount = availableCount
+        self.soonestExpiresAt = soonestExpiresAt
+    }
+}
+
 /// Usage inside the provider's current rate-limit session window (e.g. 5h block).
 public struct SessionUsage: Codable, Sendable, Equatable {
     public var tokens: TokenUsage
@@ -286,6 +299,8 @@ public struct UsageSnapshot: Codable, Sendable, Equatable {
     public var modelHealth: [ModelHealth]?
     /// Per-account cost, balance, or quota data from opt-in API monitors.
     public var accountUsage: [APIAccountUsage]?
+    /// OpenAI's free rate-limit resets, when the official probe reports them.
+    public var rateLimitResetCredits: RateLimitResetCredits?
 
     public init(
         provider: ProviderID,
@@ -299,7 +314,8 @@ public struct UsageSnapshot: Codable, Sendable, Equatable {
         quotaStatus: QuotaStatus? = nil,
         modelBreakdown: [ModelUsage]? = nil,
         modelHealth: [ModelHealth]? = nil,
-        accountUsage: [APIAccountUsage]? = nil
+        accountUsage: [APIAccountUsage]? = nil,
+        rateLimitResetCredits: RateLimitResetCredits? = nil
     ) {
         self.provider = provider
         self.capturedAt = capturedAt
@@ -313,5 +329,6 @@ public struct UsageSnapshot: Codable, Sendable, Equatable {
         self.modelBreakdown = modelBreakdown
         self.modelHealth = modelHealth
         self.accountUsage = accountUsage
+        self.rateLimitResetCredits = rateLimitResetCredits
     }
 }
