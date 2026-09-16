@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.5.6 — 2026-09-16
+
+Fixes a Codex quota that could freeze stale for days, and surfaces OpenAI's
+free rate-limit resets.
+
+### Fixed
+
+- **Codex's official quota cache could freeze indefinitely.** A NotchAgent
+  process that runs for days without restarting kept showing a days-old
+  weekly percentage once the official app-server probe started failing —
+  the cache had no age ceiling. It now expires after 5 minutes of failed
+  refreshes and falls back to local data instead.
+
+### Added
+
+- **Free "Full reset" credits now show in the notch.** OpenAI grants a
+  handful of free rate-limit resets, each with its own expiry
+  (`account/rateLimits/read`'s `rateLimitResetCredits`). The weekly block
+  now shows the count and a countdown to the soonest expiry, plus a
+  one-time alert when a credit is within 72h of lapsing unused.
+
 ## 3.5.5 — 2026-08-31
 
 Codex quota-source correction. NotchAgent now reports only quota windows
